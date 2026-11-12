@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fixture écrite à la main (Blender 5 n'exporte plus le Collada) : centimètres, Z vers le haut. -->
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset>
+    <unit name="centimeter" meter="0.01"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_cameras>
+    <camera id="Cam-camera" name="Cam">
+      <optics>
+        <technique_common>
+          <perspective>
+            <yfov sid="yfov">40</yfov>
+            <aspect_ratio>1.777778</aspect_ratio>
+            <znear sid="znear">10</znear>
+            <zfar sid="zfar">10000</zfar>
+          </perspective>
+        </technique_common>
+      </optics>
+    </camera>
+  </library_cameras>
+  <library_lights>
+    <light id="Lampe-light" name="Lampe">
+      <technique_common>
+        <point>
+          <color sid="color">1000 500 250</color>
+          <constant_attenuation>1</constant_attenuation>
+          <linear_attenuation>0</linear_attenuation>
+          <quadratic_attenuation>0.001</quadratic_attenuation>
+        </point>
+      </technique_common>
+    </light>
+  </library_lights>
+  <library_effects>
+    <effect id="Rouge-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <phong>
+            <emission><color sid="emission">0 0 0 1</color></emission>
+            <diffuse><color sid="diffuse">0.8 0.1 0.1 1</color></diffuse>
+            <shininess><float sid="shininess">49</float></shininess>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_materials>
+    <material id="Rouge-material" name="Rouge">
+      <instance_effect url="#Rouge-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="Plan-mesh" name="Plan">
+      <mesh>
+        <source id="Plan-mesh-positions">
+          <float_array id="Plan-mesh-positions-array" count="12">-100 -100 0 100 -100 0 100 100 0 -100 100 0</float_array>
+          <technique_common>
+            <accessor source="#Plan-mesh-positions-array" count="4" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Plan-mesh-normals">
+          <float_array id="Plan-mesh-normals-array" count="3">0 0 1</float_array>
+          <technique_common>
+            <accessor source="#Plan-mesh-normals-array" count="1" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="Plan-mesh-vertices">
+          <input semantic="POSITION" source="#Plan-mesh-positions"/>
+        </vertices>
+        <polylist material="Rouge-material" count="1">
+          <input semantic="VERTEX" source="#Plan-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#Plan-mesh-normals" offset="1"/>
+          <vcount>4</vcount>
+          <p>0 0 1 0 2 0 3 0</p>
+        </polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="Plan" name="Plan" type="NODE">
+        <matrix sid="transform">1 0 0 100 0 1 0 200 0 0 1 300 0 0 0 1</matrix>
+        <instance_geometry url="#Plan-mesh" name="Plan">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="Rouge-material" target="#Rouge-material"/>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+        <node id="Enfant" name="Enfant" type="NODE">
+          <matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 50 0 0 0 1</matrix>
+        </node>
+      </node>
+      <node id="Lampe" name="Lampe" type="NODE">
+        <matrix sid="transform">1 0 0 400 0 1 0 100 0 0 1 600 0 0 0 1</matrix>
+        <instance_light url="#Lampe-light"/>
+      </node>
+      <node id="Cam" name="Cam" type="NODE">
+        <matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 1000 0 0 0 1</matrix>
+        <instance_camera url="#Cam-camera"/>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>

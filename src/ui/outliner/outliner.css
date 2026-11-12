@@ -1,0 +1,317 @@
+/* Outliner — zone ui-panels. Variables du thème : src/ui/styles/theme.css (ui-shell). */
+
+.cf-outliner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-panel, #303030);
+  color: var(--text, #e6e6e6);
+  font: var(--font, 12px 'Segoe UI', system-ui, sans-serif);
+  outline: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------ en-tête */
+
+.cf-ol-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: 26px;
+  padding: 0 4px;
+  background: var(--bg-header, #2b2b2b);
+  border-bottom: 1px solid var(--border, #1a1a1a);
+}
+
+.cf-ol-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  background: var(--bg-field-dark, #1d1d1d);
+  border: 1px solid var(--border, #1a1a1a);
+  border-radius: var(--radius, 4px);
+}
+
+.cf-ol-search:focus-within {
+  border-color: var(--accent, #4772b3);
+}
+
+.cf-ol-search-icon {
+  flex: none;
+  margin: 0 4px 0 6px;
+  color: var(--text-dim, #9a9a9a);
+}
+
+.cf-ol-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px 0 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text, #e6e6e6);
+  font: inherit;
+}
+
+.cf-ol-search-input::placeholder {
+  color: var(--text-dim, #9a9a9a);
+}
+
+.cf-ol-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-right: 1px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius, 4px);
+  color: var(--text-dim, #9a9a9a);
+  cursor: pointer;
+}
+
+.cf-ol-search-clear:hover {
+  background: var(--bg-hover, #656565);
+  color: var(--text, #e6e6e6);
+}
+
+/* ------------------------------------------------------------------ liste (rendu fenêtré) */
+
+.cf-ol-scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.cf-ol-canvas {
+  position: relative;
+  width: 100%;
+}
+
+.cf-ol-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  height: var(--row-h, 22px);
+  padding-right: 4px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.cf-ol-row.is-alt {
+  background: var(--bg-row-alt, #2b2b2b);
+}
+
+.cf-ol-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cf-ol-row.is-selected {
+  background: rgba(71, 114, 179, 0.35);
+}
+
+.cf-ol-row.is-selected:hover {
+  background: rgba(71, 114, 179, 0.45);
+}
+
+.cf-ol-row.is-active {
+  background: rgba(71, 114, 179, 0.6);
+}
+
+.cf-ol-row.is-active .cf-ol-name {
+  color: var(--active, #ffbb55);
+  font-weight: 600;
+}
+
+.cf-ol-row.is-selected:not(.is-active) .cf-ol-name {
+  color: var(--select, #f5a623);
+}
+
+.cf-ol-row.is-current {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cf-ol-row.is-current .cf-ol-name {
+  color: #ffffff;
+}
+
+.cf-ol-row.is-hidden .cf-ol-name,
+.cf-ol-row.is-hidden .cf-ol-icon {
+  opacity: 0.45;
+}
+
+.cf-ol-row.is-drop {
+  background: rgba(71, 114, 179, 0.5);
+  box-shadow: inset 0 0 0 1px var(--accent-hover, #5680c2);
+}
+
+.cf-ol-row.is-drop-invalid {
+  box-shadow: inset 0 0 0 1px var(--danger, #c0392b);
+}
+
+.cf-ol-indent {
+  flex: none;
+  height: 100%;
+}
+
+.cf-ol-twisty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 16px;
+  height: 100%;
+  color: var(--text-dim, #9a9a9a);
+}
+
+.cf-ol-twisty:not(.is-empty) {
+  cursor: pointer;
+}
+
+.cf-ol-twisty:not(.is-empty):hover {
+  color: var(--text, #e6e6e6);
+}
+
+.cf-ol-icon {
+  flex: none;
+  margin: 0 5px 0 1px;
+}
+
+.cf-ol-icon.is-col {
+  color: #d9d9d9;
+}
+
+.cf-ol-row.is-root .cf-ol-icon {
+  color: var(--text-dim, #9a9a9a);
+}
+
+.cf-ol-icon.is-mesh {
+  color: #f0a35a;
+}
+
+.cf-ol-icon.is-light {
+  color: #e8d36a;
+}
+
+.cf-ol-icon.is-camera {
+  color: #8fb8e8;
+}
+
+.cf-ol-icon.is-empty {
+  color: #c9c9c9;
+}
+
+.cf-ol-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cf-ol-row.is-collection:not(.is-root) .cf-ol-name {
+  font-weight: 500;
+}
+
+.cf-ol-rename {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 18px;
+}
+
+.cf-ol-rename .cf-text {
+  width: 100%;
+  height: 18px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------ présence */
+
+.cf-ol-peers {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  margin: 0 4px;
+}
+
+.cf-ol-peer {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+}
+
+.cf-ol-peer-more {
+  font-size: 10px;
+  color: var(--text-dim, #9a9a9a);
+}
+
+/* ------------------------------------------------------------------ colonnes de droite */
+
+.cf-ol-cols {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  flex: none;
+  margin-left: auto;
+  padding-left: 4px;
+}
+
+.cf-ol-toggle,
+.cf-ol-toggle-spacer {
+  width: 20px;
+  height: 18px;
+  flex: none;
+}
+
+.cf-ol-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius, 4px);
+  color: var(--text, #e6e6e6);
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+.cf-ol-toggle:hover {
+  background: var(--bg-hover, #656565);
+  opacity: 1;
+}
+
+.cf-ol-toggle.is-off {
+  color: var(--text-dim, #9a9a9a);
+  opacity: 0.55;
+}
+
+.cf-ol-toggle.is-inherited:not(.is-off) {
+  opacity: 0.45;
+}
+
+.cf-ol-empty {
+  padding: 8px 10px;
+  color: var(--text-dim, #9a9a9a);
+  font-style: italic;
+  white-space: normal;
+}

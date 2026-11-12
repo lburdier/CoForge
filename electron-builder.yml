@@ -1,0 +1,54 @@
+appId: app.coforge.desktop
+productName: CoForge
+copyright: CoForge
+
+directories:
+  output: release
+  buildResources: build
+
+# Tout le code (processus principal, preload, renderer) est bundlé : aucun node_modules dans l'application.
+files:
+  - dist/**
+  - dist-electron/**
+  - package.json
+  - "!node_modules"
+  - "!**/node_modules/**"
+asar: true
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+
+# Serveur de collaboration autonome livré avec l'application (resources/coforge-server.cjs),
+# à copier sur une machine dédiée : node coforge-server.cjs --port 4455 --data ./rooms
+extraResources:
+  - from: dist-server/coforge-server.cjs
+    to: coforge-server.cjs
+
+fileAssociations:
+  - ext: coforge
+    name: CoForge Scene
+    description: Scène CoForge
+    icon: build/icon.ico
+    role: Editor
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+  # L'icône et les métadonnées de CoForge.exe sont appliquées par rcedit (archive winCodeSign d'electron-builder).
+  # Si l'extraction de winCodeSign échoue (Windows sans droit de créer des liens symboliques), décommenter
+  # la ligne suivante : l'installateur est produit, mais CoForge.exe garde l'icône Electron par défaut.
+  # signAndEditExecutable: false
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: CoForge
+  artifactName: CoForge-Setup-${version}.exe
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
