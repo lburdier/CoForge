@@ -321,7 +321,7 @@ export const CONTEXT_MENU_EDIT: MenuItem[] = [
  * Autres opérateurs du catalogue (hors menus) :
  *
  *   object.mode_toggle            Tab       bascule mode objet / mode édition (objet actif de type maillage)
- *   object.rename                 F2        renomme l'objet actif — args { name? } ; sans `name` : store.setState({ dialog: 'rename' })
+ *   object.rename                 F2        renomme l'objet actif, args { name? } ; sans `name` : store.setState({ dialog: 'rename' })
  *   object.modifier_add           args { type: ModifierType }
  *   object.modifier_remove        args { modifierId }
  *   object.modifier_move          args { modifierId, direction: -1 | 1 }

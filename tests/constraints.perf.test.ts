@@ -28,7 +28,7 @@ function median(xs: number[]): number {
   return s[Math.floor(s.length / 2)];
 }
 
-describe('SceneSync — performances sans contrainte', () => {
+describe('SceneSync - performances sans contrainte', () => {
   it('1 000 objets : déplacement de tous, puis d’un parent de 999 enfants', () => {
     const doc = SceneDoc.createNew();
     const cube = doc.listObjects().find((o) => o.type === 'mesh')!.id;
@@ -69,7 +69,7 @@ describe('SceneSync — performances sans contrainte', () => {
     expect(sync.nodes.get(ids[999])!.root.matrix.elements[14]).toBeCloseTo(30);
 
     console.log(
-      `[perf] 1000 objets sans contrainte — création ${create.toFixed(1)} ms ; tous déplacés : médiane ${median(all).toFixed(2)} ms ; parent de 999 enfants : médiane ${median(one).toFixed(2)} ms`,
+      `[perf] 1000 objets sans contrainte : création ${create.toFixed(1)} ms ; tous déplacés : médiane ${median(all).toFixed(2)} ms ; parent de 999 enfants : médiane ${median(one).toFixed(2)} ms`,
     );
     expect(median(all)).toBeLessThan(2000);
   });

@@ -150,7 +150,7 @@ function bindDocToStore(app: AppContext): void {
 function updateTitle(app: AppContext): void {
   const s = store.getState();
   const name = s.filePath ? s.filePath.split(/[\\/]/).pop() : app.doc.getScene().name;
-  platform.setTitle(`${name}${s.dirty ? ' *' : ''} — CoForge`);
+  platform.setTitle(`${name}${s.dirty ? ' *' : ''} - CoForge`);
 }
 
 /** Diffuse aux autres utilisateurs ce que fait l'utilisateur local (sélection, mode, identité). */

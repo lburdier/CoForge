@@ -326,7 +326,7 @@ function referenceGltf(): { builder: GltfBuilder; doc: Record<string, unknown> }
 
 // ================================================================== glTF construit ici
 
-describe('glTF — fichier construit dans le test', () => {
+describe('glTF - fichier construit dans le test', () => {
   const { builder, doc } = referenceGltf();
   const glb = builder.glb(doc);
 
@@ -816,7 +816,7 @@ function expectBlenderDocument(s: ImportedScene, orthoCamera: boolean): void {
   expect(doc.getCamera(docObject(doc, 'Camera').data!)!.near).toBeCloseTo(0.1, 5);
 }
 
-describe('glTF — export réel de Blender 5.1 (blender_scene.glb)', () => {
+describe('glTF - export réel de Blender 5.1 (blender_scene.glb)', () => {
   it('correspond à la vérité de Blender : hiérarchie, matrices, maillages, matériaux, lumières, caméras', async () => {
     const s = await readScene('blender_scene.glb', fixture('blender_scene.glb'));
     expect(s.warnings).toEqual([]);

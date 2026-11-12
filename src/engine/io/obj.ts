@@ -16,7 +16,7 @@ function fmt(v: number): string {
  * `usemtl` avec le nom du matériau. Les faces dont un sommet manque sont ignorées.
  */
 export function exportOBJ(items: ExportItem[]): string {
-  const out: string[] = ['# CoForge — export Wavefront OBJ (Y vers le haut, mètres)'];
+  const out: string[] = ['# CoForge - export Wavefront OBJ (Y vers le haut, mètres)'];
   const m = new Matrix4();
   const p = new Vector3();
   let base = 1;

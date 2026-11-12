@@ -63,7 +63,7 @@ export function tabsFor(type: ObjectType | null | undefined): TabInfo[] {
 
 /**
  * Onglet réellement affiché : l'onglet demandé s'il existe pour l'objet actif, sinon un repli
- * (Objet s'il y a un objet actif, Scène sinon) — le choix mémorisé n'est pas modifié, il
+ * (Objet s'il y a un objet actif, Scène sinon), le choix mémorisé n'est pas modifié, il
  * redevient actif dès qu'il a de nouveau un sens.
  */
 export function resolveTab(tabs: TabInfo[], wanted: PropertiesTab): TabInfo {

@@ -13,17 +13,17 @@ export interface ResolutionPreset {
 }
 
 export const RESOLUTION_PRESETS: ResolutionPreset[] = [
-  { id: 'hd720', label: 'HD 720p — 1280 × 720', resX: 1280, resY: 720 },
-  { id: 'hd1080', label: 'Full HD 1080p — 1920 × 1080', resX: 1920, resY: 1080 },
-  { id: 'qhd', label: 'QHD 1440p — 2560 × 1440', resX: 2560, resY: 1440 },
-  { id: 'uhd4k', label: '4K UHD — 3840 × 2160', resX: 3840, resY: 2160 },
-  { id: 'dci4k', label: '4K DCI — 4096 × 2160', resX: 4096, resY: 2160 },
-  { id: 'square1k', label: 'Carré — 1080 × 1080', resX: 1080, resY: 1080 },
-  { id: 'square2k', label: 'Carré — 2048 × 2048', resX: 2048, resY: 2048 },
-  { id: 'vertical', label: 'Vertical 9:16 — 1080 × 1920', resX: 1080, resY: 1920 },
-  { id: 'portrait45', label: 'Portrait 4:5 — 1080 × 1350', resX: 1080, resY: 1350 },
-  { id: 'photo32', label: 'Photo 3:2 — 3000 × 2000', resX: 3000, resY: 2000 },
-  { id: 'scope', label: 'Cinémascope 2,39:1 — 2048 × 858', resX: 2048, resY: 858 },
+  { id: 'hd720', label: 'HD 720p - 1280 × 720', resX: 1280, resY: 720 },
+  { id: 'hd1080', label: 'Full HD 1080p - 1920 × 1080', resX: 1920, resY: 1080 },
+  { id: 'qhd', label: 'QHD 1440p - 2560 × 1440', resX: 2560, resY: 1440 },
+  { id: 'uhd4k', label: '4K UHD - 3840 × 2160', resX: 3840, resY: 2160 },
+  { id: 'dci4k', label: '4K DCI - 4096 × 2160', resX: 4096, resY: 2160 },
+  { id: 'square1k', label: 'Carré - 1080 × 1080', resX: 1080, resY: 1080 },
+  { id: 'square2k', label: 'Carré - 2048 × 2048', resX: 2048, resY: 2048 },
+  { id: 'vertical', label: 'Vertical 9:16 - 1080 × 1920', resX: 1080, resY: 1920 },
+  { id: 'portrait45', label: 'Portrait 4:5 - 1080 × 1350', resX: 1080, resY: 1350 },
+  { id: 'photo32', label: 'Photo 3:2 - 3000 × 2000', resX: 3000, resY: 2000 },
+  { id: 'scope', label: 'Cinémascope 2,39:1 - 2048 × 858', resX: 2048, resY: 858 },
 ];
 
 /** Préréglage dont la résolution est exactement celle des réglages, ou null (« Personnalisé »). */
@@ -75,7 +75,7 @@ function gcd(a: number, b: number): number {
 export function aspectLabel(resX: number, resY: number): string {
   const x = Math.round(finite(resX, 0));
   const y = Math.round(finite(resY, 0));
-  if (x <= 0 || y <= 0) return '—';
+  if (x <= 0 || y <= 0) return '-';
   const g = gcd(x, y);
   const a = x / g;
   const b = y / g;

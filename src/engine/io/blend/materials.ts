@@ -315,7 +315,7 @@ function internalTextures(ctx: Ctx, mat: Rec, name: string): boolean {
 /**
  * Matériau sans nœuds. Blender 2.8+ : couleur d'affichage, métal, rugosité, alpha (comme EEVEE).
  * Blender Internal (≤ 2.79), conversion documentée :
- *  - couleur diffuse (r, g, b) telle quelle — comme Blender ≥ 2.80 qui ouvre le fichier ;
+ *  - couleur diffuse (r, g, b) telle quelle, comme Blender ≥ 2.80 qui ouvre le fichier ;
  *  - alpha si « Transparency » est actif ;
  *  - dureté spéculaire (Blinn-Phong, 1..511) → rugosité ≈ √(2 / (dureté + 2)) ;
  *  - miroir (raytrace) → métal = facteur de réflexion ;

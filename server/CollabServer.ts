@@ -12,7 +12,7 @@ import * as Y from 'yjs';
 import pkg from '../package.json';
 
 /**
- * Serveur de collaboration CoForge — Node pur (ni Electron, ni DOM).
+ * Serveur de collaboration CoForge : Node pur (ni Electron, ni DOM).
  *
  * Parle le protocole du client `y-websocket` (WebsocketProvider) : messages
  * binaires lib0 dont le premier varUint est le type.

@@ -25,7 +25,7 @@ import { buildMeshData } from './convert';
  *
  * Chaque lecteur produit une `ImportedScene` ; `applyImportedScene` l'écrit ensuite dans le
  * document en UNE transaction. Conventions : repère Z vers le haut, mètres, matrices monde,
- * couleurs '#rrggbb' — celles du document. Les références entre éléments sont des INDICES
+ * couleurs '#rrggbb', celles du document. Les références entre éléments sont des INDICES
  * dans les tableaux de la scène importée (jamais des identifiants du document).
  */
 export interface ImportedScene {

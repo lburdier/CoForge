@@ -14,7 +14,7 @@ import { OutlinerRow, ROW_H, type DropState, type PeerMark, type RowController }
 import { buildTree, colKey, descendantKeys, flattenTree, isUnder, objKey, ROOT_KEY, type Tree } from './tree';
 import './outliner.css';
 
-/** Propriétés d'objet qui modifient l'arbre (les autres — position, modificateurs… — sont ignorées). */
+/** Propriétés d'objet qui modifient l'arbre (position, modificateurs… : les autres sont ignorées). */
 const TREE_KEYS = new Set(['name', 'parent', 'collection', 'type', 'visible', 'renderable', 'data']);
 /** Lignes rendues au-delà de la zone visible, de chaque côté. */
 const OVERSCAN = 8;
@@ -702,7 +702,7 @@ export function Outliner() {
             );
           })}
         </div>
-        {tree.objectCount === 0 && !query && <div className="cf-ol-empty">Scène vide — Maj+A dans le viewport pour ajouter un objet.</div>}
+        {tree.objectCount === 0 && !query && <div className="cf-ol-empty">Scène vide. Maj+A dans le viewport pour ajouter un objet.</div>}
         {query && total <= 1 && <div className="cf-ol-empty">Aucun élément ne correspond à « {query} ».</div>}
       </div>
       {menu && <Menu items={menu.items} x={menu.x} y={menu.y} onClose={() => setMenu(null)} />}

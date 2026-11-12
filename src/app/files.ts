@@ -303,7 +303,7 @@ export function importSummary(report: ImportReport): string {
       ? `« ${report.fileName} » ouvert : ${plural(n, 'objet', 'objets')}`
       : `${plural(n, 'objet importé', 'objets importés')} depuis « ${report.fileName} »`;
   const w = report.warnings.length;
-  return w > 0 ? `${base} — ${plural(w, 'avertissement', 'avertissements')} (voir le rapport d'import)` : base;
+  return w > 0 ? `${base}, ${plural(w, 'avertissement', 'avertissements')} (voir le rapport d'import)` : base;
 }
 
 /** Le rapport mérite d'être montré : avertissements, ou Blender absent / en échec alors qu'il aurait servi. */
@@ -315,8 +315,8 @@ function reportWorthShowing(report: ImportReport): boolean {
 function importFailure(src: SourceFile, err: unknown, trace: BlenderTrace): string {
   const msg = errorMessage(err);
   let text = msg.includes(src.name) ? msg : `Import de « ${src.name} » impossible : ${msg}`;
-  if (trace.status === 'failed') text += ` — Blender${trace.version ? ` ${trace.version}` : ''} n'a pas pu prendre le relais : ${trace.error}`;
-  else if (trace.status === 'missing') text += ' — Blender non trouvé : installez Blender pour que CoForge lui fasse convertir ce fichier.';
+  if (trace.status === 'failed') text += `. Blender${trace.version ? ` ${trace.version}` : ''} n'a pas pu prendre le relais : ${trace.error}`;
+  else if (trace.status === 'missing') text += '. Blender non trouvé : installez Blender pour que CoForge lui fasse convertir ce fichier.';
   return text;
 }
 

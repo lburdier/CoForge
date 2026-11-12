@@ -107,7 +107,7 @@ function fan(n: number): number[] {
 }
 
 /**
- * CONTRAT — géométrie d'affichage d'un maillage.
+ * CONTRAT : géométrie d'affichage d'un maillage.
  * Triangles/quads : éventail (diagonale valide choisie pour les quads concaves) ; n-gones : découpe d'oreilles.
  * Normales plates, ou lissées par sommet en ne moyennant que les faces dont l'angle avec la face
  * courante ne dépasse pas `autoSmoothAngle` (les arêtes plus vives restent vives).

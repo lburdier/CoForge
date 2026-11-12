@@ -8,7 +8,7 @@ import { isEditableElement, viewportPos } from './util';
 /**
  * Gestionnaire d'entrées des outils.
  *
- * Écoute le canvas du viewport (clic, clic droit, molette — sans capture, la navigation du
+ * Écoute le canvas du viewport (clic, clic droit, molette ; sans capture, la navigation du
  * moteur passe d'abord) et la fenêtre (mouvement, relâchement, clavier) et :
  *  - tient `app.ops.mouse` à jour (position dans le canvas, null hors du viewport) ;
  *  - route d'abord tout vers l'opération modale en cours (`app.ops.dispatchModal`) ;

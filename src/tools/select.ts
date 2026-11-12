@@ -12,7 +12,7 @@ import { distToSegment, editSelectedVerts, editTarget, primaryElements, storeEdi
  *   clic          remplace la sélection (dans le vide : désélectionne tout)
  *   Maj+clic      ajoute / bascule
  *   Ctrl+clic     retire
- *   Alt+clic      boucle d'arêtes (sommets/arêtes) ou boucle de faces (faces) — mode édition
+ *   Alt+clic      boucle d'arêtes (sommets/arêtes) ou boucle de faces (faces) : mode édition
  * La sélection d'édition est toujours gardée cohérente (sommets, arêtes, faces) via expandSelection.
  */
 
@@ -223,7 +223,7 @@ export function selectOperators(): OperatorDef[] {
     {
       id: 'object.select_all',
       label: 'Tout sélectionner',
-      description: "Sélectionne, désélectionne ou inverse la sélection d'objets — args { action: 'select' | 'deselect' | 'invert' | 'toggle' }",
+      description: "Sélectionne, désélectionne ou inverse la sélection d'objets, args { action: 'select' | 'deselect' | 'invert' | 'toggle' }",
       modes: ['object'],
       undoable: false,
       defaults: { action: 'toggle' },
@@ -246,7 +246,7 @@ export function selectOperators(): OperatorDef[] {
     {
       id: 'mesh.select_mode',
       label: 'Mode de sélection',
-      description: "Sélection de sommets (1), d'arêtes (2) ou de faces (3) — args { mode: 'vert' | 'edge' | 'face' }",
+      description: "Sélection de sommets (1), d'arêtes (2) ou de faces (3), args { mode: 'vert' | 'edge' | 'face' }",
       undoable: false,
       defaults: { mode: 'vert' },
       exec(app, inv) {

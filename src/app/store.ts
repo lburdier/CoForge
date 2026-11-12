@@ -3,10 +3,10 @@ import { useStore } from 'zustand';
 
 /**
  * Store LOCAL de l'application (zustand) : tout ce qui est propre à cet
- * utilisateur et n'est pas dans le document partagé — mode, sélection, options
+ * utilisateur et n'est pas dans le document partagé : mode, sélection, options
  * d'affichage, état de la session réseau, état de l'interface.
  *
- * Règle : les ensembles (Set) sont immuables — on remplace toujours l'ensemble
+ * Règle : les ensembles (Set) sont immuables : on remplace toujours l'ensemble
  * par un nouveau, on ne le modifie jamais en place.
  */
 
@@ -148,7 +148,7 @@ export interface AppState {
   mode: InteractionMode;
   /** Objets sélectionnés (mode objet). */
   selection: ReadonlySet<string>;
-  /** Objet actif (dernier sélectionné) — c'est lui qu'on édite en mode édition. */
+  /** Objet actif (dernier sélectionné), c'est lui qu'on édite en mode édition. */
   activeId: string | null;
   selectMode: SelectMode;
   editSelection: EditSelection;

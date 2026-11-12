@@ -4,9 +4,9 @@ import type { InteractionMode } from '../app/store';
  * Table des raccourcis clavier et souris (cohérente avec src/tools/menus.ts).
  *
  * Correspondance des touches :
- *  - `key` : lettre ou touche nommée comparée à `event.key` (en minuscules) — les lettres suivent
+ *  - `key` : lettre ou touche nommée comparée à `event.key` (en minuscules) : les lettres suivent
  *    donc la disposition du clavier (AZERTY : la touche marquée « A » donne bien `a`) ;
- *  - `code` : touche PHYSIQUE comparée à `event.code` — chiffres de la rangée du haut
+ *  - `code` : touche PHYSIQUE comparée à `event.code` : chiffres de la rangée du haut
  *    (Digit1… : AZERTY sans Maj), pavé numérique (Numpad0…, NumpadDecimal…) ;
  *  - `mouse` : bouton de souris (affichage dans la boîte « Raccourcis clavier » ; géré par input.ts).
  * Ctrl et Cmd sont équivalents. Les modificateurs doivent correspondre exactement.

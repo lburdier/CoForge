@@ -1004,7 +1004,7 @@ function lastLines(r: RunResult): string {
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l !== '' && !/^Blender \d|^Blender quit|^Read blend:/.test(l));
-  return lines.slice(-3).join(' — ').slice(0, 400);
+  return lines.slice(-3).join(' | ').slice(0, 400);
 }
 
 async function withTempDir<T>(fn: (dir: string) => Promise<T>): Promise<T> {

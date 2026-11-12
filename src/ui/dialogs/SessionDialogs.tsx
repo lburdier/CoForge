@@ -68,7 +68,7 @@ function HostActive() {
             onClick={() => {
               setStopping(true);
               leaveSession()
-                .then(() => toast('Session arrêtée — la scène reste ouverte en local'))
+                .then(() => toast('Session arrêtée, la scène reste ouverte en local'))
                 .catch((err) => toast(errorText(err), 'error'))
                 .finally(() => setStopping(false));
             }}
@@ -88,7 +88,7 @@ function HostActive() {
       <div className="cf-share-list">
         <div className="cf-share-line">
           <span className="cf-dim">Salle</span>
-          <code>{session.room ?? '—'}</code>
+          <code>{session.room ?? '-'}</code>
           <IconButton icon={Copy} tip="Copier le nom de la salle" onClick={() => void copyText(session.room ?? '')} />
         </div>
         {session.shareAddresses.map((a, i) => (

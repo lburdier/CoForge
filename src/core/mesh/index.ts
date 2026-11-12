@@ -1,5 +1,5 @@
 /**
- * Noyau de modélisation de CoForge — point d'entrée unique.
+ * Noyau de modélisation de CoForge : point d'entrée unique.
  * Fonctions pures : aucune ne modifie ses entrées, aucune ne dépend du DOM ni de Yjs.
  *
  * CONTRAT (src/core/mesh/types.ts) : `triangulate`, `evaluateModifiers`, `meshBounds`.

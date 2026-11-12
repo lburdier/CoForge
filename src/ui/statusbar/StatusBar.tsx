@@ -102,7 +102,7 @@ function SessionState() {
   const Icon = offline ? WifiOff : Wifi;
   const text = offline
     ? 'Hors ligne'
-    : `${STATUS_LABELS[status]} — « ${room ?? '?'} »${status === 'connected' ? ` · ${peers + 1} participant${peers > 0 ? 's' : ''}` : ''}${hosting ? ' (hôte)' : ''}`;
+    : `${STATUS_LABELS[status]} - « ${room ?? '?'} »${status === 'connected' ? ` · ${peers + 1} participant${peers > 0 ? 's' : ''}` : ''}${hosting ? ' (hôte)' : ''}`;
   return (
     <button
       type="button"

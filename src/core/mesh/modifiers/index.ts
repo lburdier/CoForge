@@ -59,7 +59,7 @@ function sanitize(mesh: MeshData): MeshData | null {
 }
 
 /**
- * CONTRAT — applique la pile de modificateurs activés, dans l'ordre. Renvoie le maillage d'entrée
+ * CONTRAT : applique la pile de modificateurs activés, dans l'ordre. Renvoie le maillage d'entrée
  * lui-même si aucun modificateur actif ne le change. Ne lève jamais : un modificateur qui échoue
  * est ignoré ; les éléments invalides d'un résultat (position non finie, face dégénérée) sont écartés.
  * Les identifiants créés dérivent de l'identifiant du modificateur, de son rang dans la pile et des

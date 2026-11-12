@@ -12,7 +12,7 @@ import { sceneFromThree } from './threeScene';
  * lu ici directement : PLYLoader triangule les quads et écarte sans le dire les faces de plus de
  * quatre côtés, alors que l'export PLY de Blender écrit des n-gones.
  *
- * FBX — ce que fait déjà FBXLoader (three 0.187) et ce qui est fait ici, sans double conversion :
+ * FBX : ce que fait déjà FBXLoader (three 0.187) et ce qui est fait ici, sans double conversion :
  *  - axe vertical : le chargeur ramène un fichier Z-up (UpAxis = 2) en Y-up par une rotation de
  *    la racine ; son résultat est donc toujours Y-up, et une seule rotation Y-up → Z-up est
  *    appliquée ici aux matrices monde (les sommets locaux restent ceux du fichier, comme le fait

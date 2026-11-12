@@ -436,7 +436,7 @@ export const OBJECT_DEFAULTS: Omit<ObjectData, 'id' | 'name' | 'type'> = {
  * du même maillage sans conflit.
  *
  * IMPORTANT : un instantané MeshData renvoyé par SceneDoc.getMesh() est
- * partagé (mis en cache) — il est en LECTURE SEULE. Clonez-le avant de le modifier.
+ * partagé (mis en cache), il est en LECTURE SEULE. Clonez-le avant de le modifier.
  */
 export interface MeshData {
   verts: Map<string, Vec3>;

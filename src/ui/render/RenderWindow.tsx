@@ -67,9 +67,9 @@ function RenderWindowInner() {
   const pct = Math.round(Math.max(0, Math.min(1, progress)) * 100);
   const pathtrace = settings.engine === 'pathtrace';
   const status = running
-    ? `Rendu en cours… ${pct} %${pathtrace ? ` — ${samples}/${settings.samples} échantillons` : ''}`
+    ? `Rendu en cours… ${pct} %${pathtrace ? `, ${samples}/${settings.samples} échantillons` : ''}`
     : imageUrl
-      ? `Terminé — ${settings.resX} × ${settings.resY} px${pathtrace ? `, ${samples || settings.samples} échantillons` : ''}`
+      ? `Terminé : ${settings.resX} × ${settings.resY} px${pathtrace ? `, ${samples || settings.samples} échantillons` : ''}`
       : 'Rendu interrompu';
 
   return createPortal(
@@ -77,7 +77,7 @@ function RenderWindowInner() {
       <div className="cf-render-window" role="dialog" aria-label="Rendu" onKeyDown={(e) => e.stopPropagation()}>
         <header className="cf-dialog-header">
           <ImageIcon size={14} />
-          <span className="cf-dialog-title">Rendu — {pathtrace ? 'Path tracing' : 'Temps réel'}</span>
+          <span className="cf-dialog-title">Rendu - {pathtrace ? 'Path tracing' : 'Temps réel'}</span>
           <button type="button" tabIndex={-1} className="cf-dialog-close" aria-label="Fermer" onClick={close}>
             <X size={14} />
           </button>

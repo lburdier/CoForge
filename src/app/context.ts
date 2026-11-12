@@ -8,13 +8,13 @@ import type { AppStore } from './store';
  * Contexte applicatif : l'unique objet partagé par tous les modules.
  *
  *   doc       document de scène courant (CRDT). ATTENTION : il est REMPLACÉ lors
- *             d'un « Nouveau », « Ouvrir » ou « Rejoindre » — ne gardez jamais une
+ *             d'un « Nouveau », « Ouvrir » ou « Rejoindre » : ne gardez jamais une
  *             référence longue durée, lisez toujours `app.doc`, et réabonnez-vous
  *             via `app.onDocChange`.
- *   store     état local (mode, sélection, interface) — src/app/store.ts
- *   viewport  moteur 3D — src/engine/api.ts
- *   collab    client réseau — src/net/api.ts
- *   ops       registre d'opérateurs — src/tools/api.ts
+ *   store     état local (mode, sélection, interface) : src/app/store.ts
+ *   viewport  moteur 3D : src/engine/api.ts
+ *   collab    client réseau : src/net/api.ts
+ *   ops       registre d'opérateurs : src/tools/api.ts
  */
 export interface AppContext {
   readonly doc: SceneDoc;

@@ -51,7 +51,7 @@ export interface RenderMesh {
   edgeKeys: string[];
 }
 
-/** CONTRAT — `triangulate(mesh, opts)` : géométrie d'affichage d'un maillage (polygones concaves gérés). */
+/** CONTRAT : `triangulate(mesh, opts)` : géométrie d'affichage d'un maillage (polygones concaves gérés). */
 export type TriangulateFn = (mesh: MeshData, opts: TriangulateOptions) => RenderMesh;
 
 // ------------------------------------------------------------------ CONTRAT : modificateurs
@@ -66,7 +66,7 @@ export interface ModifierContext {
 }
 
 /**
- * CONTRAT — `evaluateModifiers(mesh, modifiers, ctx)` : applique la pile de
+ * CONTRAT : `evaluateModifiers(mesh, modifiers, ctx)` : applique la pile de
  * modificateurs activés, dans l'ordre, et renvoie le maillage résultant (le
  * maillage d'entrée lui-même si la pile est vide). Ne lève jamais d'exception :
  * un modificateur qui échoue est ignoré.
@@ -74,5 +74,5 @@ export interface ModifierContext {
  */
 export type EvaluateModifiersFn = (mesh: MeshData, modifiers: ModifierData[], ctx: ModifierContext) => MeshData;
 
-/** CONTRAT — `meshBounds(mesh)` : boîte englobante, null si le maillage est vide. */
+/** CONTRAT : `meshBounds(mesh)` : boîte englobante, null si le maillage est vide. */
 export type MeshBoundsFn = (mesh: MeshData) => { min: Vec3; max: Vec3 } | null;

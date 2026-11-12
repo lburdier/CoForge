@@ -77,7 +77,7 @@ function SharePopover({ anchorEl, onClose }: { anchorEl: Element | null; onClose
       <div className="cf-popover-title">{session.hosting ? 'Vous hébergez la session' : 'Session en cours'}</div>
       <div className="cf-share-line">
         <span className="cf-dim">Nom de session</span>
-        <code>{session.room ?? '—'}</code>
+        <code>{session.room ?? '-'}</code>
         <IconButton icon={Copy} tip="Copier le nom" onClick={() => void copyText(session.room ?? '')} />
       </div>
       {addresses.map((a) => (
@@ -162,12 +162,12 @@ function SessionWidget() {
             name={p.name}
             color={p.color}
             active={follow === p.clientId}
-            tip={follow === p.clientId ? `${p.name} — clic : arrêter de suivre` : `${p.name} — clic : suivre sa vue`}
+            tip={follow === p.clientId ? `${p.name} - clic : arrêter de suivre` : `${p.name} - clic : suivre sa vue`}
             onClick={() => store.setState({ followClientId: follow === p.clientId ? null : p.clientId })}
           />
         ))}
         {peers.length > 8 && <span className="cf-dim">+{peers.length - 8}</span>}
-        <Avatar name={user.name} color={user.color} tip={`${user.name} (vous) — préférences`} onClick={() => store.setState({ dialog: 'preferences' })} />
+        <Avatar name={user.name} color={user.color} tip={`${user.name} (vous) - préférences`} onClick={() => store.setState({ dialog: 'preferences' })} />
       </div>
       {offline && <IconButton icon={LogIn} tip="Rejoindre une session" onClick={() => store.setState({ dialog: 'join' })} />}
       <button

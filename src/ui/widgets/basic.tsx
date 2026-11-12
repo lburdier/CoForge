@@ -120,7 +120,7 @@ export function Select<T extends string>({ value, options, onChange, disabled, t
         onKeyDown={(e) => e.stopPropagation()}
       >
         {CurIcon && <CurIcon size={13} />}
-        {!iconOnly && <span className="cf-select-label">{current?.label ?? placeholder ?? '—'}</span>}
+        {!iconOnly && <span className="cf-select-label">{current?.label ?? placeholder ?? '-'}</span>}
         <ChevronDown size={11} className="cf-select-chevron" />
       </button>
       {open && rect && (

@@ -6,8 +6,8 @@ import type { InteractionMode, LocalUser } from '../app/store';
  * Contrat du client de collaboration (implémenté dans src/net/collab.ts).
  *
  * Deux canaux :
- *  1. le DOCUMENT (Y.Doc) — durable, fusionné sans conflit par CRDT, persistant côté serveur ;
- *  2. la PRÉSENCE (awareness Yjs) — éphémère : qui est là, où il regarde, ce qu'il sélectionne.
+ *  1. le DOCUMENT (Y.Doc) : durable, fusionné sans conflit par CRDT, persistant côté serveur ;
+ *  2. la PRÉSENCE (awareness Yjs), éphémère : qui est là, où il regarde, ce qu'il sélectionne.
  */
 
 /** Caméra du viewport d'un utilisateur (repère monde Z-up). */

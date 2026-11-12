@@ -14,8 +14,8 @@ L'installateur Windows (`CoForge-Setup-x.y.z.exe`) est dans la page [Releases](.
 - **Transformations** : G / R / S avec contraintes d'axe et de plan, saisie numérique, pivots, aimantation à la grille ou **aux sommets**.
 - **Éclairage** : lumières point, soleil, spot, surface ; monde couleur ou ciel procédural.
 - **Rendu** :
-  - *Temps réel* (rastérisation, ombres, occlusion ambiante, bloom) — dans l'esprit d'EEVEE ;
-  - *Path tracing* GPU progressif — dans l'esprit de Cycles — avec **affichage instantané** : résolution interne réduite, débruitage et remise à l'échelle (même principe que DLSS, réalisé en shaders pour tous les GPU ; ce n'est pas le DLSS de NVIDIA, inaccessible depuis WebGL).
+  - *Temps réel* (rastérisation, ombres, occlusion ambiante, bloom), dans l'esprit d'EEVEE ;
+  - *Path tracing* GPU progressif, dans l'esprit de Cycles, avec **affichage instantané** : résolution interne réduite, débruitage et remise à l'échelle (même principe que DLSS, réalisé en shaders pour tous les GPU ; ce n'est pas le DLSS de NVIDIA, inaccessible depuis WebGL).
 - **Import** : `.blend` (Blender 2.5x → 5.1, lecteur natif ; si Blender est installé, il est sollicité pour la géométrie finale des courbes, textes et modificateurs sans équivalent), glTF/GLB, FBX, OBJ, STL, PLY, Collada. **Export** : GLB, OBJ.
 
 ### Limites connues

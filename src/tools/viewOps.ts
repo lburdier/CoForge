@@ -48,7 +48,7 @@ export function viewOperators(): OperatorDef[] {
     {
       id: 'view.axis',
       label: 'Point de vue',
-      description: "Vue alignée sur un axe — args { dir: 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom' }",
+      description: "Vue alignée sur un axe, args { dir: 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom' }",
       ...ui,
       defaults: { dir: 'front' },
       exec(app, inv) {
@@ -121,7 +121,7 @@ export function viewOperators(): OperatorDef[] {
     {
       id: 'view.shading',
       label: "Mode d'affichage",
-      description: "Fil de fer, solide, matériau ou rendu — args { mode? } ; sans mode : mode suivant (Z)",
+      description: "Fil de fer, solide, matériau ou rendu, args { mode? } ; sans mode : mode suivant (Z)",
       ...ui,
       exec(_app, inv) {
         const mode = inv.args.mode as ShadingMode | undefined;

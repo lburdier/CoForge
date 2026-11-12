@@ -85,7 +85,7 @@ export function registerAppOps(app: AppContext): void {
       label: 'Quitter la session',
       undoable: false,
       poll: () => store.getState().session.status !== 'offline',
-      exec: () => report(leaveSession().then(() => toast('Session quittée — la scène reste ouverte en local'))),
+      exec: () => report(leaveSession().then(() => toast('Session quittée, la scène reste ouverte en local'))),
     },
     {
       id: 'ui.dialog',

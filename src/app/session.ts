@@ -8,11 +8,11 @@ import { patchSession, store, toast } from './store';
  * Cycle de vie d'une session collaborative.
  *
  * Héberger : l'application démarre le serveur embarqué puis s'y connecte avec
- * SA scène courante — c'est elle qui devient la scène de la session.
+ * SA scène courante, c'est elle qui devient la scène de la session.
  *
  * Rejoindre : on part d'un document vide qui reçoit la scène du serveur, puis
  * il remplace la scène locale. Cas particulier : si la room est vide (serveur
- * dédié tout neuf), la scène locale y est publiée — le premier arrivé apporte
+ * dédié tout neuf), la scène locale y est publiée, le premier arrivé apporte
  * sa scène.
  */
 

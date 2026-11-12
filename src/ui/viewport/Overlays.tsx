@@ -102,7 +102,7 @@ function RenderInfo() {
   if (running) {
     return (
       <div className="cf-vp-info-line is-accent">
-        Rendu final : {Math.round(progress * 100)} %{settings.engine === 'pathtrace' ? ` — ${samples}/${settings.samples} échantillons` : ''}
+        Rendu final : {Math.round(progress * 100)} %{settings.engine === 'pathtrace' ? `, ${samples}/${settings.samples} échantillons` : ''}
       </div>
     );
   }

@@ -255,7 +255,7 @@ function PeerRow({ clientId, name, color, detail }: { clientId: number; name: st
     [detail?.state.activeId],
   );
   const st = detail?.state;
-  const sub = st ? `${MODE_LABELS[st.mode] ?? st.mode}${activeName ? ` — ${activeName}` : ''}${st.selection.length > 1 ? ` (+${st.selection.length - 1})` : ''}` : '';
+  const sub = st ? `${MODE_LABELS[st.mode] ?? st.mode}${activeName ? ` - ${activeName}` : ''}${st.selection.length > 1 ? ` (+${st.selection.length - 1})` : ''}` : '';
   return (
     <div className={`cf-peer-row${following ? ' is-following' : ''}`}>
       <Avatar name={name} color={color} size={18} />
@@ -300,7 +300,7 @@ function SessionTab() {
     );
   }
   return (
-    <Panel id="sidebar.session.peers" title={`Session « ${room ?? '—'} »`}>
+    <Panel id="sidebar.session.peers" title={`Session « ${room ?? '-'} »`}>
       <div className="cf-peer-row is-self">
         <Avatar name={user.name} color={user.color} size={18} />
         <div className="cf-peer-text">

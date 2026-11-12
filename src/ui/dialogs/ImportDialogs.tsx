@@ -145,7 +145,7 @@ function DropOverlay() {
       <div className="cf-drop-box">
         <Download size={26} />
         <span className="cf-drop-title">Déposez pour ouvrir ou importer</span>
-        <span className="cf-drop-hint">.coforge : ouvrir la scène — .blend, glTF, FBX, OBJ, STL, PLY, Collada : importer dans la scène</span>
+        <span className="cf-drop-hint">.coforge : ouvrir la scène ; .blend, glTF, FBX, OBJ, STL, PLY, Collada : importer dans la scène</span>
       </div>
     </div>,
     document.body,

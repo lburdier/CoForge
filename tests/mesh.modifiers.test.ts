@@ -104,7 +104,7 @@ function noNaN(m: MeshData): void {
 
 // ---------------------------------------------------------------- pile
 
-describe('evaluateModifiers — pile', () => {
+describe('evaluateModifiers - pile', () => {
   it('renvoie le maillage d’entrée lui-même si la pile est vide ou inactive', () => {
     const m = cube();
     expect(evaluateModifiers(m, [], noCtx)).toBe(m);

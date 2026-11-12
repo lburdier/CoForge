@@ -217,7 +217,7 @@ describe('import dans la scène courante', () => {
       blender: null,
       shared: false,
     });
-    expect(toastText()).toBe('3 objets importés depuis « ville.fbx » — 1 avertissement (voir le rapport d\'import)');
+    expect(toastText()).toBe('3 objets importés depuis « ville.fbx », 1 avertissement (voir le rapport d\'import)');
   });
 
   it('en session collaborative le rapport rappelle que l’import est partagé', async () => {
@@ -424,7 +424,7 @@ describe('pont Blender', () => {
     };
     expect(await importSource(file('récent.blend', 'D:\\récent.blend'))).toBe(false);
     expect(toastText()).toBe(
-      'Lecture de « récent.blend » impossible : format non reconnu — Blender non trouvé : installez Blender pour que CoForge lui fasse convertir ce fichier.',
+      'Lecture de « récent.blend » impossible : format non reconnu. Blender non trouvé : installez Blender pour que CoForge lui fasse convertir ce fichier.',
     );
   });
 
@@ -623,10 +623,10 @@ describe('textes du rapport', () => {
     expect(importSummary(buildImportReport('a.obj', 'append', result, trace, false))).toBe('1 objet importé depuis « a.obj »');
     const many = { ...result, counts: { ...result.counts, objects: 42 }, warnings: ['x', 'y'] };
     expect(importSummary(buildImportReport('b.blend', 'append', many, trace, false))).toBe(
-      '42 objets importés depuis « b.blend » — 2 avertissements (voir le rapport d\'import)',
+      '42 objets importés depuis « b.blend », 2 avertissements (voir le rapport d\'import)',
     );
     expect(importSummary(buildImportReport('c.blend', 'open', many, { ...trace, notes: ['z'] }, true))).toBe(
-      '« c.blend » ouvert : 42 objets — 3 avertissements (voir le rapport d\'import)',
+      '« c.blend » ouvert : 42 objets, 3 avertissements (voir le rapport d\'import)',
     );
   });
 });

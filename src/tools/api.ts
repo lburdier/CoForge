@@ -24,7 +24,7 @@ export interface ModalHandler {
   onKeyDown?(e: KeyboardEvent): ModalResult | void;
   onKeyUp?(e: KeyboardEvent): ModalResult | void;
   onWheel?(e: WheelEvent): ModalResult | void;
-  /** Nettoyage (aperçus, curseur…) — appelé une fois, que l'opération soit validée ou annulée. */
+  /** Nettoyage (aperçus, curseur…), appelé une fois, que l'opération soit validée ou annulée. */
   onEnd?(committed: boolean): void;
 }
 

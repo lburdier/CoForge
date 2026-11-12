@@ -222,7 +222,7 @@ function groupTree(node: SNode): STree | null {
 
 /**
  * Sortie qui alimente réellement l'entrée `socket` : traverse les reroutes, les nœuds coupés
- * (mute), les entrées et sorties de groupes. null si l'entrée n'est pas branchée — sa valeur est
+ * (mute), les entrées et sorties de groupes. null si l'entrée n'est pas branchée, sa valeur est
  * alors celle du socket où la remontée s'est arrêtée (voir `resolveValue`).
  */
 export function follow(socket: SSocket, cursor: Cursor): Source | null {

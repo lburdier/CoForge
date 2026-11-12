@@ -941,7 +941,7 @@ export class TransformSession {
     }
     if (this.pivotMode === 'individual' && this.kind !== 'translate') text += ' (origines individuelles)';
     if (this.kind === 'translate' && this.snapped) text += ' (collé au sommet)';
-    return `${KIND_LABELS[this.kind]} — ${text}   ${this.hint}`;
+    return `${KIND_LABELS[this.kind]} - ${text}   ${this.hint}`;
   }
 
   /** Ligne(s) d'axe de la contrainte, dessinées dans overlayRoot. */

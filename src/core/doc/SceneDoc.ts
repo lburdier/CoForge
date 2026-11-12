@@ -25,7 +25,7 @@ import {
 } from './schema';
 
 /**
- * SceneDoc — façade typée au-dessus du Y.Doc partagé.
+ * SceneDoc : façade typée au-dessus du Y.Doc partagé.
  *
  * C'est LE point d'accès unique aux données de scène. Personne d'autre ne
  * manipule directement les types Yjs : on lit des instantanés JS simples
@@ -530,7 +530,7 @@ export class SceneDoc {
 
   /**
    * Supprime un objet. Ses enfants sont rattachés à son parent (sans conserver
-   * leur transformation monde — utilisez les utilitaires de transforms.ts avant
+   * leur transformation monde, utilisez les utilitaires de transforms.ts avant
    * si nécessaire). Le bloc de données (maillage, lumière, caméra) est supprimé
    * s'il n'est plus utilisé par aucun autre objet.
    */

@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 
 /**
- * CONTRAT — éditeurs affichés dans la zone du bas (sous le viewport 3D) : éditeur de nœuds,
+ * CONTRAT : éditeurs affichés dans la zone du bas (sous le viewport 3D) : éditeur de nœuds,
  * éditeur de texte / console Python… Chaque zone d'équipe enregistre le sien avec
  * `registerBottomEditor` ; `store.bottomEditor` (identifiant ou null) choisit celui affiché, et
  * `WorkspaceLayout` le monte. Le composant est chargé à la demande (`lazy`) par son propriétaire

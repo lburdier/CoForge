@@ -168,7 +168,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.add',
     label: 'Ajouter un objet',
-    description: 'Ajoute une primitive, une lumière, une caméra ou un vide au curseur 3D — args { kind, …paramètres }',
+    description: 'Ajoute une primitive, une lumière, une caméra ou un vide au curseur 3D, args { kind, …paramètres }',
     ...OBJECT_MODE,
     defaults: { kind: 'cube' },
     // Les paramètres ajustables dépendent du type de primitive de la dernière exécution.
@@ -239,7 +239,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.duplicate',
     label: 'Dupliquer',
-    description: 'Duplique les objets sélectionnés puis les déplace — args { linked: partage les données, move: false pour ne pas déplacer }',
+    description: 'Duplique les objets sélectionnés puis les déplace, args { linked: partage les données, move: false pour ne pas déplacer }',
     ...OBJECT_MODE,
     poll: hasSelection,
     defaults: { linked: false },
@@ -321,7 +321,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.apply_transform',
     label: 'Appliquer les transformations',
-    description: 'Intègre position / rotation / échelle au maillage — args { location, rotation, scale }',
+    description: 'Intègre position / rotation / échelle au maillage, args { location, rotation, scale }',
     ...OBJECT_MODE,
     poll: (app) => selectedMeshObjects(app).length > 0,
     defaults: { location: true, rotation: true, scale: true },
@@ -364,7 +364,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.clear_transform',
     label: 'Effacer les transformations',
-    description: "Remet à zéro la position, la rotation ou l'échelle — args { what: 'location' | 'rotation' | 'scale' | 'all' }",
+    description: "Remet à zéro la position, la rotation ou l'échelle, args { what: 'location' | 'rotation' | 'scale' | 'all' }",
     ...OBJECT_MODE,
     poll: hasSelection,
     defaults: { what: 'location' },
@@ -386,7 +386,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.origin_set',
     label: "Définir l'origine",
-    description: "Déplace l'origine des maillages sélectionnés sans bouger la géométrie — args { type: 'geometry' | 'cursor' }",
+    description: "Déplace l'origine des maillages sélectionnés sans bouger la géométrie, args { type: 'geometry' | 'cursor' }",
     ...OBJECT_MODE,
     poll: (app) => selectedMeshObjects(app).length > 0,
     defaults: { type: 'geometry' },
@@ -494,7 +494,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.move_to_collection',
     label: 'Déplacer vers une collection',
-    description: 'Déplace les objets sélectionnés dans une collection (nouvelle par défaut) — args { collection?, name? }',
+    description: 'Déplace les objets sélectionnés dans une collection (nouvelle par défaut), args { collection?, name? }',
     ...OBJECT_MODE,
     poll: hasSelection,
     exec(app, inv) {
@@ -514,7 +514,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.shade',
     label: 'Ombrage',
-    description: 'Ombrage lisse ou plat des maillages sélectionnés — args { smooth, angle? (degrés) }',
+    description: 'Ombrage lisse ou plat des maillages sélectionnés, args { smooth, angle? (degrés) }',
     ...OBJECT_MODE,
     poll: (app) => selectedMeshObjects(app).length > 0,
     defaults: { smooth: true },
@@ -569,7 +569,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.rename',
     label: 'Renommer',
-    description: "Renomme l'objet actif — args { name? } ; sans nom, ouvre la boîte de dialogue",
+    description: "Renomme l'objet actif, args { name? } ; sans nom, ouvre la boîte de dialogue",
     poll: (app) => activeObjectId(app) !== null,
     exec(app, inv) {
       const doc = app.doc;
@@ -592,7 +592,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.mode_toggle',
     label: 'Mode édition',
-    description: "Bascule entre mode objet et mode édition de l'objet actif — args { mode?: 'object' | 'edit' }",
+    description: "Bascule entre mode objet et mode édition de l'objet actif, args { mode?: 'object' | 'edit' }",
     undoable: false,
     poll: (app) => {
       if (store.getState().mode === 'edit') return true;
@@ -632,7 +632,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.modifier_add',
     label: 'Ajouter un modificateur',
-    description: "Ajoute un modificateur à l'objet actif — args { type, objectId? }",
+    description: "Ajoute un modificateur à l'objet actif, args { type, objectId? }",
     poll: (app) => activeObject(app)?.type === 'mesh',
     defaults: { type: 'subsurf' },
     exec(app, inv) {
@@ -668,7 +668,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.modifier_move',
     label: 'Déplacer le modificateur',
-    description: 'Monte (-1) ou descend (1) un modificateur dans la pile — args { modifierId, direction, objectId? }',
+    description: 'Monte (-1) ou descend (1) un modificateur dans la pile, args { modifierId, direction, objectId? }',
     defaults: { direction: -1 },
     exec(app, inv) {
       const found = findModifierOwner(app, String(inv.args.modifierId), inv.args.objectId);
@@ -685,7 +685,7 @@ export function objectOperators(): OperatorDef[] {
   ops.push({
     id: 'object.modifier_apply',
     label: 'Appliquer le modificateur',
-    description: 'Intègre le modificateur (et ceux au-dessus de lui) au maillage — args { modifierId, objectId? }',
+    description: 'Intègre le modificateur (et ceux au-dessus de lui) au maillage, args { modifierId, objectId? }',
     exec(app, inv) {
       const doc = app.doc;
       const found = findModifierOwner(app, String(inv.args.modifierId), inv.args.objectId);

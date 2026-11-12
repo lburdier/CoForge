@@ -1,4 +1,4 @@
-# CoForge — règles communes de l'équipe
+# CoForge - règles communes de l'équipe
 
 CoForge est un logiciel Windows (Electron) de modélisation 3D collaborative en temps réel :
 blocking et hard surface, éclairage, deux moteurs de rendu, interface inspirée de Blender.
@@ -24,16 +24,16 @@ propriété, chaque sommet et chaque face est une entrée indépendante : les é
 fusionnent sans conflit, hors-ligne compris. Le serveur ne fait que relayer et persister. Ce qui est
 personnel (sélection, mode, caméra) reste local et est diffusé comme « présence » éphémère.
 
-## Fichiers de contrat — À LIRE EN PREMIER, À NE PAS MODIFIER
+## Fichiers de contrat : À LIRE EN PREMIER, À NE PAS MODIFIER
 
-- `src/core/doc/schema.ts` — types de toutes les données de scène
-- `src/core/doc/SceneDoc.ts` — lecture/écriture du document, événements, annulation
-- `src/core/doc/transforms.ts` — matrices locales/monde, parentage
-- `src/core/mesh/types.ts` — contrat du noyau de modélisation
-- `src/app/store.ts` — état local (zustand) ; `src/app/context.ts` — AppContext ; `src/app/hooks.ts` — hook `useDoc`
-- `src/app/platform.ts` — pont Electron (`window.coforge`)
-- `src/engine/api.ts` — contrat du viewport ; `src/net/api.ts` — contrat réseau
-- `src/tools/api.ts` — registre d'opérateurs ; `src/tools/menus.ts` — catalogue des opérateurs et menus
+- `src/core/doc/schema.ts` : types de toutes les données de scène
+- `src/core/doc/SceneDoc.ts` : lecture/écriture du document, événements, annulation
+- `src/core/doc/transforms.ts` : matrices locales/monde, parentage
+- `src/core/mesh/types.ts` : contrat du noyau de modélisation
+- `src/app/store.ts` : état local (zustand) ; `src/app/context.ts` : AppContext ; `src/app/hooks.ts` : hook `useDoc`
+- `src/app/platform.ts` : pont Electron (`window.coforge`)
+- `src/engine/api.ts` : contrat du viewport ; `src/net/api.ts` : contrat réseau
+- `src/tools/api.ts` : registre d'opérateurs ; `src/tools/menus.ts` : catalogue des opérateurs et menus
 
 Si un contrat vous semble faux ou insuffisant : ne le modifiez pas, contournez au mieux et
 signalez-le précisément dans votre rapport final.

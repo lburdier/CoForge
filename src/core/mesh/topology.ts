@@ -188,7 +188,7 @@ export function reversedLoop(loop: readonly string[]): string[] {
   return out;
 }
 
-/** CONTRAT — boîte englobante, null si le maillage n'a aucun sommet. */
+/** CONTRAT : boîte englobante, null si le maillage n'a aucun sommet. */
 export function meshBounds(mesh: MeshData): { min: Vec3; max: Vec3 } | null {
   let minX = Infinity;
   let minY = Infinity;

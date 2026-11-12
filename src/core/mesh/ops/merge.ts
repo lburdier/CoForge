@@ -8,7 +8,7 @@ import { dedupeLoop, emptyResult, randomId, type IdGen } from './common';
  * Remplace des sommets par d'autres (`map` : ancien → survivant) dans toutes les faces concernées,
  * puis nettoie : répétitions consécutives retirées, boucles pincées découpées en sous-faces, faces
  * dégénérées (< 3 sommets) supprimées, faces en double supprimées (une face identique de même sens
- * est retirée ; deux faces identiques de sens opposés — feuille d'épaisseur nulle — sont retirées toutes deux).
+ * est retirée ; deux faces identiques de sens opposés (feuille d'épaisseur nulle) sont retirées toutes deux).
  * Les sommets remplacés sont supprimés.
  */
 export function remapVerts(work: WorkMesh, map: ReadonlyMap<string, string>, idGen: IdGen): void {

@@ -17,7 +17,7 @@ import type { ImportedMesh, ImportedObject, ImportedScene } from './scene';
  * Lecteur glTF 2.0 (.glb binaire et .gltf texte autonome) vers le format neutre `ImportedScene`.
  *
  * Écrit sans GLTFLoader : aucune dépendance au DOM ni à WebGL (utilisable sous Node), et la
- * structure du fichier est reprise telle quelle — hiérarchie complète, maillages partagés,
+ * structure du fichier est reprise telle quelle : hiérarchie complète, maillages partagés,
  * primitives multiples, lumières et caméras.
  *
  * REPÈRE. glTF est Y vers le haut, CoForge Z vers le haut ; C = rotation de +90° autour de X.

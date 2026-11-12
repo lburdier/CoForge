@@ -112,7 +112,7 @@ export function RenderTab() {
           <NumberField value={r.resY} integer min={16} max={16384} step={1} unit="px" onChange={(resY) => set({ resY })} />
         </Row>
         <Hint>
-          Rapport {(r.resX / Math.max(1, r.resY)).toFixed(3)} — {Math.round((r.resX * r.resY) / 1000) / 1000} Mpx
+          Rapport {(r.resX / Math.max(1, r.resY)).toFixed(3)} · {Math.round((r.resX * r.resY) / 1000) / 1000} Mpx
         </Hint>
       </Panel>
 
