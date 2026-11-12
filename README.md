@@ -31,7 +31,14 @@ npm run dev        # application Electron en développement
 npm test           # tests (vitest)
 npm run build      # build de production
 npm run dist       # installateur Windows dans release/
+npm run release -- 0.3.1   # publie la version 0.3.1 sur GitHub (mises à jour automatiques)
 ```
+
+### Mises à jour automatiques
+
+L'application installée (0.3.0 et suivantes) vérifie les releases GitHub 10 s après le démarrage puis toutes les 4 h, télécharge la nouvelle version en tâche de fond et l'installe à la fermeture. La barre d'état affiche l'avancement, puis « CoForge X.Y.Z prêt : redémarrer » ; menu **Aide › Rechercher des mises à jour** pour vérifier à la main. Journal : `%APPDATA%\CoForge\logs\updater.log`.
+
+Pour publier une mise à jour : `npm run release -- X.Y.Z` (version supérieure à la dernière publiée). Le script utilise `GH_TOKEN` ou, à défaut, la session de la GitHub CLI (`gh auth login`), construit l'installateur et envoie dans la release `vX.Y.Z` l'installateur, son `.blockmap` et `latest.yml`. Les versions 0.2.0 et antérieures n'ont pas de mise à jour automatique : réinstaller une fois depuis la page Releases.
 
 Pile : Electron, TypeScript, React, three.js, three-gpu-pathtracer, Yjs. Architecture et conventions : `docs/EQUIPE.md`.
 

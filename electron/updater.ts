@@ -79,6 +79,8 @@ export function initUpdater(window: () => BrowserWindow | null, statusChannel: s
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowPrerelease = false;
+  // Installateur NSIS complet (pas d'installateur web) : évite une recherche inutile de paquet web.
+  autoUpdater.disableWebInstaller = true;
   autoUpdater.logger = fileLogger();
 
   autoUpdater.on('checking-for-update', () => {
