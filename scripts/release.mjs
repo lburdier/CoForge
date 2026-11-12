@@ -26,13 +26,13 @@ function fail(msg) {
 
 function run(cmd, args, env = process.env) {
   console.log(`\n> ${cmd} ${args.join(' ')}`);
-  const r = spawnSync(cmd, args, { cwd: root, stdio: 'inherit', env, shell: win });
+  const r = spawnSync(cmd, args, { cwd: root, stdio: 'inherit', env, shell: win && cmd !== 'gh' });
   if (r.status !== 0) fail(`« ${cmd} ${args[0]} » a échoué (code ${r.status}).`);
 }
 
 function capture(cmd, args) {
   try {
-    return execFileSync(cmd, args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], shell: win }).trim();
+    return execFileSync(cmd, args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], shell: win && cmd !== 'gh' }).trim();
   } catch {
     return '';
   }
@@ -61,11 +61,15 @@ if (existing === 'false') fail(`la release ${tag} est déjà publiée sur ${slug
 
 console.log(`Publication de CoForge ${version} sur https://github.com/${slug}/releases/tag/${tag}`);
 
-// 3. Build et envoi
+// 3. Brouillon créé d'avance : sinon electron-builder crée la release une fois par fichier, en
+// parallèle, et la seconde création échoue (422) en laissant une release publiée incomplète.
+if (!existing) run('gh', ['release', 'create', tag, '-R', slug, '--draft', '--target', 'main', '--title', `CoForge ${version}`, '--notes', `CoForge ${version}`]);
+
+// 4. Build et envoi
 run('npm', ['run', 'build']);
 run('npx', ['electron-builder', '--win', 'nsis', '--x64', '--publish', 'always'], { ...process.env, GH_TOKEN: token });
 
-// 4. electron-builder crée un brouillon : on le publie pour que les mises à jour le voient.
+// 5. Publication du brouillon pour que les mises à jour le voient.
 const draft = capture('gh', ['release', 'view', tag, '-R', slug, '--json', 'isDraft', '-q', '.isDraft']);
 if (draft === 'true') run('gh', ['release', 'edit', tag, '-R', slug, '--draft=false', '--latest', '--title', `CoForge ${version}`]);
 const assets = capture('gh', ['release', 'view', tag, '-R', slug, '--json', 'assets', '-q', '[.assets[].name] | join(", ")']);
