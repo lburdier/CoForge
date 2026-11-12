@@ -20,4 +20,12 @@ export const IPC = {
   closeAck: 'coforge:close-ack',
   /** renderer → main : (identifiant, autorisé). */
   closeResponse: 'coforge:close-response',
+  /** main → renderer : nouvel état des mises à jour (UpdateStatus). */
+  updateStatus: 'coforge:update-status',
+  /** renderer → main : état courant des mises à jour. */
+  updateGetStatus: 'coforge:update-get-status',
+  /** renderer → main : vérifier maintenant (à la demande de l'utilisateur). */
+  updateCheck: 'coforge:update-check',
+  /** renderer → main : fermer (avec la confirmation habituelle) puis installer la mise à jour téléchargée. */
+  updateInstall: 'coforge:update-install',
 } as const;

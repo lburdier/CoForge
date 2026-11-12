@@ -117,6 +117,10 @@ export const SESSION_MENU: MenuItem[] = [
 
 export const HELP_MENU: MenuItem[] = [
   { op: 'ui.dialog', args: { dialog: 'shortcuts' }, label: 'Raccourcis clavier', icon: 'Keyboard' },
+  sep,
+  { op: 'app.check_updates', label: 'Rechercher des mises à jour', icon: 'Download' },
+  { op: 'app.install_update', label: 'Redémarrer et mettre à jour' },
+  sep,
   { op: 'ui.dialog', args: { dialog: 'about' }, label: 'À propos de CoForge', icon: 'Info' },
 ];
 

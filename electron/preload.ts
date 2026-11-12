@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import pkg from '../package.json';
-import type { BlendSource, BlenderEvalResult, BlenderInfo, FileFilter, HostInfo, HostOptions, NativeBridge, OpenedFile } from '../src/app/platform';
+import type { BlendSource, BlenderEvalResult, BlenderInfo, FileFilter, HostInfo, HostOptions, NativeBridge, OpenedFile, UpdateStatus } from '../src/app/platform';
 import type { BlendEvalRequest } from '../src/engine/io/types';
 import { IPC } from './ipc';
 
@@ -83,6 +83,13 @@ const bridge: NativeBridge = {
   onCloseRequest: (cb: () => boolean | Promise<boolean>): void => {
     closeCallback = cb;
     ipcRenderer.send(IPC.closeRegistered);
+  },
+  updateStatus: (): Promise<UpdateStatus> => invoke(IPC.updateGetStatus),
+  checkForUpdates: (): Promise<UpdateStatus> => invoke(IPC.updateCheck),
+  installUpdate: (): void => ipcRenderer.send(IPC.updateInstall),
+  onUpdateStatus: (cb: (status: UpdateStatus) => void): void => {
+    ipcRenderer.removeAllListeners(IPC.updateStatus);
+    ipcRenderer.on(IPC.updateStatus, (_event, status: UpdateStatus) => cb(status));
   },
 };
 

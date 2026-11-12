@@ -2395,6 +2395,31 @@ code {
   background: var(--accent);
 }
 
+.cf-status-update {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  height: 18px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-dim, #a0a0a0);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.cf-status-update.is-ready {
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.cf-status-update.is-ready:hover {
+  filter: brightness(1.15);
+}
+
 .cf-status-session {
   display: inline-flex;
   flex: 0 1 auto;

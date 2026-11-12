@@ -1,5 +1,6 @@
 import { createStore } from 'zustand/vanilla';
 import { useStore } from 'zustand';
+import type { UpdateStatus } from './platform';
 
 /**
  * Store LOCAL de l'application (zustand) : tout ce qui est propre à cet
@@ -201,6 +202,8 @@ export interface AppState {
 
   /** Travail long en cours, ou null. Tant qu'il n'est pas null, aucun autre import ne démarre. */
   busy: BusyState | null;
+  /** Mises à jour automatiques de l'application (voir src/app/updates.ts). */
+  update: UpdateStatus;
   /** Des fichiers sont en train d'être glissés au-dessus de la fenêtre. */
   dropActive: boolean;
   /** Rapport du dernier import qui a produit des avertissements. */
@@ -269,6 +272,7 @@ export const initialState = (): AppState => ({
   canUndo: false,
   canRedo: false,
   busy: null,
+  update: { state: 'disabled' },
   dropActive: false,
   importReport: null,
 });

@@ -1,7 +1,7 @@
 {
   "name": "coforge",
   "productName": "CoForge",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Modélisation 3D collaborative en temps réel (blocking, hard surface, éclairage, rendu)",
   "author": "CoForge",
   "license": "MIT",
@@ -18,9 +18,10 @@
     "server": "node dist-server/coforge-server.cjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "dist": "npm run build && electron-builder --win nsis --x64"
+    "dist": "npm run build && electron-builder --win nsis --x64 --publish never"
   },
   "dependencies": {
+    "electron-updater": "^6.8.11",
     "fflate": "^0.8.3",
     "fzstd": "^0.1.1",
     "lib0": "^0.2.102",

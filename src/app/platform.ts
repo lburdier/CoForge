@@ -51,6 +51,21 @@ export interface BlenderEvalResult extends BlendEvalResult {
   notes?: string[];
 }
 
+/**
+ * État des mises à jour automatiques (releases GitHub) :
+ * - `disabled` : hors application installée (développement, navigateur) ;
+ * - `downloading` : une version plus récente se télécharge en tâche de fond ;
+ * - `ready` : elle est téléchargée, et s'installera à la fermeture (ou tout de suite sur demande).
+ * `manual` : réponse à une vérification demandée par l'utilisateur (à signaler même si rien n'est trouvé).
+ */
+export interface UpdateStatus {
+  state: 'disabled' | 'idle' | 'checking' | 'none' | 'downloading' | 'ready' | 'error';
+  version?: string;
+  percent?: number;
+  error?: string;
+  manual?: boolean;
+}
+
 /** API exposée par le preload Electron sur `window.coforge`. */
 export interface NativeBridge {
   readonly version: string;
@@ -88,6 +103,14 @@ export interface NativeBridge {
    * il appelle ce callback, qui renvoie true si la fermeture est autorisée.
    */
   onCloseRequest(cb: () => boolean | Promise<boolean>): void;
+  /** État courant des mises à jour. */
+  updateStatus?(): Promise<UpdateStatus>;
+  /** Vérifie tout de suite s'il existe une version plus récente. */
+  checkForUpdates?(): Promise<UpdateStatus>;
+  /** Ferme l'application (avec la confirmation habituelle) et installe la mise à jour téléchargée. */
+  installUpdate?(): void;
+  /** Appelé à chaque changement d'état des mises à jour. */
+  onUpdateStatus?(cb: (status: UpdateStatus) => void): void;
 }
 
 declare global {
@@ -179,6 +202,18 @@ export const platform = {
   },
   onCloseRequest(cb: () => boolean | Promise<boolean>): void {
     native()?.onCloseRequest(cb);
+  },
+  updateStatus(): Promise<UpdateStatus> {
+    return native()?.updateStatus?.() ?? Promise.resolve({ state: 'disabled' });
+  },
+  checkForUpdates(): Promise<UpdateStatus> {
+    return native()?.checkForUpdates?.() ?? Promise.resolve({ state: 'disabled' });
+  },
+  installUpdate(): void {
+    native()?.installUpdate?.();
+  },
+  onUpdateStatus(cb: (status: UpdateStatus) => void): void {
+    native()?.onUpdateStatus?.(cb);
   },
 };
 

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { AlertTriangle, Image as ImageIcon, Info, Redo2, Undo2, Wifi, WifiOff } from 'lucide-react';
+import { AlertTriangle, Download, Image as ImageIcon, Info, Redo2, Undo2, Wifi, WifiOff } from 'lucide-react';
 import { useDoc } from '../../app/hooks';
 import { platform } from '../../app/platform';
 import { patchRender, store, useApp } from '../../app/store';
@@ -144,6 +144,32 @@ function UndoRedo() {
   );
 }
 
+/** Mise à jour en cours de téléchargement, ou prête : un clic redémarre et l'installe. */
+function UpdateState() {
+  const update = useApp((s) => s.update);
+  if (update.state === 'downloading') {
+    return (
+      <span className="cf-status-update" data-tip={`Téléchargement de CoForge ${update.version ?? ''} en tâche de fond`}>
+        <Download size={12} />
+        Mise à jour {update.percent ?? 0} %
+      </span>
+    );
+  }
+  if (update.state !== 'ready') return null;
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      className="cf-status-update is-ready"
+      data-tip="Installée automatiquement à la fermeture. Clic : redémarrer et mettre à jour maintenant"
+      onClick={() => runOp('app.install_update')}
+    >
+      <Download size={12} />
+      CoForge {update.version} prêt : redémarrer
+    </button>
+  );
+}
+
 /** Barre d'état en bas de la fenêtre. */
 export function StatusBar() {
   return (
@@ -152,6 +178,7 @@ export function StatusBar() {
       <div className="cf-spacer" />
       <ToastText />
       <RenderProgress />
+      <UpdateState />
       <SessionState />
       <FileState />
       <UndoRedo />

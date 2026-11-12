@@ -7,6 +7,7 @@ import type { BlenderEvalResult, BlenderInfo, FileFilter, HostInfo, HostOptions,
 import type { BlendEvalRequest } from '../src/engine/io/types';
 import { convertBlendBytesToGLB, convertBlendToGLB, evaluateBlend, evaluateBlendBytes, findBlender, shutdownBlenderBridge } from './blenderBridge';
 import { IPC } from './ipc';
+import { checkForUpdates, currentUpdateStatus, initUpdater, installUpdateNow } from './updater';
 
 /**
  * Processus principal : fenêtre unique, fichiers, serveur de session embarqué.
@@ -28,6 +29,8 @@ let closeRegistered = false;
 let closeAllowed = false;
 let closeRequestId = 0;
 let closePending: { id: number; timer: ReturnType<typeof setTimeout> | null } | null = null;
+/** « Redémarrer et mettre à jour » : une fois la fermeture acceptée, l'installateur prend le relais. */
+let installAfterClose = false;
 
 function clearClosePending(): void {
   if (closePending?.timer) clearTimeout(closePending.timer);
@@ -37,6 +40,11 @@ function clearClosePending(): void {
 function forceClose(): void {
   clearClosePending();
   closeAllowed = true;
+  if (installAfterClose) {
+    installAfterClose = false;
+    installUpdateNow();
+    return;
+  }
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
 }
 
@@ -267,6 +275,16 @@ function registerIpc(): void {
     if (!closePending || closePending.id !== id) return;
     clearClosePending();
     if (allowed) forceClose();
+    else installAfterClose = false;
+  });
+
+  ipcMain.handle(IPC.updateGetStatus, () => currentUpdateStatus());
+  ipcMain.handle(IPC.updateCheck, () => checkForUpdates(true));
+  ipcMain.on(IPC.updateInstall, () => {
+    if (currentUpdateStatus().state !== 'ready') return;
+    installAfterClose = true;
+    if (mainWindow && !mainWindow.isDestroyed()) requestClose(mainWindow);
+    else forceClose();
   });
 }
 
@@ -422,5 +440,6 @@ if (!app.requestSingleInstanceLock()) {
     Menu.setApplicationMenu(null); // les menus sont dans l'interface web
     registerIpc();
     createWindow();
+    initUpdater(() => mainWindow, IPC.updateStatus);
   });
 }

@@ -52,3 +52,11 @@ nsis:
   artifactName: CoForge-Setup-${version}.exe
   installerIcon: build/icon.ico
   uninstallerIcon: build/icon.ico
+
+# Mises à jour automatiques (electron-updater) : l'application installée lit latest.yml dans la
+# dernière release GitHub. Chaque release doit contenir l'installateur, son .blockmap et latest.yml.
+publish:
+  provider: github
+  owner: lburdier
+  repo: CoForge
+  releaseType: release

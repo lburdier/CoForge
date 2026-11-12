@@ -6,6 +6,7 @@ import { registerTools } from '../tools';
 import { OperatorRegistry } from '../tools/api';
 import { App } from '../ui/App';
 import { registerAppOps } from './appOps';
+import { bindUpdates, registerUpdateOps } from './updates';
 import { setAppContext, type AppContext } from './context';
 import { installFileDrop, isDocRetained, loadSceneData } from './files';
 import { platform } from './platform';
@@ -182,6 +183,7 @@ async function start(): Promise<void> {
   const app = createApp();
   setAppContext(app);
   registerAppOps(app);
+  registerUpdateOps(app);
   registerTools(app);
   bindDocToStore(app);
   bindPresence(app);
@@ -194,6 +196,7 @@ async function start(): Promise<void> {
 
   // Glisser-déposer : .coforge → ouvrir, fichiers 3D (.blend, glTF, FBX…) → importer.
   installFileDrop();
+  bindUpdates();
 
   createRoot(document.getElementById('root')!).render(<App />);
 
