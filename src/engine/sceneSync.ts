@@ -36,7 +36,7 @@ import {
 import { createStudioMaterial, MaterialLibrary } from './materials';
 import { nodeSurfaceBeforeRender } from './nodeMaterial';
 import { MeshEvaluator, hasExternalDeps } from './meshCache';
-import { createOccluderMaterial, createOutlineMaterial, LineMaterialCache, ORDER } from './overlayMaterials';
+import { createOccluderMaterial, createOutlineMaskMaterial, createOutlineMaterial, LineMaterialCache, ORDER } from './overlayMaterials';
 import { COLOR_ACTIVE, COLOR_SELECTED, COLOR_VIEWPORT_BG, finite } from './util';
 import type { WorldEnv, WorldState } from './world';
 
@@ -91,6 +91,8 @@ export interface ObjNode {
   wire: LineSegments | null;
   outline: Mesh | null;
   peerOutline: Mesh | null;
+  /** Silhouette (stencil seul) sous les contours : les empêche de recouvrir l'objet. */
+  outlineMask: Mesh | null;
   bounds: LineSegments | null;
   boundsKey: string;
   // lumière / caméra / empty
@@ -126,6 +128,7 @@ function emptyNode(id: string, obj: ObjectData): ObjNode {
     wire: null,
     outline: null,
     peerOutline: null,
+    outlineMask: null,
     bounds: null,
     boundsKey: '',
     light: null,
@@ -153,6 +156,7 @@ export class SceneSync {
   private studio: ShaderMaterial = createStudioMaterial();
   private studioXray: ShaderMaterial = createStudioMaterial();
   private occluderMat = createOccluderMaterial();
+  private outlineMaskMat = createOutlineMaskMaterial();
   private outlineSel = createOutlineMaterial(COLOR_SELECTED, 1.5);
   private outlineActive = createOutlineMaterial(COLOR_ACTIVE, 1.5);
   private peerOutlineMats = new Map<string, ShaderMaterial>();
@@ -635,10 +639,11 @@ export class SceneSync {
       } else n.wire.geometry = g.edges;
       if (n.outline?.visible) n.outline.geometry = this.pool.hull(g);
       if (n.peerOutline?.visible) n.peerOutline.geometry = this.pool.hull(g);
-      for (const o of [n.surface, n.occluder, n.wire, n.outline, n.peerOutline]) if (o) o.updateMatrixWorld(true);
+      if (n.outlineMask) n.outlineMask.geometry = g.surface;
+      for (const o of [n.surface, n.occluder, n.wire, n.outline, n.peerOutline, n.outlineMask]) if (o) o.updateMatrixWorld(true);
     } else {
-      for (const o of [n.surface, n.occluder, n.wire, n.outline, n.peerOutline]) o?.removeFromParent();
-      n.surface = n.occluder = n.wire = n.outline = n.peerOutline = null;
+      for (const o of [n.surface, n.occluder, n.wire, n.outline, n.peerOutline, n.outlineMask]) o?.removeFromParent();
+      n.surface = n.occluder = n.wire = n.outline = n.peerOutline = n.outlineMask = null;
     }
     this.pool.release(prev);
     n.boundsKey = '';
@@ -732,6 +737,19 @@ export class SceneSync {
       if (n.peerOutline.geometry !== hull) n.peerOutline.geometry = hull;
       n.peerOutline.visible = true;
     } else if (n.peerOutline) n.peerOutline.visible = false;
+
+    // silhouette des objets contourés (stencil) : le contour n'est dessiné qu'à l'extérieur
+    const outlined = !!(n.outline?.visible || n.peerOutline?.visible);
+    if (g && outlined) {
+      if (!n.outlineMask) {
+        n.outlineMask = new Mesh(g.surface, this.outlineMaskMat);
+        n.outlineMask.renderOrder = ORDER.outlineMask;
+        n.ov.add(n.outlineMask);
+        n.outlineMask.updateMatrixWorld(true);
+      }
+      if (n.outlineMask.geometry !== g.surface) n.outlineMask.geometry = g.surface;
+      n.outlineMask.visible = true;
+    } else if (n.outlineMask) n.outlineMask.visible = false;
 
     // boîte englobante (affichage « bounds »)
     if (display === 'bounds' && g && !g.bounds.isEmpty()) {
@@ -980,6 +998,7 @@ export class SceneSync {
     this.studio.dispose();
     this.studioXray.dispose();
     this.occluderMat.dispose();
+    this.outlineMaskMat.dispose();
     this.outlineSel.dispose();
     this.outlineActive.dispose();
     for (const m of this.peerOutlineMats.values()) m.dispose();

@@ -347,6 +347,8 @@ export class RenderPipeline {
       if (needsPrepass) this.prepass.render(r, scene, camera);
       r.setRenderTarget(null);
       r.autoClear = false;
+      // Le masque des contours s'écrit dans le stencil : repartir d'un stencil vide.
+      r.clearStencil();
       r.shadowMap.autoUpdate = false;
       r.toneMapping = NoToneMapping;
       r.render(overlay, camera);

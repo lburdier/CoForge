@@ -25,6 +25,8 @@ export interface GeoEntry {
   bvh: MeshBVH | null;
   pickGeom: BufferGeometry | null;
   hull: BufferGeometry | null;
+  /** Normales de contour à recalculer (positions remplacées sur place depuis la dernière construction). */
+  hullStale: boolean;
 }
 
 /**
@@ -129,7 +131,7 @@ export class GeometryPool {
       const bounds = surface.boundingBox ? surface.boundingBox.clone() : new Box3();
       if (rm.positions.length === 0 && rm.edgePositions.length > 0) bounds.setFromBufferAttribute(edges.getAttribute('position') as BufferAttribute);
       const sphere = bounds.isEmpty() ? new Sphere(new Vector3(), 0) : bounds.getBoundingSphere(new Sphere());
-      e = { rm, surface, edges, refs: 0, bounds, sphere, bvh: null, pickGeom: null, hull: null };
+      e = { rm, surface, edges, refs: 0, bounds, sphere, bvh: null, pickGeom: null, hull: null, hullStale: false };
       this.map.set(rm, e);
     }
     e.refs++;
@@ -182,10 +184,14 @@ export class GeometryPool {
     (entry.edges.boundingSphere ??= new Sphere()).copy(entry.sphere);
     // Accélérations dérivées des positions : reconstruites au prochain besoin.
     entry.bvh = null;
+    // pickGeom n'est jamais dessinée (aucune ressource GPU) : la libérer est sans risque.
     entry.pickGeom?.dispose();
     entry.pickGeom = null;
-    entry.hull?.dispose();
-    entry.hull = null;
+    // La coque PARTAGE l'attribut `position` de la surface : la libérer (dispose) supprimerait aussi
+    // le tampon GPU de la surface, dont le VAO continuerait de pointer vers l'ancien tampon : la
+    // surface resterait affichée avec ses anciennes positions (triangles manquants, contour visible
+    // à travers les faces). On la garde et on recalcule ses normales au prochain besoin.
+    if (entry.hull) entry.hullStale = true;
     return entry;
   }
 
@@ -216,6 +222,14 @@ export class GeometryPool {
 
   /** Géométrie du contour de sélection. */
   hull(entry: GeoEntry): BufferGeometry {
+    if (entry.hull && entry.hullStale) {
+      const attr = entry.hull.getAttribute('outlineNormal') as BufferAttribute;
+      (attr.array as Float32Array).set(computeOutlineNormals(entry.rm.positions, entry.rm.normals));
+      attr.needsUpdate = true;
+      (entry.hull.boundingSphere ??= new Sphere()).copy(entry.sphere);
+      (entry.hull.boundingBox ??= new Box3()).copy(entry.bounds);
+      entry.hullStale = false;
+    }
     if (entry.hull) return entry.hull;
     const g = new BufferGeometry();
     g.setAttribute('position', entry.surface.getAttribute('position'));

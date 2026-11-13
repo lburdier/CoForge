@@ -143,7 +143,8 @@ export class Viewport implements IViewport {
 
     try {
       if (typeof document === 'undefined') throw new Error('DOM indisponible');
-      const r = new WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+      // stencil : masque de silhouette des contours de sélection (overlayMaterials).
+      const r = new WebGLRenderer({ canvas, antialias: true, alpha: false, stencil: true, powerPreference: 'high-performance' });
       r.shadowMap.enabled = true;
       this.renderer = r;
       this.worldEnv = new WorldEnv(r);

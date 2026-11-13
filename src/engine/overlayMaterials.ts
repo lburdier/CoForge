@@ -1,4 +1,4 @@
-import { Color, DoubleSide, LineBasicMaterial, MeshBasicMaterial, ShaderMaterial, Vector2, type Material } from 'three';
+import { AlwaysStencilFunc, Color, DoubleSide, KeepStencilOp, LineBasicMaterial, MeshBasicMaterial, NotEqualStencilFunc, ReplaceStencilOp, ShaderMaterial, Vector2, type Material } from 'three';
 
 /**
  * Matériaux de la scène d'overlay (jamais utilisés dans le rendu final).
@@ -14,6 +14,7 @@ import { Color, DoubleSide, LineBasicMaterial, MeshBasicMaterial, ShaderMaterial
 export const ORDER = {
   gridXray: -300,
   occluder: -200,
+  outlineMask: -160,
   grid: -150,
   peerOutline: -120,
   outline: -110,
@@ -41,6 +42,33 @@ export function createOccluderMaterial(): MeshBasicMaterial {
   m.polygonOffsetFactor = 1;
   m.polygonOffsetUnits = 1;
   m.toneMapped = false;
+  return m;
+}
+
+/** Valeur de stencil écrite par la silhouette des objets contourés. */
+export const OUTLINE_STENCIL = 1;
+
+/**
+ * Masque de silhouette des objets contourés : n'écrit ni couleur ni profondeur, seulement le
+ * stencil, sur toute la silhouette (sans test de profondeur). Les contours ne sont ensuite dessinés
+ * qu'en dehors de ce masque : la coque gonflée ne peut plus recouvrir les faces de l'objet (sur un
+ * objet allongé, extrudé ou vu de biais, ses faces avant passaient devant la surface malgré le recul
+ * en profondeur, d'où des triangles de couleur sur l'objet).
+ */
+export function createOutlineMaskMaterial(): MeshBasicMaterial {
+  const m = new MeshBasicMaterial({ side: DoubleSide });
+  m.name = 'masque-contour';
+  m.colorWrite = false;
+  m.depthWrite = false;
+  m.depthTest = false;
+  m.transparent = true;
+  m.toneMapped = false;
+  m.stencilWrite = true;
+  m.stencilRef = OUTLINE_STENCIL;
+  m.stencilFunc = AlwaysStencilFunc;
+  m.stencilZPass = ReplaceStencilOp;
+  m.stencilZFail = ReplaceStencilOp;
+  m.stencilFail = ReplaceStencilOp;
   return m;
 }
 
@@ -88,6 +116,14 @@ export function createOutlineMaterial(color: string, widthPx: number): ShaderMat
   m.polygonOffsetFactor = 4;
   m.polygonOffsetUnits = 16;
   m.toneMapped = false;
+  // Seulement hors de la silhouette marquée par le masque (voir createOutlineMaskMaterial).
+  m.stencilWrite = true;
+  m.stencilRef = OUTLINE_STENCIL;
+  m.stencilFunc = NotEqualStencilFunc;
+  m.stencilFail = KeepStencilOp;
+  m.stencilZFail = KeepStencilOp;
+  m.stencilZPass = KeepStencilOp;
+  m.stencilWriteMask = 0;
   return m;
 }
 
