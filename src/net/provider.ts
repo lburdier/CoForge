@@ -2,7 +2,7 @@ import * as decoding from 'lib0/decoding';
 import * as encoding from 'lib0/encoding';
 import * as awarenessProtocol from 'y-protocols/awareness';
 import * as syncProtocol from 'y-protocols/sync';
-import type * as Y from 'yjs';
+import * as Y from 'yjs';
 import {
   CHUNK_THRESHOLD,
   ChunkAssembler,
@@ -41,6 +41,10 @@ import {
  *    les modifications faites hors ligne partent au retour ;
  *  - présence : on ne diffuse que la SIENNE (jamais l'expiration locale d'un pair).
  */
+
+/** Regroupement des mises à jour locales du document (voir onDocUpdate). */
+const UPDATE_BATCH_MS = 30;
+const UPDATE_BATCH_BYTES = 64 * 1024;
 
 export type ProviderPhase = 'connecting' | 'syncing' | 'connected' | 'waiting' | 'stopped';
 
@@ -242,6 +246,7 @@ export class CoforgeProvider {
 
   destroy(): void {
     if (this.destroyed) return;
+    this.flushUpdates();
     // Prévenir les autres tout de suite que l'on part (sinon ils attendraient l'expiration).
     const ws = this.ws;
     if (ws && ws.readyState === this.WS.OPEN) {
@@ -345,6 +350,11 @@ export class CoforgeProvider {
   private closeSocket(code: number, reason: string): void {
     const ws = this.ws;
     if (!ws) return;
+    // Mises à jour non parties : la resynchronisation au retour les renverra.
+    if (this.batchTimer !== null) clearTimeout(this.batchTimer);
+    this.batchTimer = null;
+    this.batch = [];
+    this.batchBytes = 0;
     this.ws = null;
     ws.onopen = null;
     ws.onmessage = null;
@@ -489,16 +499,63 @@ export class CoforgeProvider {
     }
   }
 
+  /**
+   * Mises à jour locales regroupées : un glisser (déplacement, curseur) écrit une transaction par
+   * mouvement de souris ; on les fusionne (Y.mergeUpdates) sur UPDATE_BATCH_MS pour envoyer un seul
+   * message, plus petit, et soulager le réseau et les autres participants.
+   */
+  private batch: Uint8Array[] = [];
+  private batchBytes = 0;
+  private batchTimer: ReturnType<typeof setTimeout> | null = null;
+
   private onDocUpdate = (update: Uint8Array, origin: unknown): void => {
     if (origin === this) return;
     this.localSeq++;
+    const ws = this.ws;
+    // Hors connexion, rien n'est mis en file : la resynchronisation par vecteurs d'état enverra tout au retour.
+    if (!ws || ws.readyState !== this.WS.OPEN) {
+      this.emitSoon(false);
+      return;
+    }
+    if (this.batchTimer === null) {
+      // Premier envoi après un silence : immédiat (une modification isolée part sans délai), puis
+      // les suivantes de la rafale sont regroupées jusqu'à la fin de la fenêtre.
+      this.sendUpdate(update);
+      this.batchTimer = setTimeout(this.flushUpdates, UPDATE_BATCH_MS);
+    } else {
+      this.batch.push(update);
+      this.batchBytes += update.byteLength;
+      if (this.batchBytes >= UPDATE_BATCH_BYTES) this.flushUpdates();
+    }
+    this.emitSoon(false);
+  };
+
+  /** Envoie les mises à jour en attente (fusionnées). Appelé avant tout PING pour que l'accusé les couvre. */
+  private flushUpdates = (): void => {
+    if (this.batchTimer !== null) clearTimeout(this.batchTimer);
+    this.batchTimer = null;
+    const list = this.batch;
+    if (list.length === 0) return;
+    this.batch = [];
+    this.batchBytes = 0;
+    let update: Uint8Array | null = null;
+    try {
+      update = list.length === 1 ? list[0] : Y.mergeUpdates(list);
+    } catch {
+      // Fusion impossible (ne devrait pas arriver) : envoi un par un.
+      for (const u of list) this.sendUpdate(u);
+    }
+    if (update) this.sendUpdate(update);
+    // La rafale continue peut-être (glisser en cours) : nouvelle fenêtre de regroupement.
+    if (!this.destroyed && this.ws) this.batchTimer = setTimeout(this.flushUpdates, UPDATE_BATCH_MS);
+  };
+
+  private sendUpdate(update: Uint8Array): void {
     const enc = encoding.createEncoder();
     encoding.writeVarUint(enc, MSG_SYNC);
     syncProtocol.writeUpdate(enc, update);
-    // Hors connexion, rien n'est mis en file : la resynchronisation par vecteurs d'état enverra tout au retour.
     this.send(encoding.toUint8Array(enc));
-    this.emitSoon(false);
-  };
+  }
 
   private onAwarenessUpdate = ({ added, updated, removed }: { added: number[]; updated: number[]; removed: number[] }, origin: unknown): void => {
     if (origin === this) return;
@@ -571,6 +628,7 @@ export class CoforgeProvider {
   private sendPing(afterSync: boolean): number | null {
     const ws = this.ws;
     if (!ws || ws.readyState !== this.WS.OPEN || !this.hello) return null;
+    this.flushUpdates();
     const seq = ++this.pingSeq;
     // Avant la synchronisation, notre étape 2 n'est peut-être pas encore partie : pas d'accusé possible.
     this.pingMarks.set(seq, afterSync || this.synced ? this.localSeq : this.ackedSeq);

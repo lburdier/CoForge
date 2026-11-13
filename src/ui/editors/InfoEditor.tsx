@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertCircle, Copy, Info, Play, Terminal, Trash2 } from 'lucide-react';
+import { AlertCircle, Copy, Info, Play, Terminal, Trash2, Users } from 'lucide-react';
 import { toast } from '../../app/store';
 import { clearInfo, useInfoLog, type InfoKind } from '../lib/infoLog';
 import { IconButton } from '../widgets/basic';
 import { EditorHeader, EditorShell } from './common';
 
-const KIND_LABEL: Record<InfoKind, string> = { op: 'Opérateurs', info: 'Messages', error: 'Erreurs', console: 'Console' };
-const KIND_ICON = { op: Play, info: Info, error: AlertCircle, console: Terminal };
+const KIND_LABEL: Record<InfoKind, string> = { op: 'Opérateurs', info: 'Messages', error: 'Erreurs', console: 'Console', team: 'Équipe' };
+const KIND_ICON = { op: Play, info: Info, error: AlertCircle, console: Terminal, team: Users };
 
 /** Éditeur Info : journal des opérateurs exécutés et des messages (comme l'éditeur Info de Blender). */
 export function InfoEditor() {

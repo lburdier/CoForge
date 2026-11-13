@@ -30,7 +30,12 @@ export const EDITOR_TYPES = [
 export type EditorType = (typeof EDITOR_TYPES)[number];
 
 /** Éditeurs qui ne peuvent exister qu'une fois (le moteur n'a qu'un viewport 3D). */
-export const UNIQUE_EDITORS: ReadonlySet<EditorType> = new Set<EditorType>(['view3d']);
+export const UNIQUE_EDITORS: ReadonlySet<EditorType> = new Set<EditorType>();
+/**
+ * Plusieurs viewports 3D sont possibles (comme dans Blender) ; au-delà de ce nombre, les suivants
+ * sont relus comme des outliners (chaque viewport supplémentaire a un coût de rendu).
+ */
+export const MAX_VIEW3D = 4;
 
 export interface AreaLeaf {
   kind: 'area';
@@ -123,6 +128,11 @@ export function setRatio(tree: AreaNode, splitId: string, ratio: number): AreaNo
   return replaceNode(tree, splitId, (n) => (n.kind === 'split' ? { ...n, ratio: clampRatio(ratio) } : n));
 }
 
+/** Nombre de zones affichant cet éditeur. */
+export function countEditor(tree: AreaNode, editor: EditorType): number {
+  return leaves(tree).filter((l) => l.editor === editor).length;
+}
+
 /** Éditeur donné à la nouvelle zone d'une division : le même, sauf s'il est unique. */
 export function editorForCopy(editor: EditorType): EditorType {
   return UNIQUE_EDITORS.has(editor) ? 'outliner' : editor;
@@ -142,7 +152,9 @@ export function splitArea(
 ): { tree: AreaNode; newId: string | null } {
   const target = findNode(tree, areaId);
   if (!target || target.kind !== 'area' || leaves(tree).length >= MAX_AREAS) return { tree, newId: null };
-  const newLeaf = area(editor && !(UNIQUE_EDITORS.has(editor) && hasEditor(tree, editor)) ? editor : editorForCopy(target.editor), newAreaId(tree));
+  let ed = editor && !(UNIQUE_EDITORS.has(editor) && hasEditor(tree, editor)) ? editor : editorForCopy(target.editor);
+  if (ed === 'view3d' && countEditor(tree, 'view3d') >= MAX_VIEW3D) ed = 'outliner';
+  const newLeaf = area(ed, newAreaId(tree));
   // Les identifiants successifs diffèrent toujours (compteur), même entre eux.
   const s = split(dir, ratio, target, newLeaf, newAreaId(tree));
   return { tree: replaceNode(tree, areaId, () => s), newId: newLeaf.id };
@@ -178,6 +190,7 @@ export function swapAreas(tree: AreaNode, splitId: string): AreaNode {
 export function setAreaEditor(tree: AreaNode, areaId: string, editor: EditorType): AreaNode {
   const target = findNode(tree, areaId);
   if (!target || target.kind !== 'area' || target.editor === editor) return tree;
+  if (editor === 'view3d' && countEditor(tree, 'view3d') >= MAX_VIEW3D) return tree;
   let next = tree;
   if (UNIQUE_EDITORS.has(editor)) {
     const other = leaves(tree).find((l) => l.editor === editor && l.id !== areaId);
@@ -308,7 +321,7 @@ export function defaultAreaTree(presetId: string, sizes: LegacySizes): AreaNode 
 export function sanitizeAreaTree(raw: unknown): AreaNode | null {
   const ids = new Set<string>();
   let count = 0;
-  let view3d = false;
+  let view3d = 0;
   const read = (v: unknown, depth: number): AreaNode | null => {
     if (!v || typeof v !== 'object' || depth > MAX_DEPTH) return null;
     const o = v as Record<string, unknown>;
@@ -318,8 +331,8 @@ export function sanitizeAreaTree(raw: unknown): AreaNode | null {
       if (++count > MAX_AREAS) return null;
       let editor = (EDITOR_TYPES as readonly string[]).includes(o.editor as string) ? (o.editor as EditorType) : 'outliner';
       if (editor === 'view3d') {
-        if (view3d) editor = 'outliner';
-        view3d = true;
+        if (view3d >= MAX_VIEW3D) editor = 'outliner';
+        else view3d++;
       }
       return { kind: 'area', id: o.id, editor };
     }

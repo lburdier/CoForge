@@ -36,6 +36,8 @@ export class InputManager {
   /** Le clic droit qui suit a été consommé (annulation d'un modal) : pas de menu contextuel. */
   private swallowContextMenu = false;
   private overViewport = false;
+  /** Pointeur au-dessus d'une autre zone que le viewport (éditeur de nœuds, frise…). */
+  private overOtherArea = false;
 
   constructor(
     private app: AppContext,
@@ -64,6 +66,8 @@ export class InputManager {
     if (inside || this.app.ops.modalActive || this.press) this.app.ops.mouse = viewportPos(this.app, e);
     else this.app.ops.mouse = null;
     this.overViewport = this.isCanvas(e.target);
+    const t = e.target as Element | null;
+    this.overOtherArea = !inside && typeof t?.closest === 'function' && !!t.closest('.cf-area-slot');
   }
 
   // ---------------------------------------------------------------- pointeur
@@ -194,7 +198,9 @@ export class InputManager {
     // Raccourcis du viewport : seulement si le pointeur est sur le viewport ou qu'aucun widget
     // n'a le focus (sinon la frappe appartient au widget : liste, bouton…). Les raccourcis
     // généraux (fichier, annulation, rendu) s'appliquent partout hors des champs de saisie.
-    const viewportKeys = this.app.ops.mouse !== null || this.focusFree();
+    // Comme dans Blender, la frappe va à la zone sous le pointeur : au-dessus d'un autre
+    // éditeur (nœuds, frise, texte…), les raccourcis du viewport ne s'appliquent pas.
+    const viewportKeys = this.app.ops.mouse !== null || (this.focusFree() && !this.overOtherArea);
     const bindings = findBindings(e, s.mode).filter((b) => viewportKeys || b.section === 'Général');
     if (!bindings.length) return;
     e.preventDefault();

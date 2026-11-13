@@ -46,9 +46,14 @@ describe('arbre des zones', () => {
     expect(top.ratio).toBeCloseTo(0.4);
     expect(top.a).toMatchObject({ id: 'o', editor: 'outliner' });
     expect(top.b).toMatchObject({ id: newId, editor: 'outliner' });
-    // Le viewport ne se duplique pas.
-    const v = splitArea(sample(), 'v', 'col', 0.5);
-    expect(editors(v.tree).filter((e) => e === 'view3d')).toHaveLength(1);
+    // Le viewport se duplique (plusieurs viewports, comme dans Blender), dans la limite de MAX_VIEW3D.
+    let v = splitArea(sample(), 'v', 'col', 0.5);
+    expect(editors(v.tree).filter((e) => e === 'view3d')).toHaveLength(2);
+    v = splitArea(v.tree, 'v', 'row', 0.5);
+    v = splitArea(v.tree, 'v', 'row', 0.5);
+    expect(editors(v.tree).filter((e) => e === 'view3d')).toHaveLength(4);
+    v = splitArea(v.tree, 'v', 'row', 0.5);
+    expect(editors(v.tree).filter((e) => e === 'view3d')).toHaveLength(4);
     // Identifiants uniques.
     const ids = [tree, ...leaves(tree)].map((n) => n.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -79,7 +84,7 @@ describe('arbre des zones', () => {
 
   it('changer d’éditeur ; le viewport 3D (unique) est échangé avec la zone visée', () => {
     expect(editors(setAreaEditor(sample(), 'p', 'timeline'))).toEqual(['view3d', 'outliner', 'timeline']);
-    expect(editors(setAreaEditor(sample(), 'p', 'view3d'))).toEqual(['properties', 'outliner', 'view3d']);
+    expect(editors(setAreaEditor(sample(), 'p', 'view3d'))).toEqual(['view3d', 'outliner', 'view3d']);
     const t = sample();
     expect(setAreaEditor(t, 'p', 'properties')).toBe(t);
   });
@@ -102,7 +107,7 @@ describe('arbre des zones', () => {
     expect(small.areas.find((a) => a.id === 'v')!.w).toBe(28);
   });
 
-  it('relecture : arbre abîmé refusé, valeurs corrigées, un seul viewport', () => {
+  it('relecture : arbre abîmé refusé, valeurs corrigées, viewports multiples conservés', () => {
     expect(sanitizeAreaTree(null)).toBeNull();
     expect(sanitizeAreaTree({ kind: 'split', id: 's', dir: 'diag', a: {}, b: {} })).toBeNull();
     expect(sanitizeAreaTree({ kind: 'split', id: 's', dir: 'row', ratio: 0.5, a: { kind: 'area', id: 'x', editor: 'view3d' }, b: { kind: 'area', id: 'x', editor: 'view3d' } })).toBeNull();
@@ -115,7 +120,7 @@ describe('arbre des zones', () => {
       b: { kind: 'area', id: 'b', editor: 'view3d' },
     }) as AreaSplit;
     expect(t.ratio).toBeLessThan(1);
-    expect(editors(t)).toEqual(['view3d', 'outliner']);
+    expect(editors(t)).toEqual(['view3d', 'view3d']);
     expect(editors(sanitizeAreaTree({ kind: 'area', id: 'z', editor: 'inconnu' })!)).toEqual(['outliner']);
   });
 

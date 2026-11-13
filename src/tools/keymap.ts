@@ -54,6 +54,8 @@ export const KEYMAP: readonly KeyBinding[] = [
   { op: 'screen.workspace_cycle', args: { dir: -1 }, key: 'pageup', ctrl: true, display: 'Ctrl+Pg Préc', section: 'Général', label: 'Espace de travail précédent', repeat: true },
   { op: 'screen.workspace_cycle', args: { dir: 1 }, key: 'pagedown', ctrl: true, display: 'Ctrl+Pg Suiv', section: 'Général', label: 'Espace de travail suivant', repeat: true },
   { op: 'object.mode_toggle', key: 'tab', display: 'Tab', section: 'Vue', label: 'Basculer mode objet / mode édition' },
+  { op: 'team.ping', key: 'q', display: 'Q', section: 'Vue', label: 'Signaler ce point à l’équipe' },
+  { op: 'team.summon', key: 'q', shift: true, display: 'Maj+Q', section: 'Vue', label: 'Amener l’équipe à ma vue' },
 
   // ------------------------------------------------------------ vue
   { op: 'view.toggle_toolbar', key: 't', display: 'T', section: 'Vue' },

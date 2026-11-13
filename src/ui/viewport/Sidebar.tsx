@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Eye, EyeOff, MapPin, MessageSquarePlus, RotateCcw, Trash2, Users } from 'lucide-react';
 import { Matrix4, Vector3 } from 'three';
 import { getApp } from '../../app/context';
 import { useDoc } from '../../app/hooks';
-import { store, useApp, type EditSelection } from '../../app/store';
-import { edgeVerts, type MeshData, type Vec3 } from '../../core/doc/schema';
+import { setSelection, store, useApp, type EditSelection } from '../../app/store';
+import { edgeVerts, type MeshData, type NoteData, type Vec3 } from '../../core/doc/schema';
+import { notePosition } from './TeamOverlay';
 import { worldMatrix } from '../../core/doc/transforms';
 import type { Peer } from '../../net/api';
 import { TransformFields } from '../properties/TransformFields';
@@ -13,12 +14,13 @@ import { renameObject, tidy, usePersistent } from '../lib/util';
 import { Avatar, Checkbox, Hint, Panel, Row, Select, TextField, type SelectOption } from '../widgets/basic';
 import { NumberField, VectorField } from '../widgets/NumberField';
 
-type SidebarTab = 'item' | 'view' | 'session';
+type SidebarTab = 'item' | 'view' | 'session' | 'team';
 
 const TABS: { id: SidebarTab; label: string }[] = [
   { id: 'item', label: 'Élément' },
   { id: 'view', label: 'Vue' },
   { id: 'session', label: 'Session' },
+  { id: 'team', label: 'Équipe' },
 ];
 
 // ------------------------------------------------------------------ onglet Élément
@@ -315,6 +317,112 @@ function SessionTab() {
   );
 }
 
+// ------------------------------------------------------------------ onglet Équipe
+
+/**
+ * Outils de travail à plusieurs : signal 3D, amener l'équipe à sa vue, notes de revue partagées
+ * (attachées à l'objet actif ou posées au curseur 3D), cochées « résolu » plutôt qu'effacées.
+ */
+function TeamTab() {
+  const connected = useApp((s) => s.session.status === 'connected');
+  const activeId = useApp((s) => s.activeId);
+  const user = useApp((s) => s.user);
+  const notes = useDoc((doc) => doc.listNotes(), ['scene', 'objects']);
+  const objName = useDoc((doc) => (activeId ? (doc.getObject(activeId)?.name ?? null) : null), ['objects'], [activeId]);
+  const [text, setText] = useState('');
+  const [showDone, setShowDone] = useState(false);
+  const doc = () => getApp().doc;
+
+  const add = () => {
+    const t = text.trim();
+    if (!t) return;
+    const st = store.getState();
+    const onObject = !!st.activeId && !!doc().getObject(st.activeId);
+    withOpDoc((d) =>
+      d.addNote({ text: t, author: user.name, color: user.color, pos: onObject ? [0, 0, 0.6] : st.cursor3d, objectId: onObject ? st.activeId : null, time: Date.now(), done: false }),
+    );
+    setText('');
+  };
+  const goTo = (n: NoteData) => {
+    const p = notePosition(n);
+    const v = getApp().viewport.getViewState();
+    const off = [v.pos[0] - v.target[0], v.pos[1] - v.target[1], v.pos[2] - v.target[2]];
+    getApp().viewport.setViewState({ ...v, target: p, pos: [p[0] + off[0], p[1] + off[1], p[2] + off[2]] }, true);
+    if (n.objectId) setSelection([n.objectId]);
+  };
+  const shown = notes.filter((n) => showDone || !n.done);
+  const open = notes.filter((n) => !n.done).length;
+
+  return (
+    <>
+      <Panel id="sidebar.team.tools" title="Outils d’équipe">
+        <div className="cf-btn-row">
+          <button type="button" className="cf-btn" onClick={() => runOp('team.ping')} data-tip="Repère « regardez ici » visible par tous (Q au-dessus du viewport)">
+            <MapPin size={12} /> Signaler (Q)
+          </button>
+          <button type="button" className="cf-btn" disabled={!connected} onClick={() => runOp('team.summon')} data-tip="Propose aux autres de rejoindre votre vue (Maj+Q)">
+            <Users size={12} /> Amener l’équipe
+          </button>
+        </div>
+        {!connected && <Hint>Hors session : les notes restent dans la scène et seront partagées en session.</Hint>}
+      </Panel>
+      <Panel id="sidebar.team.notes" title={`Notes de revue (${open} ouverte${open > 1 ? 's' : ''})`}>
+        <div className="cf-team-add">
+          <textarea
+            className="cf-text"
+            rows={2}
+            maxLength={2000}
+            value={text}
+            placeholder={objName ? `Note sur « ${objName} »…` : 'Note au curseur 3D…'}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) add();
+            }}
+          />
+          <button type="button" className="cf-btn is-accent" disabled={!text.trim()} onClick={add} data-tip="Ajouter la note (Ctrl+Entrée)">
+            <MessageSquarePlus size={12} /> Ajouter
+          </button>
+        </div>
+        <Checkbox checked={showDone} onChange={setShowDone} label="Afficher les notes résolues" />
+        {shown.length === 0 && <Hint>Aucune note. Les notes s’affichent comme des bulles dans le viewport.</Hint>}
+        {shown
+          .slice()
+          .reverse()
+          .map((n) => (
+            <div key={n.id} className={`cf-team-note-row${n.done ? ' is-done' : ''}`} style={{ borderColor: n.color }}>
+              <div className="cf-team-note-head">
+                <b style={{ color: n.color }}>{n.author}</b>
+                <span className="cf-dim">{new Date(n.time).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+              </div>
+              <div className="cf-team-note-text" onClick={() => goTo(n)} data-tip="Aller à la note">
+                {n.text}
+              </div>
+              <div className="cf-team-note-actions">
+                <button type="button" className="cf-btn is-small" onClick={() => withOpDoc((d) => d.updateNote(n.id, { done: !n.done }))}>
+                  {n.done ? <RotateCcw size={11} /> : <Check size={11} />} {n.done ? 'Rouvrir' : 'Résolu'}
+                </button>
+                <button type="button" className="cf-btn is-small" onClick={() => withOpDoc((d) => d.removeNote(n.id))} aria-label="Supprimer la note">
+                  <Trash2 size={11} />
+                </button>
+              </div>
+            </div>
+          ))}
+      </Panel>
+    </>
+  );
+}
+
+function withOpDoc(fn: (d: ReturnType<typeof getApp>['doc']) => void): void {
+  const d = getApp().doc;
+  d.beginOp();
+  try {
+    d.transact(() => fn(d));
+  } finally {
+    d.endOp();
+  }
+}
+
 // ------------------------------------------------------------------ panneau
 
 /** Panneau latéral (N) superposé à droite du viewport, onglets verticaux sur le bord. */
@@ -329,13 +437,25 @@ export function Sidebar() {
         return <ViewTab />;
       case 'session':
         return <SessionTab />;
+      case 'team':
+        return <TeamTab />;
       default:
         return <ItemTab />;
     }
   }, [current]);
+  // Le gizmo de navigation (dans le canvas) se décale à gauche du panneau au lieu de le recouvrir.
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const body = rootRef.current?.closest<HTMLElement>('.cf-viewport-body');
+    if (!body) return;
+    body.style.setProperty('--cf-sidebar-w', `${width}px`);
+    return () => {
+      body.style.removeProperty('--cf-sidebar-w');
+    };
+  }, [show, width]);
   if (!show) return null;
   return (
-    <div className="cf-sidebar" style={{ width }} onContextMenu={(e) => e.preventDefault()}>
+    <div ref={rootRef} className="cf-sidebar" style={{ width }} onContextMenu={(e) => e.preventDefault()}>
       <div
         className="cf-sidebar-resize"
         onPointerDown={(e) => {

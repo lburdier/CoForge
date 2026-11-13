@@ -8,6 +8,7 @@ import { App } from '../ui/App';
 import { registerAppOps } from './appOps';
 import { installInfoLog } from '../ui/lib/infoLog';
 import { installCameraMarkers } from './cameraMarkers';
+import { installTeamwork } from '../ui/lib/teamwork';
 import { bindUpdates, registerUpdateOps } from './updates';
 import { setAppContext, type AppContext } from './context';
 import { installFileDrop, isDocRetained, loadSceneData } from './files';
@@ -189,6 +190,7 @@ async function start(): Promise<void> {
   registerTools(app);
   installInfoLog(app);
   installCameraMarkers(app);
+  installTeamwork(app);
   bindDocToStore(app);
   bindPresence(app);
 

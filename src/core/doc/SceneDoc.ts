@@ -33,6 +33,7 @@ import {
   COMPOSITOR_DEFAULTS,
   type CompositorSettings,
   type MarkerData,
+  type NoteData,
 } from './schema';
 import { AnimLayer } from '../anim/layer';
 import { evaluatePoints, keyAtFrame, type CurveEval } from '../anim/fcurve';
@@ -1434,6 +1435,41 @@ export class SceneDoc {
   setActiveCameraByMarker(objectId: string | null): void {
     if ((this.yScene.get('activeCamera') ?? null) === objectId) return;
     this.ydoc.transact(() => this.yScene.set('activeCamera', objectId), 'markers');
+  }
+
+  // ------------------------------------------------------------------ notes d'équipe
+
+  listNotes(): NoteData[] {
+    const out: NoteData[] = [];
+    const vec = (v: unknown): Vec3 => (Array.isArray(v) && v.length === 3 && v.every((x) => Number.isFinite(x)) ? [v[0], v[1], v[2]] : [0, 0, 0]);
+    for (const [k, v] of this.yScene.entries()) {
+      if (!k.startsWith('n:') || !v || typeof v !== 'object') continue;
+      const n = v as Partial<NoteData>;
+      out.push({
+        id: k.slice(2),
+        text: typeof n.text === 'string' ? n.text.slice(0, 2000) : '',
+        author: typeof n.author === 'string' ? n.author.slice(0, 40) : '?',
+        color: typeof n.color === 'string' && /^#[0-9a-f]{6}$/i.test(n.color) ? n.color : '#888888',
+        pos: vec(n.pos),
+        objectId: typeof n.objectId === 'string' && this.yObjects.has(n.objectId) ? n.objectId : null,
+        time: Number.isFinite(n.time) ? Number(n.time) : 0,
+        done: n.done === true,
+      });
+    }
+    return out.sort((a, b) => a.time - b.time);
+  }
+  addNote(init: Omit<NoteData, 'id'>): string {
+    const id = newId(8);
+    this.transact(() => this.yScene.set(`n:${id}`, { ...init, text: init.text.slice(0, 2000) }));
+    return id;
+  }
+  updateNote(id: string, patch: Partial<Omit<NoteData, 'id'>>): void {
+    const cur = this.yScene.get(`n:${id}`);
+    if (!cur || typeof cur !== 'object') return;
+    this.transact(() => this.yScene.set(`n:${id}`, { ...(cur as object), ...patch }));
+  }
+  removeNote(id: string): void {
+    this.transact(() => this.yScene.delete(`n:${id}`));
   }
 
   // ------------------------------------------------------------------ compositeur

@@ -509,7 +509,7 @@ describe('sélection, visibilité, divers', () => {
 
   it('table des raccourcis : opérateurs enregistrés, pavé numérique et AZERTY', () => {
     const registered = new Set(app.ops.list().map((o) => o.id));
-    const appOps = ['file.new', 'file.open', 'file.save', 'file.save_as', 'edit.undo', 'edit.redo', 'view.search', 'render.render', 'render.view', 'screen.workspace_cycle'];
+    const appOps = ['file.new', 'file.open', 'file.save', 'file.save_as', 'edit.undo', 'edit.redo', 'view.search', 'render.render', 'render.view', 'screen.workspace_cycle', 'team.ping', 'team.summon'];
     for (const b of KEYMAP) {
       if (b.op.startsWith('mesh.') && b.op !== 'mesh.select_mode') continue;
       // Opérateurs d'animation : enregistrés par registerAnimOps (src/tools/anim), testés dans anim.ops.test.ts.

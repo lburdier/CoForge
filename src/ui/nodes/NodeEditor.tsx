@@ -20,6 +20,7 @@ import { addMenuTypes, applyBox, boxHits, englishName, frameView, orderedCategor
 import { useNodeWrangler } from './nodeWrangler';
 import './nodes.css';
 import { EditorTypeButton, useArea } from '../layout/editorTypes';
+import { isEditableElement } from '../../tools/util';
 
 const EMPTY = new Set<string>();
 
@@ -1058,6 +1059,35 @@ export function NodeCanvas({ kind, tree, treeId, materialId, sidebar, setSidebar
   // ---------------------------------------------------------------- rendu
 
   const nodesList = Object.values(shown.nodes);
+  // Déplacement modal : un clic hors du canevas (en-tête, autre zone) le valide aussi, comme dans Blender.
+  const modalMove = drag?.kind === 'move' && drag.modal;
+  useEffect(() => {
+    if (!modalMove) return;
+    const onDown = (e: PointerEvent) => {
+      const root = rootRef.current;
+      if (!root || root.contains(e.target as Node)) return;
+      const d = dragRef.current;
+      if (d?.kind !== 'move' || !d.modal) return;
+      if (e.button === 0) finishMove(d);
+      setDrag(null);
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modalMove]);
+
+  /**
+   * Le canevas prend le focus clavier dès que le pointeur le survole (sauf pendant une saisie) :
+   * Maj+A, X, G… vont alors à l'éditeur de nœuds et non au viewport, comme dans Blender.
+   */
+  const grabFocus = () => {
+    const root = rootRef.current;
+    const ae = document.activeElement as HTMLElement | null;
+    if (!root || ae === root || root.contains(ae)) return;
+    if (ae && (isEditableElement(ae) || ae.closest?.('.cf-ne-add, .cf-menu, .cf-dialog'))) return;
+    root.focus({ preventScroll: true });
+  };
+
   const frames = nodesList.filter((n) => nodeType(KIND, n.type)?.layout === 'frame');
   const regular = nodesList.filter((n) => nodeType(KIND, n.type)?.layout !== 'frame');
   const activeNode = active ? tree.nodes[active] : null;
@@ -1098,13 +1128,23 @@ export function NodeCanvas({ kind, tree, treeId, materialId, sidebar, setSidebar
       ref={rootRef}
       className={`cf-ne-canvas${drag?.kind === 'pan' ? ' is-panning' : ''}${drag?.kind === 'move' ? ' is-moving' : ''}`}
       tabIndex={0}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerEnter={() => {
-        const ae = document.activeElement as HTMLElement | null;
-        if (!ae || ae === document.body || ae.tagName === 'CANVAS') rootRef.current?.focus({ preventScroll: true });
+      onPointerDownCapture={(e) => {
+        // Déplacement modal (nœud qui vient d'être ajouté, G) : le clic valide où qu'il tombe, même
+        // sur un champ du nœud (qui, sinon, garderait le clic pour lui et bloquerait l'éditeur).
+        const d = dragRef.current;
+        if (d?.kind !== 'move' || !d.modal) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.button === 0) finishMove(d);
+        setDrag(null);
       }}
+      onPointerDown={onPointerDown}
+      onPointerMove={(e) => {
+        grabFocus();
+        onPointerMove(e);
+      }}
+      onPointerUp={onPointerUp}
+      onPointerEnter={grabFocus}
       onKeyDown={onKeyDown}
       onContextMenu={(e) => e.preventDefault()}
       style={{ backgroundPosition: `${view.x}px ${view.y}px`, backgroundSize: `${20 * view.z}px ${20 * view.z}px` }}

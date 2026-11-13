@@ -834,6 +834,22 @@ export interface MarkerData {
   camera: string | null;
 }
 
+/**
+ * Note d'équipe (revue) : un commentaire posé dans la scène, sur un objet ou à un point. Stockée dans
+ * la table `scene` sous la clé `n:<id>` (une entrée par note : aucune collision entre auteurs).
+ */
+export interface NoteData {
+  id: string;
+  text: string;
+  author: string;
+  color: string;
+  /** Position monde (ou décalage par rapport à l'origine de l'objet si `objectId`). */
+  pos: Vec3;
+  objectId: string | null;
+  time: number;
+  done: boolean;
+}
+
 /** Réglages du compositeur (table `scene`, clés `c:<champ>`), appliqués au rendu final. */
 export interface CompositorSettings {
   /** Utiliser les nœuds : applique la chaîne au rendu affiché et enregistré. */

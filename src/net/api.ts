@@ -36,6 +36,12 @@ export interface PresenceState {
   editVerts: string[];
   /** Tête de lecture de l'utilisateur (image courante, sens de lecture) : permet de « suivre sa lecture ». */
   playback: { frame: number; playing: 0 | 1 | -1 };
+  /** Travail d'équipe (facultatifs : absents chez un client plus ancien). Dernière opération réalisée. */
+  activity?: { label: string; time: number } | null;
+  /** Signal 3D (« regardez ici »), visible quelques secondes chez les autres. */
+  ping?: { point: Vec3; time: number } | null;
+  /** Invitation à rejoindre sa vue (« Amener l'équipe à ma vue »). */
+  summon?: { camera: PresenceCamera; time: number } | null;
 }
 
 export interface Peer {

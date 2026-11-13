@@ -163,3 +163,23 @@ describe('catalogue des éditeurs', () => {
     expect(sanitizeAreaTree(JSON.parse(JSON.stringify(script)))).toEqual(script);
   });
 });
+
+describe('notes d’équipe', () => {
+  it('ajout, résolution, objet supprimé, suppression', () => {
+    const doc = SceneDoc.createNew();
+    const cube = doc.listObjects().find((o) => o.type === 'mesh')!.id;
+    const a = doc.addNote({ text: 'Biseau trop fort', author: 'A', color: '#ff0000', pos: [0, 0, 1], objectId: cube, time: 2, done: false });
+    doc.addNote({ text: 'x'.repeat(5000), author: 'B', color: 'pas une couleur', pos: [1, 2, 3], objectId: null, time: 1, done: false });
+    let notes = doc.listNotes();
+    expect(notes.map((n) => n.author)).toEqual(['B', 'A']);
+    expect(notes[0].text.length).toBe(2000);
+    expect(notes[0].color).toBe('#888888');
+    doc.updateNote(a, { done: true });
+    expect(doc.listNotes().find((n) => n.id === a)!.done).toBe(true);
+    doc.removeObject(cube);
+    expect(doc.listNotes().find((n) => n.id === a)!.objectId).toBeNull();
+    doc.removeNote(a);
+    notes = doc.listNotes();
+    expect(notes).toHaveLength(1);
+  });
+});

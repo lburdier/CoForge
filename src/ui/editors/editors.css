@@ -105,6 +105,9 @@
 .cf-info-row.is-console svg {
   color: var(--ok);
 }
+.cf-info-row.is-team svg {
+  color: var(--active);
+}
 .cf-info-time {
   color: var(--text-dim);
   flex: 0 0 auto;

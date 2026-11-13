@@ -23,7 +23,7 @@ import {
   Terminal,
   type LucideIcon,
 } from 'lucide-react';
-import { leaves, type AreaNode, type EditorType } from '../lib/areaTree';
+import { leaves, MAX_VIEW3D, type AreaNode, type EditorType } from '../lib/areaTree';
 
 /**
  * Catalogue des éditeurs d'une zone et bouton « Type d'éditeur » (en tête de chaque en-tête,
@@ -160,7 +160,7 @@ function EditorTypeMenu({ anchor, ctx, onClose }: { anchor: HTMLElement; ctx: Ar
   const menuRef = useRef<HTMLDivElement>(null);
   const r = anchor.getBoundingClientRect();
   const [pos, setPos] = useState({ left: r.left, top: r.bottom + 2 });
-  const view3dElsewhere = leaves(ctx.tree).some((l) => l.editor === 'view3d' && l.id !== ctx.areaId);
+  const view3dCount = leaves(ctx.tree).filter((l) => l.editor === 'view3d').length;
 
   // Reste dans la fenêtre (ouvert vers le haut si la zone est en bas de l'écran).
   useLayoutEffect(() => {
@@ -205,8 +205,8 @@ function EditorTypeMenu({ anchor, ctx, onClose }: { anchor: HTMLElement; ctx: Ar
             const active = e.id === ctx.editor;
             const tip = !e.id
               ? 'Pas encore disponible dans CoForge'
-              : e.id === 'view3d' && view3dElsewhere
-                ? 'Un seul viewport 3D : il est échangé avec l’éditeur de cette zone'
+              : e.id === 'view3d' && view3dCount >= MAX_VIEW3D && ctx.editor !== 'view3d'
+                ? `Au plus ${MAX_VIEW3D} viewports 3D`
                 : undefined;
             return (
               <button
@@ -214,7 +214,7 @@ function EditorTypeMenu({ anchor, ctx, onClose }: { anchor: HTMLElement; ctx: Ar
                 type="button"
                 role="menuitem"
                 className={`cf-editor-menu-item${active ? ' is-active' : ''}`}
-                disabled={!e.id}
+                disabled={!e.id || (e.id === 'view3d' && view3dCount >= MAX_VIEW3D && ctx.editor !== 'view3d')}
                 data-tip={tip}
                 onClick={() => {
                   if (e.id) ctx.setEditor(e.id);

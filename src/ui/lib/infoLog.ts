@@ -6,7 +6,7 @@ import type { AppContext } from '../../app/context';
  * console : `run object.add {"type":"cube"}`), messages et erreurs. Local, jamais partagé.
  */
 
-export type InfoKind = 'op' | 'info' | 'error' | 'console';
+export type InfoKind = 'op' | 'info' | 'error' | 'console' | 'team';
 
 export interface InfoEntry {
   id: number;

@@ -24,7 +24,7 @@ import { exportOBJ as ioExportOBJ } from './io/obj';
 import type { ExportItem } from './io/types';
 import type { ImportOptions } from './io/importFile';
 import type { ImportResult } from './io/scene';
-import { makeSceneCamera, Navigation, type NavigationHost } from './navigation';
+import { lookQuaternion, makeSceneCamera, Navigation, type NavigationHost } from './navigation';
 import { NavGizmo } from './navGizmo';
 import { ORDER } from './overlayMaterials';
 import { Cursor3D, Grid, Hud, Origins } from './overlays';
@@ -43,6 +43,20 @@ import { WorldEnv } from './world';
  * d'orientation, RenderPipeline (rendu temps réel / path tracing) et le rendu final.
  * La boucle de rendu est « à la demande » : rien n'est dessiné tant que rien ne change.
  */
+
+/**
+ * Vue 3D supplémentaire (« miroir ») : une autre zone Viewport 3D, avec sa propre caméra. Le moteur
+ * n'a qu'un contexte WebGL : la zone active (sous le pointeur) reçoit le vrai canvas interactif ;
+ * les autres sont dessinées dans le même contexte puis copiées dans leur canvas 2D.
+ */
+export interface ViewMirror {
+  canvas: HTMLCanvasElement;
+  /** Caméra de la vue (null : pas encore de vue mémorisée, la vue active est reprise). */
+  getView(): PresenceCamera | null;
+}
+
+/** Cadence maximale des vues miroirs (ms entre deux rafraîchissements). */
+const MIRROR_INTERVAL = 33;
 
 interface FrameRect {
   x: number;
@@ -93,6 +107,13 @@ export class Viewport implements IViewport {
   private offs: (() => void)[] = [];
 
   private renderJob: AbortController | null = null;
+  private mirrors = new Map<string, ViewMirror>();
+  private mirrorsDirty = true;
+  private lastMirrorDraw = 0;
+  private mirrorTimer: ReturnType<typeof setTimeout> | null = null;
+  private mirrorPersp = new PerspectiveCamera();
+
+  private mirrorOrtho = new OrthographicCamera();
 
   constructor(private app: AppContext) {
     this.doc = app.doc;
@@ -162,6 +183,27 @@ export class Viewport implements IViewport {
     this.sync.attach(this.doc);
     this.offs.push(app.onDocChange((d) => this.setDoc(d)));
     this.offs.push(app.store.subscribe((s, prev) => this.onStore(s, prev)));
+    // Vues miroirs : à redessiner quand la scène ou l'état local changent (pas pour la seule navigation).
+    this.offs.push(
+      app.onDocChange((d) => {
+        this.markMirrors();
+        return d.on('change', () => this.markMirrors());
+      }),
+    );
+    this.offs.push(
+      app.store.subscribe((st, prev) => {
+        if (
+          st.selection !== prev.selection ||
+          st.activeId !== prev.activeId ||
+          st.mode !== prev.mode ||
+          st.editSelection !== prev.editSelection ||
+          st.shading !== prev.shading ||
+          st.overlays !== prev.overlays ||
+          st.frame !== prev.frame
+        )
+          this.markMirrors();
+      }),
+    );
   }
 
   // ================================================================== cycle de vie
@@ -231,6 +273,8 @@ export class Viewport implements IViewport {
     this.offs = [];
     if (this.pointerTimer) clearTimeout(this.pointerTimer);
     if (this.prewarmTimer) clearTimeout(this.prewarmTimer);
+    if (this.mirrorTimer) clearTimeout(this.mirrorTimer);
+    this.mirrors.clear();
     this.gizmo?.dispose();
     this.picker.dispose();
     this.cage.dispose();
@@ -334,6 +378,7 @@ export class Viewport implements IViewport {
       again = this.nav.update(now) || again;
       this.prepare();
       this.updateOverlays(st);
+      this.drawMirrors(now);
       again = this.draw() || again;
       this.gizmo?.draw();
       this.publishCamera();
@@ -425,6 +470,133 @@ export class Viewport implements IViewport {
     if (this.viewCamId) {
       const n = this.sync.nodes.get(this.viewCamId);
       if (n) n.ov.visible = false;
+    }
+  }
+
+  // ================================================================== vues miroirs (plusieurs viewports 3D)
+
+  /** Hors contrat IViewport : ajoute une vue miroir ; renvoie la fonction de retrait. */
+  addMirror(id: string, mirror: ViewMirror): () => void {
+    this.mirrors.set(id, mirror);
+    this.markMirrors();
+    return () => {
+      if (this.mirrors.get(id) === mirror) this.mirrors.delete(id);
+    };
+  }
+
+  /** Hors contrat IViewport : les vues miroirs doivent être redessinées (scène, sélection, taille…). */
+  markMirrors(): void {
+    if (this.mirrors.size === 0) return;
+    this.mirrorsDirty = true;
+    this.requestRender();
+  }
+
+  private mirrorCamera(view: PresenceCamera, aspect: number): PerspectiveCamera | OrthographicCamera {
+    const eye = new Vector3(...view.pos);
+    const target = new Vector3(...view.target);
+    const dist = Math.max(1e-3, eye.distanceTo(target));
+    const q = lookQuaternion(eye, target);
+    const fov = clamp(finite(view.fov, 50), 1, 170);
+    if (view.ortho) {
+      const o = this.mirrorOrtho;
+      const hh = dist * Math.tan(MathUtils.degToRad(fov) / 2);
+      o.left = -hh * aspect;
+      o.right = hh * aspect;
+      o.top = hh;
+      o.bottom = -hh;
+      const range = Math.max(500, dist * 20);
+      o.near = -range;
+      o.far = range;
+      o.position.copy(eye);
+      o.quaternion.copy(q);
+      o.updateProjectionMatrix();
+      o.updateMatrixWorld(true);
+      return o;
+    }
+    const p = this.mirrorPersp;
+    p.fov = fov;
+    p.aspect = aspect;
+    p.near = clamp(dist * 0.002, 0.001, 0.5);
+    p.far = Math.max(2000, dist * 200);
+    p.position.copy(eye);
+    p.quaternion.copy(q);
+    p.updateProjectionMatrix();
+    p.updateMatrixWorld(true);
+    return p;
+  }
+
+  /**
+   * Dessine les vues miroirs dans le contexte WebGL (coin haut-gauche du tampon) puis les copie
+   * dans leur canvas 2D, AVANT l'image de la vue active qui recouvre tout le tampon ensuite.
+   * Cadence limitée (MIRROR_INTERVAL) ; un rafraîchissement différé rattrape le dernier changement.
+   */
+  private drawMirrors(now: number): void {
+    const r = this.renderer;
+    if (!r || this.mirrors.size === 0 || !this.mirrorsDirty) return;
+    if (now - this.lastMirrorDraw < MIRROR_INTERVAL) {
+      if (!this.mirrorTimer) {
+        this.mirrorTimer = setTimeout(() => {
+          this.mirrorTimer = null;
+          this.requestRender();
+        }, MIRROR_INTERVAL);
+      }
+      return;
+    }
+    this.mirrorsDirty = false;
+    this.lastMirrorDraw = now;
+    const pr = this.pixelRatio;
+    const bufW = Math.max(1, Math.floor(this.width * pr));
+    const bufH = Math.max(1, Math.floor(this.height * pr));
+    const fallback = this.getViewState();
+    const prevAuto = r.autoClear;
+    const list: { m: ViewMirror; cw: number; ch: number; pw: number; ph: number; ctx: CanvasRenderingContext2D }[] = [];
+    let needW = bufW;
+    let needH = bufH;
+    for (const m of this.mirrors.values()) {
+      const cw = m.canvas.clientWidth;
+      const ch = m.canvas.clientHeight;
+      if (cw < 2 || ch < 2 || !m.canvas.isConnected) continue;
+      const pw = Math.max(1, Math.round(cw * pr));
+      const ph = Math.max(1, Math.round(ch * pr));
+      if (m.canvas.width !== pw || m.canvas.height !== ph) {
+        m.canvas.width = pw;
+        m.canvas.height = ph;
+      }
+      const ctx = m.canvas.getContext('2d');
+      if (!ctx) continue;
+      list.push({ m, cw, ch, pw, ph, ctx });
+      needW = Math.max(needW, pw);
+      needH = Math.max(needH, ph);
+    }
+    if (list.length === 0) return;
+    // Une vue plus grande que la vue active : le tampon est agrandi le temps de la dessiner (même
+    // chemin de rendu que l'écran : tone mapping et couleurs identiques), puis rendu à sa taille
+    // avant l'image de la vue active. Rien n'est affiché entre-temps (même tâche).
+    const grown = needW > bufW || needH > bufH;
+    if (grown) r.setSize(needW / pr, needH / pr, false);
+    const H = grown ? Math.floor((needH / pr) * pr) : bufH;
+    try {
+      for (const { m, cw, ch, pw, ph, ctx } of list) {
+        const cam = this.mirrorCamera(m.getView() ?? fallback, cw / ch);
+        r.setRenderTarget(null);
+        // setViewport / setScissor attendent des pixels CSS (multipliés par le pixel ratio).
+        r.setViewport(0, (H - ph) / pr, pw / pr, ph / pr);
+        r.setScissor(0, (H - ph) / pr, pw / pr, ph / pr);
+        r.setScissorTest(true);
+        r.autoClear = false;
+        r.clear();
+        r.render(this.sync.scene, cam);
+        r.clearDepth();
+        r.render(this.sync.overlay, cam);
+        ctx.drawImage(r.domElement, 0, 0, pw, ph, 0, 0, pw, ph);
+      }
+    } catch (err) {
+      console.error('[engine] vue miroir', err);
+    } finally {
+      r.setScissorTest(false);
+      if (grown) r.setSize(this.width, this.height, false);
+      r.setViewport(0, 0, this.width, this.height);
+      r.autoClear = prevAuto;
     }
   }
 

@@ -32,7 +32,7 @@ function Loading({ children, label = 'Chargement de l’éditeur…' }: { childr
 export function EditorContent({ editor, areaId, onEditor }: { editor: EditorType; areaId: string; onEditor(e: EditorType): void }): ReactNode {
   switch (editor) {
     case 'view3d':
-      return <ViewportArea />;
+      return <ViewportArea areaId={areaId} />;
     case 'outliner':
       return <Outliner />;
     case 'properties':

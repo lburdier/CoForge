@@ -2827,3 +2827,140 @@ code {
   transform: translateX(-50%);
   pointer-events: none;
 }
+
+/* ------------------------------------------------------------------ viewports multiples */
+
+.cf-viewport-mirror {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.cf-viewport-area.is-mirror-view .cf-viewport-canvas {
+  cursor: default;
+}
+
+/* ------------------------------------------------------------------ équipe : signaux, notes, invitation */
+
+.cf-team-ping {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  animation: cf-team-fade linear forwards;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7));
+}
+.cf-team-ping-ring {
+  position: absolute;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid;
+  border-radius: 50%;
+  animation: cf-team-ring 1.2s ease-out infinite;
+}
+.cf-team-ping-name {
+  margin-top: 2px;
+  padding: 0 5px;
+  border-radius: 3px;
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+}
+@keyframes cf-team-ring {
+  from {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+@keyframes cf-team-fade {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.cf-team-note {
+  position: absolute;
+  z-index: 4;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  pointer-events: auto;
+}
+.cf-team-summon {
+  position: absolute;
+  z-index: 6;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid;
+  border-radius: 6px;
+  background: var(--bg-overlay);
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  white-space: nowrap;
+}
+.cf-team-add {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.cf-team-add textarea {
+  resize: vertical;
+  min-height: 36px;
+  font: var(--font);
+}
+.cf-team-note-row {
+  margin-top: 6px;
+  padding: 5px 6px;
+  border-left: 3px solid;
+  border-radius: 3px;
+  background: var(--bg-field-dark);
+}
+.cf-team-note-row.is-done {
+  opacity: 0.55;
+}
+.cf-team-note-row.is-done .cf-team-note-text {
+  text-decoration: line-through;
+}
+.cf-team-note-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+}
+.cf-team-note-text {
+  margin: 3px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: pointer;
+}
+.cf-team-note-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* Gizmo de navigation : à gauche du panneau latéral (N) quand il est ouvert. */
+.cf-viewport-body .cf-nav-gizmo {
+  right: calc(6px + var(--cf-sidebar-w, 0px)) !important;
+}
