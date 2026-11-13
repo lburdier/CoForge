@@ -4,6 +4,7 @@ import { getApp } from '../../app/context';
 import { store, type AppState, type PropertiesTab, type ShadingMode, type Workspace } from '../../app/store';
 import type { AppContext } from '../../app/context';
 import { runOp } from './ops';
+import { sanitizeAreaTree, type AreaNode } from './areaTree';
 
 /**
  * Espaces de travail (onglets de la barre supérieure) : chacun ajuste le mode
@@ -18,6 +19,11 @@ export interface AreaLayout {
   outlinerH: number;
   /** Hauteur de l'éditeur du bas (nœuds, texte…), px. */
   bottomH?: number;
+  /**
+   * Arbre des zones personnalisé (divisions, fusions, éditeurs choisis). Absent : disposition
+   * d'origine du modèle, construite à partir des tailles ci-dessus (voir areaTree.ts).
+   */
+  areas?: AreaNode;
 }
 
 export interface WorkspacePreset {
@@ -321,6 +327,8 @@ function sanitizeLayout(raw: unknown, fallback: AreaLayout): AreaLayout {
   };
   const bottomH = finite(l.bottomH) && l.bottomH > 0 ? l.bottomH : fallback.bottomH;
   if (bottomH !== undefined) out.bottomH = bottomH;
+  const areas = l.areas === undefined ? undefined : sanitizeAreaTree(l.areas);
+  if (areas) out.areas = areas;
   return out;
 }
 

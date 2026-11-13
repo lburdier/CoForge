@@ -6,8 +6,37 @@ import { curveKey } from '../src/core/doc/schema';
 import type { IViewport } from '../src/engine/api';
 import { OperatorRegistry } from '../src/tools/api';
 import { registerAnimOps } from '../src/tools/anim';
+import type { Peer } from '../src/net/api';
 
 // ------------------------------------------------------------------ faux contexte (Node, sans DOM ni WebGL)
+
+/** Faux client réseau : enregistre la présence publiée et permet d'injecter des pairs. */
+const fakeCollab = {
+  presence: {} as Record<string, unknown>,
+  peers: [] as Peer[],
+  listeners: new Set<(p: Peer[]) => void>(),
+  setPresence(patch: Record<string, unknown>) {
+    Object.assign(this.presence, patch);
+  },
+  getPeers() {
+    return this.peers;
+  },
+  onPeers(cb: (p: Peer[]) => void) {
+    this.listeners.add(cb);
+    return () => this.listeners.delete(cb);
+  },
+  emit(peers: Peer[]) {
+    this.peers = peers;
+    this.listeners.forEach((cb) => cb(peers));
+  },
+};
+
+function peer(clientId: number, frame: number): Peer {
+  return {
+    clientId,
+    state: { user: { id: 'u' + clientId, name: 'Pair ' + clientId, color: '#f00' }, camera: null, pointer: null, selection: [], activeId: null, mode: 'object', editVerts: [], playback: { frame, playing: 1 } },
+  };
+}
 
 function makeApp(): AppContext {
   let doc = SceneDoc.createNew();
@@ -17,7 +46,7 @@ function makeApp(): AppContext {
     get doc() {
       return doc;
     },
-    collab: {},
+    collab: fakeCollab,
     viewport: { requestRender: () => {} } as Partial<IViewport>,
     setDoc(next: SceneDoc) {
       doc = next;
@@ -118,5 +147,32 @@ describe('animation : opérateurs', () => {
     const s = app.doc.getAnimSettings();
     expect(s.fps).toBe(60);
     expect(s.frameStart).toBeLessThanOrEqual(s.frameEnd);
+  });
+});
+
+describe('animation : suivre la lecture d’un autre utilisateur', () => {
+  it('publie la tête de lecture locale dans la présence', () => {
+    store.setState({ frame: 42 });
+    expect(fakeCollab.presence.playback).toEqual({ frame: 42, playing: 0 });
+  });
+
+  it('recopie l’image du pair suivi, puis s’arrête si on déplace la tête de lecture', () => {
+    fakeCollab.emit([peer(7, 10)]);
+    store.setState({ followPlaybackClientId: 7 });
+    expect(store.getState().frame).toBe(10);
+    fakeCollab.emit([peer(7, 25)]);
+    expect(store.getState().frame).toBe(25);
+    expect(store.getState().followPlaybackClientId).toBe(7);
+    store.setState({ frame: 3 });
+    expect(store.getState().followPlaybackClientId).toBe(null);
+    fakeCollab.emit([peer(7, 30)]);
+    expect(store.getState().frame).toBe(3);
+  });
+
+  it('arrête le suivi quand le pair quitte la session', () => {
+    fakeCollab.emit([peer(7, 10)]);
+    store.setState({ followPlaybackClientId: 7 });
+    fakeCollab.emit([]);
+    expect(store.getState().followPlaybackClientId).toBe(null);
   });
 });

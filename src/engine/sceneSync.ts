@@ -35,7 +35,7 @@ import {
 } from './lights';
 import { createStudioMaterial, MaterialLibrary } from './materials';
 import { nodeSurfaceBeforeRender } from './nodeMaterial';
-import { MeshEvaluator, booleanTargets } from './meshCache';
+import { MeshEvaluator, hasExternalDeps } from './meshCache';
 import { createOccluderMaterial, createOutlineMaterial, LineMaterialCache, ORDER } from './overlayMaterials';
 import { COLOR_ACTIVE, COLOR_SELECTED, COLOR_VIEWPORT_BG, finite } from './util';
 import type { WorldEnv, WorldState } from './world';
@@ -261,6 +261,8 @@ export class SceneSync {
           this.host.markDirty('materials');
         } else if (e.table === 'nodeTrees') {
           if (this.materials.updateTrees(doc, ids)) this.host.markDirty('materials');
+          // nœuds de géométrie : les objets qui en portent sont réévalués (le cache compare l'arbre)
+          for (const id of this.boolOwners) if (this.nodes.has(id)) this.mark(id, F_GEOMETRY);
         } else if (e.table === 'collections') {
           for (const n of this.nodes.values()) this.mark(n.id, F_VISIBILITY);
         } else {
@@ -590,7 +592,7 @@ export class SceneSync {
   }
 
   private updateBooleanIndex(n: ObjNode): void {
-    if (n.type === 'mesh' && booleanTargets(n.obj.modifiers).length > 0) this.boolOwners.add(n.id);
+    if (n.type === 'mesh' && hasExternalDeps(n.obj.modifiers)) this.boolOwners.add(n.id);
     else this.boolOwners.delete(n.id);
   }
 

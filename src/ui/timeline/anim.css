@@ -233,3 +233,7 @@
 .cf-anim-field .cf-vec > .cf-num:hover {
   filter: brightness(1.15);
 }
+
+.cf-anim-follow.is-active {
+  outline: 1px solid var(--accent);
+}

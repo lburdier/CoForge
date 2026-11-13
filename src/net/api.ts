@@ -34,6 +34,8 @@ export interface PresenceState {
   mode: InteractionMode;
   /** Sommets sélectionnés en mode édition (tronqué à 400 identifiants). */
   editVerts: string[];
+  /** Tête de lecture de l'utilisateur (image courante, sens de lecture) : permet de « suivre sa lecture ». */
+  playback: { frame: number; playing: 0 | 1 | -1 };
 }
 
 export interface Peer {

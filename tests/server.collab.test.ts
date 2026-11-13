@@ -84,7 +84,7 @@ describe('client de collaboration', () => {
     await waitFor(() => a.getPeers().length === 1 && b.getPeers().length === 1, 'pairs visibles');
     const user = store.getState().user;
     expect(a.getPeers()[0].clientId).toBe(docB.ydoc.clientID);
-    expect(a.getPeers()[0].state).toEqual({ user, camera: null, pointer: null, selection: [], activeId: null, mode: 'object', editVerts: [] });
+    expect(a.getPeers()[0].state).toEqual({ user, camera: null, pointer: null, selection: [], activeId: null, mode: 'object', editVerts: [], playback: { frame: 1, playing: 0 } });
     // (les deux clients du test partagent le même store : la liste est celle du dernier à l'avoir écrite)
     const listed = store.getState().session.peers;
     expect(listed.length).toBe(1);

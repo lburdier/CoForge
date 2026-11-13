@@ -35,6 +35,7 @@ import {
   type TreeNode,
 } from './tree';
 import './outliner.css';
+import { EditorTypeButton } from '../layout/editorTypes';
 
 /** Propriétés d'objet qui modifient l'arbre (position… : les autres sont ignorées). */
 const TREE_KEYS = new Set(['name', 'parent', 'collection', 'type', 'visible', 'renderable', 'selectable', 'data']);
@@ -777,6 +778,7 @@ export function Outliner() {
   return (
     <div ref={rootRef} className="cf-outliner" tabIndex={0} onKeyDown={onKeyDown}>
       <div className="cf-ol-header">
+        <EditorTypeButton />
         <div className="cf-ol-search">
           <Search size={12} className="cf-ol-search-icon" />
           <input

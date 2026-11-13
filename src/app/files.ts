@@ -1,3 +1,4 @@
+import { compositeImageUrl } from './composite';
 import { SceneDoc } from '../core/doc/SceneDoc';
 import { FILE_EXTENSION } from '../core/doc/schema';
 import type { ImportOptions } from '../engine/io/importFile';
@@ -574,12 +575,17 @@ export async function saveRenderImage(): Promise<void> {
     toast('Aucun rendu à enregistrer', 'error');
     return;
   }
+  let composited: string | null = null;
   try {
-    const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
+    const comp = getApp().doc.getCompositor();
+    if (comp.use) composited = await compositeImageUrl(url, comp);
+    const bytes = new Uint8Array(await (await fetch(composited ?? url)).arrayBuffer());
     const sceneName = getApp().doc.getScene().name.replace(/[<>:"/\\|?*]/g, '_') || 'rendu';
     const path = await platform.saveFile(bytes, null, `${sceneName}.png`, [{ name: 'Image PNG', extensions: ['png'] }]);
-    if (path) toast(`Image enregistrée : ${baseName(path)}`);
+    if (path) toast(`Image enregistrée : ${baseName(path)}${composited ? ' (compositing appliqué)' : ''}`);
   } catch (err) {
     toast(`Échec de l'enregistrement : ${(err as Error).message}`, 'error');
+  } finally {
+    if (composited) URL.revokeObjectURL(composited);
   }
 }

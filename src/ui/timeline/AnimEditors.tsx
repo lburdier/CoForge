@@ -13,6 +13,7 @@ import { frameAllView, KeyCanvas } from './KeyCanvas';
 import { easingMenu, handleTypeMenu, interpolationMenu } from './menus';
 import { buildRows, useAnimVersion } from './model';
 import './anim.css';
+import { EditorTypeButton, useArea } from '../layout/editorTypes';
 
 /**
  * Éditeurs d'animation : frise (timeline), feuille d'exposition (dope sheet), éditeur de
@@ -160,7 +161,25 @@ export function Transport() {
         onChange={(v) => run('anim.set_range', { fps: Number(v) })}
         tip="Images par seconde (partagé)"
       />
+      <FollowPlayback />
     </>
+  );
+}
+
+/** « Suivre la lecture de… » : la tête de lecture locale recopie celle d'un autre utilisateur. */
+function FollowPlayback() {
+  const peers = useApp((s) => s.session.peers);
+  const follow = useApp((s) => s.followPlaybackClientId);
+  if (!peers.length) return null;
+  const options = [{ value: '', label: 'Lecture locale' }, ...peers.map((p) => ({ value: String(p.clientId), label: `Suivre ${p.name}` }))];
+  return (
+    <Select
+      className={`cf-anim-follow${follow !== null ? ' is-active' : ''}`}
+      value={follow === null ? '' : String(follow)}
+      options={options}
+      onChange={(v) => store.setState({ followPlaybackClientId: v ? Number(v) : null })}
+      tip="Suivre la tête de lecture d'un autre utilisateur (lire ou déplacer la tête de lecture arrête le suivi)"
+    />
   );
 }
 
@@ -168,10 +187,11 @@ export function Transport() {
 
 /** Zone d'animation : en-tête (type d'éditeur, menus, transport) + éditeur. */
 export function AnimEditorArea({ mode, onMode, viewKey, transport }: { mode: AnimEditorId; onMode(m: AnimEditorId): void; viewKey: string; transport: boolean }) {
+  const area = useArea();
   return (
     <div className="cf-area cf-anim-area">
       <div className="cf-area-header cf-anim-header">
-        <Select value={mode} options={EDITOR_OPTIONS} onChange={onMode} tip="Type d'éditeur" />
+        {area ? <EditorTypeButton /> : <Select value={mode} options={EDITOR_OPTIONS} onChange={onMode} tip="Type d'éditeur" />}
         <EditorMenus mode={mode} viewKey={`${viewKey}:${mode}`} playback={transport} />
         <div className="cf-header-center">{transport && <Transport />}</div>
       </div>

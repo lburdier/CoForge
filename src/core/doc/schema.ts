@@ -819,6 +819,52 @@ export interface ChatMessage {
   time: number;
 }
 
+// ---------------------------------------------------------------- marqueurs, compositing
+
+/**
+ * Marqueur de la frise / plan du montage vidéo. Lié à une caméra, il fait de celle-ci la caméra
+ * active à partir de son image (comme les marqueurs liés aux caméras de Blender). Stocké dans la
+ * table `scene` sous la clé `m:<id>` : deux utilisateurs qui posent des marqueurs ne se gênent pas.
+ */
+export interface MarkerData {
+  id: string;
+  name: string;
+  frame: number;
+  /** Objet caméra activé à partir de ce marqueur, ou null. */
+  camera: string | null;
+}
+
+/** Réglages du compositeur (table `scene`, clés `c:<champ>`), appliqués au rendu final. */
+export interface CompositorSettings {
+  /** Utiliser les nœuds : applique la chaîne au rendu affiché et enregistré. */
+  use: boolean;
+  /** Exposition en IL (diaphs) et gamma. */
+  exposure: number;
+  gamma: number;
+  useExposure: boolean;
+  /** Contraste et saturation (1 = neutre), teinte multiplicative. */
+  contrast: number;
+  saturation: number;
+  tint: string;
+  useColor: boolean;
+  /** Vignettage 0..1. */
+  vignette: number;
+  useVignette: boolean;
+}
+
+export const COMPOSITOR_DEFAULTS: CompositorSettings = {
+  use: false,
+  exposure: 0,
+  gamma: 1,
+  useExposure: true,
+  contrast: 1,
+  saturation: 1,
+  tint: '#ffffff',
+  useColor: true,
+  vignette: 0.3,
+  useVignette: false,
+};
+
 /** Extension des fichiers de scène (instantané binaire du Y.Doc). */
 export const FILE_EXTENSION = 'coforge';
 /** Version du schéma, stockée dans le document. */

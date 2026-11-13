@@ -19,8 +19,8 @@ import { commitTree, createNodeMaterial, toggleUseNodes } from './commit';
 import { addMenuTypes, applyBox, boxHits, englishName, frameView, orderedCategories, screenToTree, searchNodeTypes, supportNote, treeToScreen, zoomAt, type View } from './editorLogic';
 import { useNodeWrangler } from './nodeWrangler';
 import './nodes.css';
+import { EditorTypeButton, useArea } from '../layout/editorTypes';
 
-const KIND: NodeTreeKind = 'shader';
 const EMPTY = new Set<string>();
 
 // ------------------------------------------------------------------ état mémorisé par arbre
@@ -33,6 +33,7 @@ let clipboard: ops.Tree | null = null;
 
 /** Éditeur de shaders : arbre de nœuds du matériau de l'objet actif. */
 export function ShaderEditor() {
+  const area = useArea();
   const activeId = useApp((s) => s.activeId);
   const obj = useObject(activeId);
   const materials = useDocWhen((doc) => doc.listMaterials(), { data: (e) => e.table === 'materials' });
@@ -60,7 +61,7 @@ export function ShaderEditor() {
   return (
     <div className="cf-ne">
       <div className="cf-ne-header">
-        <Network size={14} className="cf-ne-icon" />
+        {area ? <EditorTypeButton /> : <Network size={14} className="cf-ne-icon" />}
         <span className="cf-ne-title">Éditeur de shaders</span>
         <div ref={setMenuSlot} className="cf-ne-menus" />
         {canHaveMaterial && (
@@ -105,7 +106,7 @@ export function ShaderEditor() {
           <Hint>Le matériau « {mat.name} » est en mode simple : passez aux nœuds pour le Principled BSDF complet et les textures procédurales.</Hint>
         </div>
       )}
-      {tree && treeId && <NodeCanvas key={treeId} tree={tree} treeId={treeId} materialId={mat?.id ?? null} sidebar={sidebar} setSidebar={setSidebar} notes={notes} menuSlot={menuSlot} />}
+      {tree && treeId && <NodeCanvas kind="shader" key={treeId} tree={tree} treeId={treeId} materialId={mat?.id ?? null} sidebar={sidebar} setSidebar={setSidebar} notes={notes} menuSlot={menuSlot} />}
     </div>
   );
 }
@@ -133,6 +134,8 @@ interface AddMenuState {
 }
 
 interface CanvasProps {
+  /** Système nodal : shader (matériau) ou géométrie (modificateur). */
+  kind: NodeTreeKind;
   tree: NodeTreeData;
   treeId: string;
   materialId: string | null;
@@ -143,7 +146,8 @@ interface CanvasProps {
   menuSlot: HTMLDivElement | null;
 }
 
-function NodeCanvas({ tree, treeId, materialId, sidebar, setSidebar, notes, menuSlot }: CanvasProps) {
+export function NodeCanvas({ kind, tree, treeId, materialId, sidebar, setSidebar, notes, menuSlot }: CanvasProps) {
+  const KIND = kind;
   const rootRef = useRef<HTMLDivElement>(null);
   const [view, setViewState] = useState<View>(() => views.get(treeId) ?? { x: 0, y: 0, z: 1 });
   const viewRef = useRef(view);
@@ -436,7 +440,7 @@ function NodeCanvas({ tree, treeId, materialId, sidebar, setSidebar, notes, menu
     const ids = selected();
     if (!ids.length) return;
     const cat = nodeType(KIND, tree.nodes[active ?? ids[0]]?.type ?? '')?.category;
-    const defs = nodeTypes(KIND).filter((d) => !d.layout && !d.id.startsWith('ShaderNodeOutput'));
+    const defs = nodeTypes(KIND).filter((d) => !d.layout && !d.id.startsWith('ShaderNodeOutput') && d.id !== 'GeometryNodeGroupOutput');
     const items: UiMenuItem[] = orderedCategories(defs).map((c) => ({
       label: c,
       children: defs
@@ -1145,7 +1149,7 @@ function NodeCanvas({ tree, treeId, materialId, sidebar, setSidebar, notes, menu
         {drag?.kind === 'cut' && <span className="cf-ne-status">{drag.reroute ? 'Ajouter des redirections sur les liens croisés' : 'Couper les liens croisés'}</span>}
         {drag?.kind === 'lazy' && <span className="cf-ne-status">{drag.mix ? 'Lazy Mix (Node Wrangler) : relâchez sur le second nœud' : 'Connexion paresseuse (Node Wrangler) : relâchez sur le nœud cible'}</span>}
       </div>
-      {sidebar && <Sidebar node={activeNode} edit={edit} commit={commit} notes={notes} />}
+      {sidebar && <Sidebar kind={KIND} node={activeNode} edit={edit} commit={commit} notes={notes} />}
       {renaming && tree.nodes[renaming] && rects.get(renaming) && (
         <RenameField
           key={renaming}
@@ -1170,6 +1174,7 @@ function NodeCanvas({ tree, treeId, materialId, sidebar, setSidebar, notes, menu
       {menu && <Menu items={menu.items} x={menu.x} y={menu.y} title={menu.title} onClose={() => setMenu(null)} />}
       {addMenu && (
         <AddMenu
+          kind={KIND}
           state={addMenu}
           onClose={() => setAddMenu(null)}
           onPick={(type) => {
@@ -1219,7 +1224,7 @@ function RenameField({ initial, placeholder, rect, view, onDone }: { initial: st
 
 // ------------------------------------------------------------------ menu Ajouter (Maj+A)
 
-function AddMenu({ state, onClose, onPick }: { state: AddMenuState; onClose(): void; onPick(type: string): void }) {
+function AddMenu({ kind: KIND, state, onClose, onPick }: { kind: NodeTreeKind; state: AddMenuState; onClose(): void; onPick(type: string): void }) {
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
@@ -1305,7 +1310,7 @@ ${supportNote(d)!.text}` : ''}`}
 
 // ------------------------------------------------------------------ barre latérale (N)
 
-function Sidebar({ node, edit, commit, notes }: { node: NodeData | null; edit: NodeEdit; commit(fn: (t: ops.Tree) => boolean | void): boolean; notes: string[] }) {
+function Sidebar({ kind: KIND, node, edit, commit, notes }: { kind: NodeTreeKind; node: NodeData | null; edit: NodeEdit; commit(fn: (t: ops.Tree) => boolean | void): boolean; notes: string[] }) {
   const def = node ? nodeType(KIND, node.type) : null;
   return (
     <div className="cf-ne-sidebar" onKeyDown={(e) => e.stopPropagation()}>

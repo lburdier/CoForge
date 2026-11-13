@@ -1,4 +1,5 @@
-import type { ArrayParams, BevelParams, BooleanParams, MeshData, MirrorParams, ModifierData, SolidifyParams, SubsurfParams } from '../../doc/schema';
+import type { ArrayParams, BevelParams, BooleanParams, MeshData, MirrorParams, ModifierData, NodesModifierParams, SolidifyParams, SubsurfParams } from '../../doc/schema';
+import { evaluateGeometryTree } from '../../nodes/geometryNodes';
 import type { ModifierContext } from '../types';
 import { arrayModifier } from './array';
 import { bevelModifier } from './bevel';
@@ -29,6 +30,12 @@ export function applyModifier(mesh: MeshData, mod: ModifierData, ctx: ModifierCo
       return solidifyModifier(mesh, params as SolidifyParams, salt);
     case 'boolean':
       return booleanModifier(mesh, params as BooleanParams, ctx, salt);
+    case 'nodes': {
+      const id = (params as NodesModifierParams).tree;
+      const tree = typeof id === 'string' && id ? (ctx.getNodeTree?.(id) ?? null) : null;
+      if (!tree || tree.kind !== 'geometry') return mesh;
+      return evaluateGeometryTree(tree, mesh, ctx, salt).mesh;
+    }
     default:
       return mesh;
   }

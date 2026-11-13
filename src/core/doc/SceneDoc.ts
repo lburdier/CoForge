@@ -30,6 +30,9 @@ import {
   type AnimPath,
   type AnimSettings,
   type KeyframeData,
+  COMPOSITOR_DEFAULTS,
+  type CompositorSettings,
+  type MarkerData,
 } from './schema';
 import { AnimLayer } from '../anim/layer';
 import { evaluatePoints, keyAtFrame, type CurveEval } from '../anim/fcurve';
@@ -1391,6 +1394,62 @@ export class SceneDoc {
       const f = this.yAnimCurves.get(ck);
       if (f) this.yAnimCurves.set(ck.replace(`${from}|`, `${to}|`), { ...f });
     }
+  }
+
+  // ------------------------------------------------------------------ marqueurs (frise, montage vidéo)
+
+  listMarkers(): MarkerData[] {
+    const out: MarkerData[] = [];
+    for (const [k, v] of this.yScene.entries()) {
+      if (!k.startsWith('m:') || !v || typeof v !== 'object') continue;
+      const m = v as Partial<MarkerData>;
+      const frame = Number(m.frame);
+      if (!Number.isFinite(frame)) continue;
+      const camera = typeof m.camera === 'string' && this.yObjects.has(m.camera) ? m.camera : null;
+      out.push({ id: k.slice(2), name: typeof m.name === 'string' ? m.name.slice(0, 63) : 'M', frame: Math.round(frame), camera });
+    }
+    return out.sort((a, b) => a.frame - b.frame || a.id.localeCompare(b.id));
+  }
+  addMarker(init: Partial<Omit<MarkerData, 'id'>>): string {
+    const id = newId(8);
+    const m = { name: init.name ?? `F_${init.frame ?? 1}`, frame: Math.round(init.frame ?? 1), camera: init.camera ?? null };
+    this.transact(() => this.yScene.set(`m:${id}`, m));
+    return id;
+  }
+  updateMarker(id: string, patch: Partial<Omit<MarkerData, 'id'>>): void {
+    const cur = this.yScene.get(`m:${id}`) as Omit<MarkerData, 'id'> | undefined;
+    if (!cur || typeof cur !== 'object') return;
+    const next = { ...cur, ...patch };
+    if (patch.frame !== undefined) next.frame = Math.round(patch.frame);
+    this.transact(() => this.yScene.set(`m:${id}`, next));
+  }
+  removeMarker(id: string): void {
+    this.transact(() => this.yScene.delete(`m:${id}`));
+  }
+
+  /**
+   * Caméra active changée par la LECTURE (marqueurs liés aux caméras) : écriture partagée mais
+   * hors de l'historique d'annulation (ce n'est pas une action de l'utilisateur).
+   */
+  setActiveCameraByMarker(objectId: string | null): void {
+    if ((this.yScene.get('activeCamera') ?? null) === objectId) return;
+    this.ydoc.transact(() => this.yScene.set('activeCamera', objectId), 'markers');
+  }
+
+  // ------------------------------------------------------------------ compositeur
+
+  getCompositor(): CompositorSettings {
+    const out = { ...COMPOSITOR_DEFAULTS } as Record<string, unknown>;
+    for (const k of Object.keys(COMPOSITOR_DEFAULTS) as (keyof CompositorSettings)[]) {
+      const v = this.yScene.get(`c:${k}`);
+      if (v !== undefined && typeof v === typeof COMPOSITOR_DEFAULTS[k]) out[k] = v;
+    }
+    return out as unknown as CompositorSettings;
+  }
+  updateCompositor(patch: Partial<CompositorSettings>): void {
+    this.transact(() => {
+      for (const [k, v] of Object.entries(patch)) if (v !== undefined && k in COMPOSITOR_DEFAULTS) this.yScene.set(`c:${k}`, v);
+    });
   }
 
   // ------------------------------------------------------------------ discussion

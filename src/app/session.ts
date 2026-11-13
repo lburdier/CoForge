@@ -129,7 +129,7 @@ export async function leaveSession(): Promise<void> {
   app.collab.disconnect();
   if (hosting) await platform.hostStop().catch(() => {});
   patchSession({ status: 'offline', hosting: false, shareAddresses: [], url: null, room: null, peers: [], error: null });
-  store.setState({ followClientId: null });
+  store.setState({ followClientId: null, followPlaybackClientId: null });
   sessionUi.setState({ inviteOpen: false, lastInvite: null });
 }
 

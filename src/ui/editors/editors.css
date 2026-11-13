@@ -1,0 +1,667 @@
+/* ------------------------------------------------------------------ éditeurs de zone (structure commune) */
+
+.cf-ed {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-panel);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.cf-ed-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 6px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.cf-ed-header .cf-select {
+  min-width: 120px;
+  max-width: 220px;
+}
+.cf-ed-icon {
+  color: var(--text-dim);
+}
+.cf-ed-title {
+  font-weight: 600;
+  margin-right: 4px;
+}
+.cf-ed-dim {
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cf-ed-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.cf-ed-pad {
+  padding: 10px 12px;
+}
+.cf-ed-empty {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: var(--text-dim);
+  text-align: center;
+}
+.cf-ed-chip {
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-field-dark);
+  color: var(--text-dim);
+  font: var(--font);
+  cursor: pointer;
+}
+.cf-ed-chip.is-on {
+  background: var(--accent);
+  color: var(--text-strong);
+}
+
+/* ------------------------------------------------------------------ Info */
+
+.cf-info-list {
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  font-size: 11.5px;
+  background: var(--bg-field-dark);
+}
+.cf-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  cursor: default;
+}
+.cf-info-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.025);
+}
+.cf-info-row.is-selected {
+  background: rgba(71, 114, 179, 0.45);
+}
+.cf-info-row.is-op svg {
+  color: var(--accent-hover);
+}
+.cf-info-row.is-error {
+  color: #ff8a80;
+}
+.cf-info-row.is-console svg {
+  color: var(--ok);
+}
+.cf-info-time {
+  color: var(--text-dim);
+  flex: 0 0 auto;
+}
+.cf-info-text {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------------------ Console */
+
+.cf-console-body {
+  padding: 6px 8px;
+  background: #1c1c1c;
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  font-size: 12px;
+  cursor: text;
+}
+.cf-console-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
+}
+.cf-console-line.is-in {
+  color: #e6e6e6;
+}
+.cf-console-line.is-out {
+  color: #9fd3ff;
+}
+.cf-console-line.is-err {
+  color: #ff8a80;
+}
+.cf-console-prompt {
+  color: #7fbf7f;
+}
+.cf-console-input {
+  display: flex;
+  align-items: center;
+}
+.cf-console-input input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  padding: 0;
+}
+
+/* ------------------------------------------------------------------ Éditeur de texte */
+
+.cf-texted-name {
+  width: 140px;
+}
+.cf-texted-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.cf-texted-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  background: #1e1e1e;
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  font-size: 12.5px;
+  line-height: 18px;
+}
+.cf-texted-gutter {
+  flex: 0 0 auto;
+  min-width: 38px;
+  padding: 6px 6px 6px 4px;
+  overflow: hidden;
+  color: #6e6e6e;
+  text-align: right;
+  background: #232323;
+  user-select: none;
+}
+.cf-texted-area {
+  flex: 1 1 auto;
+  resize: none;
+  border: 0;
+  outline: 0;
+  padding: 6px 8px;
+  background: transparent;
+  color: #e8e8e8;
+  font: inherit;
+  line-height: inherit;
+  tab-size: 4;
+  white-space: pre;
+}
+.cf-texted-out {
+  position: relative;
+  flex: 0 0 auto;
+  max-height: 35%;
+  overflow: auto;
+  padding: 6px 28px 6px 10px;
+  border-top: 1px solid var(--border);
+  background: #161a16;
+  color: #b8e6b8;
+  font-family: Consolas, monospace;
+  font-size: 11.5px;
+  white-space: pre-wrap;
+}
+.cf-texted-out.is-error {
+  background: #1f1515;
+  color: #ff9a90;
+}
+.cf-texted-out-close {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ Tableur */
+
+.cf-sheet-body {
+  position: relative;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-field-dark);
+}
+.cf-sheet-head,
+.cf-sheet-row {
+  display: grid;
+  align-items: center;
+  column-gap: 8px;
+  padding: 0 8px;
+  height: 20px;
+  min-width: max-content;
+}
+.cf-sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+.cf-sheet-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.cf-sheet-row.is-alt {
+  background: rgba(255, 255, 255, 0.03);
+}
+.cf-sheet-head span,
+.cf-sheet-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cf-sheet .is-right {
+  text-align: right;
+}
+
+/* ------------------------------------------------------------------ vues 2D (images, UV) */
+
+.cf-pz {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #262626;
+  outline: none;
+  cursor: grab;
+}
+.cf-pz-content {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+.cf-pz-zoom {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+  pointer-events: none;
+}
+.cf-checker .cf-pz-content,
+.cf-uved-grid {
+  background-color: #3a3a3a;
+  background-image: linear-gradient(45deg, #2c2c2c 25%, transparent 25%), linear-gradient(-45deg, #2c2c2c 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #2c2c2c 75%), linear-gradient(-45deg, transparent 75%, #2c2c2c 75%);
+  background-size: 32px 32px;
+  background-position: 0 0, 0 16px, 16px -16px, -16px 0;
+}
+.cf-imged-img,
+.cf-uved-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.cf-uved-img {
+  image-rendering: auto;
+  opacity: 0.85;
+}
+.cf-uved-grid {
+  width: 100%;
+  height: 100%;
+}
+.cf-uved-svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.cf-uved-svg polygon {
+  fill: rgba(255, 255, 255, 0.06);
+  stroke: #d8d8d8;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+.cf-uved-svg polygon.is-selected {
+  fill: rgba(245, 166, 35, 0.3);
+  stroke: var(--select);
+}
+.cf-uved-bounds {
+  fill: none;
+  stroke: #7a7a7a;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ------------------------------------------------------------------ Explorateur de fichiers */
+
+.cf-files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px 18px;
+  align-content: start;
+}
+.cf-files-grid section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cf-files-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font: var(--font);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.cf-files-item:hover {
+  background: var(--bg-hover);
+}
+.cf-files-item.is-static {
+  cursor: default;
+}
+.cf-files-item.is-static:hover {
+  background: transparent;
+}
+
+/* ------------------------------------------------------------------ pistes (NLA, montage vidéo) */
+
+.cf-tracks {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: #2a2a2a;
+  user-select: none;
+}
+.cf-tracks-ruler {
+  flex: 0 0 auto;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+}
+.cf-tracks-ruler-in {
+  position: relative;
+  height: 100%;
+  cursor: ew-resize;
+  overflow: hidden;
+}
+.cf-tracks-ruler-in span {
+  position: absolute;
+  top: 4px;
+  transform: translateX(-50%);
+  color: var(--text-dim);
+  font-size: 10.5px;
+}
+.cf-tracks-cur-label {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  line-height: 17px;
+}
+.cf-tracks-body {
+  position: relative;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.cf-tracks-range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.025);
+  pointer-events: none;
+}
+.cf-tracks-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--accent-hover);
+  pointer-events: none;
+}
+.cf-track {
+  position: relative;
+  display: flex;
+  height: 28px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.35);
+}
+.cf-track.is-selected .cf-track-label {
+  background: #3d4a5e;
+}
+.cf-track-label {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  width: var(--track-label, 170px);
+  padding: 0 6px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  z-index: 1;
+}
+.cf-seq .cf-track-label {
+  width: 120px;
+}
+.cf-track-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cf-track-lane {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+.cf-track-hint {
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.cf-strip {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 11px;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cf-strip > span {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+}
+.cf-strip.is-action {
+  background: #7c6a3a;
+}
+.cf-strip.is-action.is-muted {
+  background: #4a4a4a;
+  color: var(--text-dim);
+  border-style: dashed;
+}
+.cf-strip.is-action i {
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: #f0e0a0;
+  transform: rotate(45deg);
+}
+.cf-strip.is-scene {
+  background: #4f6d8f;
+}
+.cf-strip.is-selected {
+  outline: 2px solid var(--active);
+  outline-offset: -1px;
+}
+.cf-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transform: translateX(-5px);
+  cursor: ew-resize;
+  color: var(--text-dim);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.cf-marker i {
+  width: 9px;
+  height: 9px;
+  background: #d0d0d0;
+  transform: rotate(45deg);
+}
+.cf-marker.is-selected i {
+  background: var(--active);
+}
+.cf-marker.is-selected {
+  color: var(--text);
+}
+.cf-seq-name {
+  width: 150px;
+}
+
+/* ------------------------------------------------------------------ Compositeur */
+
+.cf-comp-body {
+  display: flex;
+  flex-direction: column;
+  background: #262626;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.cf-comp-chain {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  gap: 28px;
+  padding: 14px;
+  overflow-x: auto;
+}
+.cf-comp-node {
+  position: relative;
+  flex: 0 0 auto;
+  width: 180px;
+  border-radius: 5px;
+  background: #3d3d3d;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+}
+.cf-comp-node.is-muted {
+  opacity: 0.5;
+}
+.cf-comp-body.is-off .cf-comp-node {
+  filter: grayscale(0.7);
+}
+.cf-comp-node-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 5px 5px 0 0;
+  color: #fff;
+  font-weight: 600;
+}
+.cf-comp-node-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+.cf-comp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.cf-comp-socket {
+  position: absolute;
+  top: 34px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #c7c729;
+  border: 1px solid #000;
+}
+.cf-comp-socket.is-in {
+  left: -5px;
+}
+.cf-comp-socket.is-out {
+  right: -5px;
+}
+.cf-comp-node:first-child .cf-comp-socket.is-in,
+.cf-comp-node:last-child .cf-comp-socket.is-out {
+  display: none;
+}
+.cf-comp-node + .cf-comp-node::before {
+  content: '';
+  position: absolute;
+  top: 38px;
+  left: -28px;
+  width: 24px;
+  height: 2px;
+  background: #c7c729;
+}
+.cf-comp-viewer {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+  margin: 0 14px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.cf-comp-viewer-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.cf-comp-img {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+}

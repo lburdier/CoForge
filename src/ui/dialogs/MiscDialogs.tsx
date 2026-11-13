@@ -106,8 +106,6 @@ export function ShortcutsDialog() {
 // ------------------------------------------------------------------ préférences
 
 export function PreferencesDialog() {
-  const user = useApp((s) => s.user);
-  const snapIncrement = useApp((s) => s.snapIncrement);
   return (
     <Dialog
       title="Préférences"
@@ -122,31 +120,40 @@ export function PreferencesDialog() {
         </>
       }
     >
-      <div className="cf-form">
-        <div className="cf-group-label">Identité (visible par les collaborateurs)</div>
-        <FormRow label="Nom">
-          <TextField value={user.name} maxLength={40} autoFocus onCommit={(t) => t.trim() && setUser({ name: t.trim() })} />
-        </FormRow>
-        <FormRow label="Couleur">
-          <ColorField value={user.color} onChange={(color) => setUser({ color })} />
-        </FormRow>
-        <div className="cf-form-sep" />
-        <div className="cf-group-label">Édition</div>
-        <FormRow label="Pas d'aimantation">
-          <NumberField
-            value={snapIncrement}
-            min={0.001}
-            max={100}
-            step={0.005}
-            precision={3}
-            unit="m"
-            undoGroup={false}
-            onChange={(v) => store.setState({ snapIncrement: v })}
-          />
-        </FormRow>
-        <Hint>Les préférences d'identité sont mémorisées sur cet ordinateur.</Hint>
-      </div>
+      <PreferencesPanel autoFocus />
     </Dialog>
+  );
+}
+
+/** Contenu des préférences : dialogue et éditeur « Préférences » d'une zone. */
+export function PreferencesPanel({ autoFocus = false }: { autoFocus?: boolean }) {
+  const user = useApp((s) => s.user);
+  const snapIncrement = useApp((s) => s.snapIncrement);
+  return (
+    <div className="cf-form">
+      <div className="cf-group-label">Identité (visible par les collaborateurs)</div>
+      <FormRow label="Nom">
+        <TextField value={user.name} maxLength={40} autoFocus={autoFocus} onCommit={(t) => t.trim() && setUser({ name: t.trim() })} />
+      </FormRow>
+      <FormRow label="Couleur">
+        <ColorField value={user.color} onChange={(color) => setUser({ color })} />
+      </FormRow>
+      <div className="cf-form-sep" />
+      <div className="cf-group-label">Édition</div>
+      <FormRow label="Pas d'aimantation">
+        <NumberField
+          value={snapIncrement}
+          min={0.001}
+          max={100}
+          step={0.005}
+          precision={3}
+          unit="m"
+          undoGroup={false}
+          onChange={(v) => store.setState({ snapIncrement: v })}
+        />
+      </FormRow>
+      <Hint>Les préférences d'identité sont mémorisées sur cet ordinateur.</Hint>
+    </div>
   );
 }
 

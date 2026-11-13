@@ -41,6 +41,7 @@ import { Checkbox, IconButton, Row, Select, type SelectOption } from '../widgets
 import { MenuBar, Popover, type MenuBarEntry } from '../widgets/Menu';
 import { NumberField } from '../widgets/NumberField';
 import { ViewportTypesButton } from '../outliner/FilterPopover';
+import { EditorTypeButton } from '../layout/editorTypes';
 
 // ------------------------------------------------------------------ mode d'interaction
 
@@ -321,6 +322,7 @@ export function ViewportHeader() {
   return (
     <div className="cf-area-header cf-viewport-header">
       <div className="cf-header-group">
+        <EditorTypeButton />
         <ModeSelector />
         {mode === 'edit' && <SelectModeButtons />}
         <HeaderMenus />

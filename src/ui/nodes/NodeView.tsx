@@ -1,3 +1,4 @@
+import { getApp } from '../../app/context';
 import { memo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, Minus, Plus } from 'lucide-react';
 import type { NodeData } from '../../core/doc/schema';
@@ -222,6 +223,18 @@ function PropField({ node, p, edit, height }: { node: NodeData; p: NodePropDef; 
       return <CurveWidget node={node} prop={p} write={edit.prop} height={height} />;
     case 'image':
       return <ImageWidget node={node} prop={p} write={edit.prop} />;
+    case 'object': {
+      const objs = getApp()
+        .doc.listObjects()
+        .filter((o) => o.type === 'mesh')
+        .map((o) => ({ value: o.id, label: o.name }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'fr', { numeric: true }));
+      return (
+        <div className="cf-nd-field" onPointerDown={stop}>
+          <Select value={typeof value === 'string' ? value : ''} placeholder="(objet)" options={objs} onChange={(v) => edit.prop(node.id, p.id, v || null)} />
+        </div>
+      );
+    }
     case 'string':
       return (
         <div className="cf-nd-field" onPointerDown={stop}>

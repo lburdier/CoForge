@@ -1,6 +1,7 @@
 import type { AppContext } from '../../app/context';
 import { platform } from '../../app/platform';
 import { patchRender, setFrame, store, toast } from '../../app/store';
+import type { Peer } from '../../net/api';
 import { pruneKeySelection } from './keyedit';
 
 /**
@@ -48,8 +49,20 @@ export function bindAnimation(app: AppContext): () => void {
         if (s.playing) startPlayback(app);
         else stopPlayback();
       }
+      // Tête de lecture publiée dans la présence (les autres peuvent « suivre la lecture »).
+      if (s.frame !== prev.frame || s.playing !== prev.playing) app.collab.setPresence({ playback: { frame: s.frame, playing: s.playing } });
+      // Suivi de la lecture d'un autre : lire soi-même ou déplacer la tête de lecture l'arrête.
+      if (s.followPlaybackClientId !== null && s.followPlaybackClientId === prev.followPlaybackClientId) {
+        if (s.playing !== 0 || (s.frame !== prev.frame && !applyingFollow)) store.setState({ followPlaybackClientId: null });
+      }
+      if (s.followPlaybackClientId !== null && s.followPlaybackClientId !== prev.followPlaybackClientId) {
+        if (s.playing) store.setState({ playing: 0 });
+        applyFollowed(app.collab.getPeers());
+      }
     }),
   );
+
+  offs.push(app.collab.onPeers((peers) => applyFollowed(peers)));
 
   if (typeof window !== 'undefined') {
     const onMove = (e: PointerEvent) => {
@@ -60,6 +73,28 @@ export function bindAnimation(app: AppContext): () => void {
   }
   offs.push(() => stopPlayback());
   return () => offs.forEach((o) => o());
+}
+
+// ------------------------------------------------------------------ suivi de la lecture d'un autre utilisateur
+
+let applyingFollow = false;
+
+/** Recopie la tête de lecture de l'utilisateur suivi (ou arrête le suivi s'il est parti). */
+function applyFollowed(peers: readonly Peer[]): void {
+  const id = store.getState().followPlaybackClientId;
+  if (id === null) return;
+  const peer = peers.find((p) => p.clientId === id);
+  if (!peer) {
+    store.setState({ followPlaybackClientId: null });
+    toast("L'utilisateur suivi a quitté la session : suivi de la lecture arrêté");
+    return;
+  }
+  applyingFollow = true;
+  try {
+    setFrame(peer.state.playback.frame);
+  } finally {
+    applyingFollow = false;
+  }
 }
 
 // ------------------------------------------------------------------ lecture

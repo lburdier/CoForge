@@ -31,8 +31,16 @@ export const SHADER_CATEGORIES: { id: string; label: string; color: string }[] =
   { id: 'Disposition', label: 'Disposition', color: '#5b5b5b' },
 ];
 
+/** Catégories propres aux nœuds de géométrie (src/core/nodes/geometryNodes.ts). */
+const GEOMETRY_CATEGORY_COLORS: Record<string, string> = {
+  'Primitive de maillage': '#00a383',
+  Géométrie: '#00a383',
+  Maillage: '#00a383',
+  Instances: '#3fa1a1',
+};
+
 export function categoryColor(category: string): string {
-  return SHADER_CATEGORIES.find((c2) => c2.id === category)?.color ?? '#5b5b5b';
+  return SHADER_CATEGORIES.find((c2) => c2.id === category)?.color ?? GEOMETRY_CATEGORY_COLORS[category] ?? '#5b5b5b';
 }
 
 // ------------------------------------------------------------------ énumérations partagées

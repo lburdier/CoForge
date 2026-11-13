@@ -2689,3 +2689,141 @@ code {
   color: var(--text-dim);
   font-size: 11px;
 }
+
+/* ------------------------------------------------------------------ zones personnalisables */
+
+.cf-areas {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.cf-areas > .cf-area-slot {
+  position: absolute;
+}
+
+.cf-splitter.cf-area-edge {
+  position: absolute;
+  margin: 0;
+}
+
+/* Bouton « Type d'éditeur » en tête des en-têtes de zone. */
+.cf-editor-type {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+  padding: 0 4px 0 5px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--bg-widget, rgba(255, 255, 255, 0.05));
+  color: var(--text);
+  cursor: pointer;
+}
+
+.cf-editor-type:hover,
+.cf-editor-type.is-open {
+  border-color: var(--border, rgba(255, 255, 255, 0.12));
+  background: var(--bg-hover, rgba(255, 255, 255, 0.1));
+}
+
+.cf-editor-menu {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius);
+  background: var(--bg-menu, #1d1d1d);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+.cf-editor-menu-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+}
+
+.cf-editor-menu-title {
+  padding: 2px 8px 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.cf-editor-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cf-editor-menu-item:hover:not(:disabled) {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+}
+
+.cf-editor-menu-item.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.cf-editor-menu-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.cf-editor-menu-label {
+  flex: 1 1 auto;
+}
+
+.cf-editor-menu-key {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.cf-editor-menu-item.is-active .cf-editor-menu-key {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Division interactive : ligne d'aperçu dans la zone survolée. */
+.cf-split-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  cursor: crosshair;
+}
+
+.cf-split-target {
+  position: absolute;
+  outline: 1px solid var(--accent);
+  background: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+}
+
+.cf-split-line {
+  position: absolute;
+  background: #fff;
+  pointer-events: none;
+}
+
+.cf-split-hint {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 12px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}

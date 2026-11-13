@@ -21,7 +21,7 @@ import type { ModifierContext, RenderMesh } from '../core/mesh/types';
  * Module PUR (aucun accès WebGL ni DOM) : il tourne sous Node pour les tests.
  */
 
-const MODIFIER_TYPES = new Set(['mirror', 'array', 'bevel', 'subsurf', 'solidify', 'boolean']);
+const MODIFIER_TYPES = new Set(['mirror', 'array', 'bevel', 'subsurf', 'solidify', 'boolean', 'nodes']);
 
 interface Dep {
   id: string;
@@ -50,6 +50,14 @@ const EMPTY_RENDER_MESH: RenderMesh = {
 export function activeModifiers(mods: readonly ModifierData[] | undefined): ModifierData[] {
   if (!Array.isArray(mods)) return [];
   return mods.filter((m) => !!m && typeof m === 'object' && m.enabled !== false && MODIFIER_TYPES.has(m.type) && !!m.params);
+}
+
+/**
+ * La pile dépend-elle d'autres objets ou de données hors de l'objet ? (booléen, nœuds de géométrie :
+ * « Infos d'objet » lit un autre objet, et l'arbre de nœuds vit dans sa propre table)
+ */
+export function hasExternalDeps(mods: readonly ModifierData[] | undefined): boolean {
+  return activeModifiers(mods).some((m) => m.type === 'boolean' || m.type === 'nodes');
 }
 
 /** Cibles booléennes actives d'une pile. */
@@ -186,12 +194,21 @@ export class MeshEvaluator {
     let modsKey: string;
     try {
       // ni l'identifiant ni le nom n'influent sur le résultat : deux duplications liées partagent le cache
-      modsKey = JSON.stringify(mods.map((m) => [m.type, m.params]));
+      // nœuds de géométrie : le contenu de l'arbre fait partie de la clé (il change sans toucher l'objet)
+      modsKey = JSON.stringify(
+        mods.map((m) => {
+          if (m.type !== 'nodes') return [m.type, m.params];
+          const tid = (m.params as { tree?: unknown }).tree;
+          const t = typeof tid === 'string' && tid ? doc.getNodeTree(tid) : null;
+          return [m.type, m.params, t ? [t.kind, t.nodes, t.links] : null];
+        }),
+      );
     } catch {
       modsKey = String(Math.random());
     }
-    const hasBool = mods.some((m) => m.type === 'boolean');
-    const nullCtx: ModifierContext = { getOperand: () => null };
+    const hasBool = mods.some((m) => m.type === 'boolean' || m.type === 'nodes');
+    const getNodeTree = (tid: string) => doc.getNodeTree(tid);
+    const nullCtx: ModifierContext = { getOperand: () => null, getNodeTree };
 
     if (!hasBool) {
       this.perObject.delete(id);
@@ -216,6 +233,7 @@ export class MeshEvaluator {
           deps.push(st ? { id: target, mesh: st.mesh, matrix: [...st.toLocal.elements] } : { id: target, mesh: null, matrix: [] });
           return st;
         },
+        getNodeTree,
       };
       const result = this.safeEvaluate(base, mods, ctx);
       this.perObject.set(id, { base, modsKey, deps, result });

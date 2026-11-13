@@ -11,6 +11,7 @@ import {
   Monitor,
   MonitorOff,
   Plus,
+  Shapes,
   Spline,
   Trash,
   Wrench,
@@ -25,6 +26,7 @@ import {
   type MirrorParams,
   type ModifierData,
   type ModifierType,
+  type NodesModifierParams,
   type ObjectData,
   type SolidifyParams,
   type SubsurfParams,
@@ -32,7 +34,8 @@ import {
 import { Checkbox, Hint, IconButton, Row, Select, TextField, type SelectOption } from '../widgets/basic';
 import { Menu, type UiMenuItem } from '../widgets/Menu';
 import { NumberField, VectorField } from '../widgets/NumberField';
-import { addModifier, applyModifier, moveModifier, opAvailable, patchModifier, removeModifier, setModifierParam } from './actions';
+import { addModifier, applyModifier, moveModifier, newGeometryNodes, opAvailable, patchModifier, removeModifier, setModifierParam } from './actions';
+import { applyWorkspace } from '../lib/workspaces';
 import { useDocWhen } from './docHooks';
 
 export const MODIFIER_ICONS: Partial<Record<ModifierType, LucideIcon>> = {
@@ -42,9 +45,10 @@ export const MODIFIER_ICONS: Partial<Record<ModifierType, LucideIcon>> = {
   subsurf: Box,
   solidify: Layers,
   boolean: Combine,
+  nodes: Shapes,
 };
 
-const MODIFIER_ORDER: ModifierType[] = ['array', 'bevel', 'boolean', 'mirror', 'solidify', 'subsurf'];
+const MODIFIER_ORDER: ModifierType[] = ['array', 'bevel', 'boolean', 'mirror', 'nodes', 'solidify', 'subsurf'];
 
 /** Onglet « Modificateurs » de l'objet actif (maillages). */
 export function ModifiersTab({ obj }: { obj: ObjectData }) {
@@ -167,6 +171,8 @@ function ModifierParams({ obj, mod }: { obj: ObjectData; mod: ModifierData }) {
       return <SolidifyFields p={mod.params as SolidifyParams} set={set} />;
     case 'boolean':
       return <BooleanFields p={mod.params as BooleanParams} set={set} selfId={obj.id} />;
+    case 'nodes':
+      return <NodesFields p={mod.params as NodesModifierParams} set={set} objectId={obj.id} modifierId={mod.id} />;
     default:
       return <Hint>Type de modificateur inconnu.</Hint>;
   }
@@ -296,6 +302,27 @@ function BooleanFields({ p, set, selfId }: { p: BooleanParams; set: Setter; self
           </button>
         </Hint>
       )}
+    </>
+  );
+}
+
+function NodesFields({ p, set, objectId, modifierId }: { p: NodesModifierParams; set: Setter; objectId: string; modifierId: string }) {
+  const trees = useDocWhen((doc) => doc.listNodeTrees('geometry'), { data: (e) => e.table === 'nodeTrees' });
+  const valid = !!p.tree && trees.some((t) => t.id === p.tree);
+  return (
+    <>
+      <Row label="Arbre">
+        <Select
+          value={valid ? p.tree! : NO_TARGET}
+          options={[{ value: NO_TARGET, label: '(aucun)' }, ...trees.map((t) => ({ value: t.id, label: t.name }))]}
+          onChange={(v) => set('tree')(v === NO_TARGET ? null : v)}
+        />
+        <IconButton icon={Plus} tip="Nouvel arbre de nœuds de géométrie" onClick={() => newGeometryNodes(objectId, modifierId)} />
+      </Row>
+      {!valid && <Hint className="cf-props-warn">{p.tree ? 'L’arbre de nœuds n’existe plus.' : 'Créez un arbre (+) ou choisissez-en un.'}</Hint>}
+      <button type="button" className="cf-btn" onClick={() => applyWorkspace('geometry')} data-tip="Ouvre l’espace de travail « Nœuds de géométrie »">
+        <Shapes size={13} /> Éditer les nœuds
+      </button>
     </>
   );
 }

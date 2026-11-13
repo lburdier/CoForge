@@ -14,6 +14,7 @@ import { evaluateModifiers, type ModifierContext } from '../../core/mesh';
 import { Matrix4 } from 'three';
 import { toast } from '../../app/store';
 import { withOp } from '../lib/util';
+import { defaultGeometryTree } from '../../core/nodes/geometryNodes';
 
 /**
  * Lance un opérateur du registre. S'il n'est pas (encore) enregistré, la
@@ -159,6 +160,7 @@ function operandContext(doc: SceneDoc, selfId: string): ModifierContext {
       }
       return { mesh: evaluated, toLocal: selfInv.clone().multiply(worldMatrix(doc, id)) };
     },
+    getNodeTree: (treeId) => doc.getNodeTree(treeId),
   };
   return ctx;
 }
@@ -232,4 +234,25 @@ export function reparentKeepWorld(doc: SceneDoc, ids: string[], parent: string |
     });
   }
   return { done: writes.length, refused };
+}
+
+/**
+ * Nœuds de géométrie : crée un arbre neuf (Entrée → Sortie du groupe) et l'affecte au modificateur
+ * `modifierId`, ou à un nouveau modificateur « Nœuds de géométrie » ajouté en fin de pile.
+ * Une seule étape d'annulation. Renvoie l'identifiant de l'arbre.
+ */
+export function newGeometryNodes(objectId: string, modifierId?: string | null): string | null {
+  let treeId: string | null = null;
+  withOp((doc) => {
+    const cur = doc.getObject(objectId);
+    if (!cur || cur.type !== 'mesh') return;
+    treeId = doc.addNodeTree({ kind: 'geometry', name: 'Nœuds de géométrie', ...defaultGeometryTree() });
+    const mods = cur.modifiers.map(cloneJson);
+    const i = modifierId ? mods.findIndex((m) => m.id === modifierId) : -1;
+    if (i >= 0) mods[i] = { ...mods[i], params: { ...(mods[i].params as object), tree: treeId } } as ModifierData;
+    else mods.push({ ...makeModifier('nodes', cur.modifiers), params: { tree: treeId } } as ModifierData);
+    doc.updateObject(objectId, { modifiers: mods });
+  });
+  getApp().viewport?.requestRender();
+  return treeId;
 }

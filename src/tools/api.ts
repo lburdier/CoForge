@@ -84,6 +84,23 @@ export class OperatorRegistry {
   private active: ActiveModal | null = null;
   /** Dernière position du pointeur dans le viewport ; tenue à jour par le gestionnaire d'entrées. */
   mouse: { x: number; y: number } | null = null;
+  private reportListeners = new Set<(def: OperatorDef, args: Record<string, any>) => void>();
+
+  /** Appelé après chaque opérateur exécuté avec succès (modal validé compris) : éditeur Info. */
+  onReport(cb: (def: OperatorDef, args: Record<string, any>) => void): () => void {
+    this.reportListeners.add(cb);
+    return () => this.reportListeners.delete(cb);
+  }
+
+  private report(def: OperatorDef, args: Record<string, any>): void {
+    for (const cb of this.reportListeners) {
+      try {
+        cb(def, args);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
 
   constructor(private app: AppContext) {}
 
@@ -156,6 +173,7 @@ export class OperatorRegistry {
       doc.endOp();
       store.setState({ lastOp: { opId: def.id, label: def.label, args } });
     }
+    this.report(def, args);
     this.app.viewport.requestRender();
     return true;
   }
@@ -220,6 +238,7 @@ export class OperatorRegistry {
       if (commit) this.app.doc.endOp();
       else this.app.doc.cancelOp();
     }
+    if (commit) this.report(a.def, a.args);
     store.setState({ modal: null });
     this.app.viewport.requestRender();
   }

@@ -69,6 +69,12 @@ function readCamera(v: any): PresenceCamera | null {
   };
 }
 
+function readPlayback(v: any): PresenceState['playback'] {
+  const frame = v && typeof v.frame === 'number' && Number.isFinite(v.frame) ? Math.max(-1e6, Math.min(1e6, v.frame)) : 1;
+  const playing = v && (v.playing === 1 || v.playing === -1) ? v.playing : 0;
+  return { frame, playing };
+}
+
 /** Les états de présence viennent du réseau : on ne fait confiance à aucun champ. */
 function readPresence(raw: any): PresenceState | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -83,6 +89,7 @@ function readPresence(raw: any): PresenceState | null {
     activeId: typeof raw.activeId === 'string' ? raw.activeId : null,
     mode: raw.mode === 'edit' ? 'edit' : 'object',
     editVerts: stringList(raw.editVerts),
+    playback: readPlayback(raw.playback),
   };
 }
 
@@ -406,7 +413,7 @@ class Collab implements ICollab {
   }
 
   private defaultPresence(): PresenceState {
-    return { user: this.app.store.getState().user, camera: null, pointer: null, selection: [], activeId: null, mode: 'object', editVerts: [] };
+    return { user: this.app.store.getState().user, camera: null, pointer: null, selection: [], activeId: null, mode: 'object', editVerts: [], playback: { frame: this.app.store.getState().frame, playing: this.app.store.getState().playing } };
   }
 
   private flushPresence(): void {

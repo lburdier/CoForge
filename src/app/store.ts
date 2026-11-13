@@ -190,6 +190,8 @@ export interface AppState {
   session: SessionState;
   /** Utilisateur distant dont on suit la caméra (clientId) ou null. */
   followClientId: number | null;
+  /** Utilisateur distant dont on suit la tête de lecture (clientId) ou null. */
+  followPlaybackClientId: number | null;
 
   /** Boîte de dialogue ouverte. */
   dialog: DialogId | null;
@@ -334,6 +336,7 @@ export const initialState = (): AppState => ({
   user: loadUser(),
   session: { status: 'offline', hosting: false, url: null, room: null, shareAddresses: [], error: null, peers: [] },
   followClientId: null,
+  followPlaybackClientId: null,
   dialog: null,
   popup: null,
   modal: null,

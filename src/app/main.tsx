@@ -6,6 +6,8 @@ import { registerTools } from '../tools';
 import { OperatorRegistry } from '../tools/api';
 import { App } from '../ui/App';
 import { registerAppOps } from './appOps';
+import { installInfoLog } from '../ui/lib/infoLog';
+import { installCameraMarkers } from './cameraMarkers';
 import { bindUpdates, registerUpdateOps } from './updates';
 import { setAppContext, type AppContext } from './context';
 import { installFileDrop, isDocRetained, loadSceneData } from './files';
@@ -185,6 +187,8 @@ async function start(): Promise<void> {
   registerAppOps(app);
   registerUpdateOps(app);
   registerTools(app);
+  installInfoLog(app);
+  installCameraMarkers(app);
   bindDocToStore(app);
   bindPresence(app);
 

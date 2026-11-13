@@ -1,5 +1,5 @@
 import type { Matrix4 } from 'three';
-import type { MeshData, MeshDelta, ModifierData, Vec3 } from '../doc/schema';
+import type { MeshData, MeshDelta, ModifierData, NodeTreeData, Vec3 } from '../doc/schema';
 
 /**
  * Contrat du noyau de modélisation (src/core/mesh).
@@ -63,6 +63,8 @@ export interface ModifierContext {
    * d'évaluation. Renvoie null si l'objet n'existe pas ou n'est pas un maillage.
    */
   getOperand(objectId: string): { mesh: MeshData; toLocal: Matrix4 } | null;
+  /** Arbre de nœuds de géométrie (modificateur « Nœuds de géométrie »), null s'il n'existe pas. */
+  getNodeTree?(treeId: string): Pick<NodeTreeData, 'nodes' | 'links' | 'kind'> | null;
 }
 
 /**

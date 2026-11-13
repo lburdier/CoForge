@@ -156,6 +156,7 @@ function modifierContext(app: AppContext, selfId: string): ModifierContext {
       const toLocal = worldMatrix(doc, selfId).invert().multiply(worldMatrix(doc, objectId));
       return { mesh, toLocal };
     },
+    getNodeTree: (treeId) => app.doc.getNodeTree(treeId),
   };
 }
 

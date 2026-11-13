@@ -11,6 +11,7 @@ import { ObjectTab } from './ObjectTab';
 import { RenderTab } from './RenderTab';
 import { WorldTab } from './WorldTab';
 import './properties.css';
+import { EditorTypeButton } from '../layout/editorTypes';
 
 interface TabDef {
   id: PropertiesTab;
@@ -91,6 +92,7 @@ export function PropertiesEditor() {
       </nav>
       <div className="cf-props-main">
         <div className="cf-props-context">
+          <EditorTypeButton />
           <CtxIcon size={12} />
           <span className="cf-props-context-name">{current.objectTab && obj ? obj.name : sceneName}</span>
           <ChevronRight size={11} className="cf-props-context-sep" />
