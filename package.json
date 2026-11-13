@@ -1,7 +1,7 @@
 {
   "name": "coforge",
   "productName": "CoForge",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Modélisation 3D collaborative en temps réel (blocking, hard surface, éclairage, rendu)",
   "author": "CoForge",
   "license": "MIT",
