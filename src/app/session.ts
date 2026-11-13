@@ -4,8 +4,9 @@ import { useStore } from 'zustand';
 import { SceneDoc } from '../core/doc/SceneDoc';
 import { buildInviteLink, buildWebInviteLink, inviteServerUrl, parseInviteLink, type InviteLink } from '../net/invite';
 import type { InviteOptions } from '../net/api';
+import { classifyAddress, describeShareUrls, diagnose, splitWsUrl, type AddressKind, type Diagnosis, type ProbeResult, type ShareAddress } from '../net/netdiag';
 import { getApp } from './context';
-import { platform, type HostAccess } from './platform';
+import { platform, type HostAccess, type HostDiagnostics } from './platform';
 import { patchSession, store, toast } from './store';
 
 /**
@@ -36,14 +37,28 @@ export interface GeneratedInvite {
   link: string;
   /** Variante web, cliquable dans les messageries. */
   webLink: string;
-  /** Un lien par adresse joignable (LAN d'abord), quand on héberge. */
-  alternatives: { address: string; link: string; webLink: string }[];
+  /** Un lien par adresse joignable (VPN, puis réseau local…), avec sa portée, quand on héberge. */
+  alternatives: InviteAlternative[];
+  /** Jeton porté par les liens (null : session ouverte). */
+  token: string | null;
   /** Identifiant de l'invitation côté serveur (null : session ouverte ou lien repartagé par un invité). */
   inviteId: string | null;
   expiresAt: number | null;
   maxUses: number;
   /** Le lien ne contient pas de jeton : session ouverte. */
   open: boolean;
+}
+
+export interface InviteAlternative {
+  address: string;
+  link: string;
+  webLink: string;
+  kind: AddressKind;
+  /** Ex. « Réseau local », « VPN (Tailscale) ». */
+  label: string;
+  /** Ex. « Fonctionne seulement sur le même réseau local ». */
+  reach: string;
+  iface?: string;
 }
 
 export interface SessionUiState {
@@ -53,9 +68,13 @@ export interface SessionUiState {
   pendingLink: InviteLink | null;
   /** Dernière invitation générée pendant cette session. */
   lastInvite: GeneratedInvite | null;
+  /** Hôte : adresses de cette machine classées (VPN, réseau local…), avec leur portée. */
+  shareInfo: ShareAddress[];
+  /** Hôte : pare-feu et joignabilité du serveur (null tant que non vérifié). */
+  hostDiag: HostDiagnostics | null;
 }
 
-export const sessionUi = createStore<SessionUiState>(() => ({ inviteOpen: false, pendingLink: null, lastInvite: null }));
+export const sessionUi = createStore<SessionUiState>(() => ({ inviteOpen: false, pendingLink: null, lastInvite: null, shareInfo: [], hostDiag: null }));
 
 export function useSessionUi<T>(selector: (s: SessionUiState) => T): T {
   return useStore(sessionUi, selector);
@@ -86,7 +105,8 @@ export async function hostSession(opts: { port: number; room: string; password?:
     throw err;
   }
   patchSession({ hosting: true, shareAddresses: info.addresses });
-  sessionUi.setState({ lastInvite: null });
+  sessionUi.setState({ lastInvite: null, shareInfo: info.addressInfo?.length ? info.addressInfo : describeShareUrls(info.addresses), hostDiag: null });
+  void refreshHostDiagnostics();
   toast(`Session « ${room} » hébergée sur le port ${info.port}`);
 }
 
@@ -130,34 +150,40 @@ export async function leaveSession(): Promise<void> {
   if (hosting) await platform.hostStop().catch(() => {});
   patchSession({ status: 'offline', hosting: false, shareAddresses: [], url: null, room: null, peers: [], error: null });
   store.setState({ followClientId: null, followPlaybackClientId: null });
-  sessionUi.setState({ inviteOpen: false, lastInvite: null });
+  sessionUi.setState({ inviteOpen: false, lastInvite: null, shareInfo: [], hostDiag: null });
 }
 
 // ------------------------------------------------------------------ invitations
 
-/** Hôte et port d'une URL ws(s)://, ou null. */
-function splitServerUrl(url: string): { host: string; port: number; tls: boolean } | null {
-  const m = /^(wss?):\/\/(\[[^\]]+\]|[^/:?#]+)(?::(\d{1,5}))?/i.exec(url.trim());
-  if (!m) return null;
-  const tls = m[1].toLowerCase() === 'wss';
-  return { host: m[2].toLowerCase(), port: m[3] ? Number(m[3]) : tls ? 443 : 80, tls };
+interface InviteTarget {
+  host: string;
+  port: number;
+  tls: boolean;
+  cls: { kind: AddressKind; label: string; reach: string };
+  iface?: string;
 }
 
 /**
- * Adresses à mettre dans le lien : quand on héberge, celles de cette machine (LAN d'abord,
- * `localhost` en dernier) ; sinon, l'adresse du serveur auquel on est connecté.
+ * Adresses à mettre dans le lien : quand on héberge, celles de cette machine classées (VPN maillé
+ * d'abord, puis réseau local… `localhost` en dernier) ; sinon, l'adresse du serveur auquel on est connecté.
  */
-function inviteTargets(): { host: string; port: number; tls: boolean }[] {
+function inviteTargets(): InviteTarget[] {
   const s = store.getState().session;
-  const list = s.hosting && s.shareAddresses.length ? s.shareAddresses : s.url ? [s.url] : [];
-  const out: { host: string; port: number; tls: boolean }[] = [];
-  for (const a of list) {
-    const t = splitServerUrl(a);
-    if (t && !out.some((o) => o.host === t.host && o.port === t.port)) out.push(t);
-  }
+  const out: InviteTarget[] = [];
+  const add = (t: { host: string; port: number; tls: boolean } | null, iface?: string) => {
+    if (t && !out.some((o) => o.host === t.host && o.port === t.port)) out.push({ ...t, cls: classifyAddress(t.host, iface), iface });
+  };
+  const info = sessionUi.getState().shareInfo;
+  if (s.hosting && info.length) for (const a of info) add({ host: a.host, port: a.port, tls: false }, a.iface);
+  else for (const a of s.hosting && s.shareAddresses.length ? describeShareUrls(s.shareAddresses).map((x) => x.url) : s.url ? [s.url] : []) add(splitWsUrl(a));
   // Un hôte qui s'est connecté par 127.0.0.1 : cette adresse n'a pas de sens pour un invité, sauf en dernier recours.
-  out.sort((a, b) => Number(a.host === 'localhost' || a.host === '127.0.0.1') - Number(b.host === 'localhost' || b.host === '127.0.0.1'));
+  out.sort((a, b) => Number(a.cls.kind === 'loopback') - Number(b.cls.kind === 'loopback'));
   return out;
+}
+
+function alternativeFor(t: InviteTarget, room: string, token: string | null): InviteAlternative {
+  const link: InviteLink = { host: t.host, port: t.port, room, token, tls: t.tls };
+  return { address: `${t.host}:${t.port}`, link: buildInviteLink(link), webLink: buildWebInviteLink(link), kind: t.cls.kind, label: t.cls.label, reach: t.cls.reach, iface: t.iface };
 }
 
 /**
@@ -189,13 +215,64 @@ export async function generateInvite(opts: InviteOptions = {}): Promise<Generate
     maxUses = created.maxUses;
   }
   const room = session.room;
-  const alternatives = targets.map((t) => {
-    const link: InviteLink = { host: t.host, port: t.port, room, token, tls: t.tls };
-    return { address: `${t.host}:${t.port}`, link: buildInviteLink(link), webLink: buildWebInviteLink(link) };
-  });
-  const invite: GeneratedInvite = { link: alternatives[0].link, webLink: alternatives[0].webLink, alternatives, inviteId, expiresAt, maxUses, open: token === null };
+  const alternatives = targets.map((t) => alternativeFor(t, room, token));
+  const invite: GeneratedInvite = { link: alternatives[0].link, webLink: alternatives[0].webLink, alternatives, token, inviteId, expiresAt, maxUses, open: token === null };
   sessionUi.setState({ lastInvite: invite });
   return invite;
+}
+
+/**
+ * Ajoute à la dernière invitation un lien vers l'adresse Internet (publique) de l'hôte, obtenue sur
+ * demande explicite : il ne fonctionne que si la box redirige le port vers cette machine.
+ */
+export function addPublicAlternative(ip: string): InviteAlternative | null {
+  const last = sessionUi.getState().lastInvite;
+  const room = store.getState().session.room;
+  const port = last ? splitWsUrl(`ws://${last.alternatives[0]?.address ?? ''}`)?.port : null;
+  if (!last || !room || !port) return null;
+  const host = ip.includes(':') && !ip.startsWith('[') ? `[${ip}]` : ip;
+  const existing = last.alternatives.find((a) => a.address === `${host}:${port}`);
+  if (existing) return existing;
+  const alt = alternativeFor({ host, port, tls: false, cls: classifyAddress(host) }, room, last.token);
+  alt.reach = `Nécessite une redirection du port ${port} (TCP) sur la box vers cette machine`;
+  sessionUi.setState({ lastInvite: { ...last, alternatives: [...last.alternatives, alt] } });
+  return alt;
+}
+
+/** Hôte : relit le pare-feu Windows et vérifie que le serveur répond sur ses propres adresses. */
+export async function refreshHostDiagnostics(): Promise<HostDiagnostics | null> {
+  try {
+    const diag = await platform.hostDiagnose();
+    if (store.getState().session.hosting) sessionUi.setState({ hostDiag: diag });
+    return diag;
+  } catch (err) {
+    console.warn('[session] diagnostic de l’hôte impossible', err);
+    return null;
+  }
+}
+
+/** Hôte : crée la règle de pare-feu (Privé + Public) après confirmation UAC, puis revérifie. */
+export async function allowHostInFirewall(): Promise<void> {
+  await platform.firewallAllow();
+  await refreshHostDiagnostics();
+}
+
+export interface ConnectionTest {
+  host: string;
+  port: number;
+  probe: ProbeResult;
+  diagnosis: Diagnosis;
+}
+
+/**
+ * Teste la connexion à un serveur (adresse ws://… ou lien d'invitation déjà lu) et explique le
+ * résultat : adresse privée d'un autre réseau, refus (pare-feu, serveur arrêté), délai dépassé…
+ */
+export async function testConnection(target: string | InviteLink): Promise<ConnectionTest> {
+  const t = typeof target === 'string' ? splitWsUrl(normalizeUrl(target)) : { host: target.host, port: target.port, tls: target.tls };
+  if (!t) throw new Error('Adresse invalide');
+  const [probe, nets] = await Promise.all([platform.netProbe(t.host, t.port, t.tls), platform.netInterfaces()]);
+  return { host: t.host, port: t.port, probe, diagnosis: diagnose(t.host, t.port, probe, nets) };
 }
 
 /** Révoque l'invitation générée en dernier (les invités entrés avec elle sont déconnectés). */

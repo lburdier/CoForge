@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Copy, Globe, History, Link2, LogIn, LogOut, RefreshCw, Server, Trash2, UserPlus, X } from 'lucide-react';
+import { Copy, Globe, History, LogIn, LogOut, RefreshCw, Server, Trash2, UserPlus, X } from 'lucide-react';
 import { getApp } from '../../app/context';
 import { DEFAULT_PORT, platform, type HostAccess } from '../../app/platform';
 import {
+  addPublicAlternative,
   bindInviteLinks,
   closeInviteDialog,
   generateInvite,
@@ -20,9 +21,11 @@ import { isValidRoomName } from '../../net/protocol';
 import { copyText, isHexColor, loadStored, normalizeText, saveStored } from '../lib/util';
 import { ColorField, Hint, IconButton, Select } from '../widgets/basic';
 import { useConnection } from './connection';
+import { AddressList, ConnectionTester, HostNetworkCheck, PublicAddressRow, RemoteHelp } from './NetDiagnosis';
 import { Dialog, Field, FormRow, closeDialog } from './Dialog';
 import './session.css';
 
+const WS_URL = /^wss?:\/\/[^/\s]+/i;
 const ROOM_RULE = 'Nom de salle invalide : 64 caractères au plus, lettres sans accent, chiffres, espaces, « - », « _ », « . ».';
 
 function errorText(err: unknown): string {
@@ -312,34 +315,26 @@ export function InviteDialog({ onClose = closeInviteDialog }: { onClose?(): void
           )}
           {error && <div className="cf-form-error">{error}</div>}
 
-          {invite && invite.alternatives.length > 1 && (
+          {invite && invite.alternatives.length > 0 && (
             <div className="cf-invite-section">
-              <h4>Autres adresses de cette machine</h4>
-              {invite.alternatives.map((a) => (
-                <div key={a.address} className="cf-invite-row">
-                  <code>{a.address}</code>
-                  <IconButton icon={Link2} tip="Copier le lien pour cette adresse" onClick={() => void copyLink(a.link)} />
-                </div>
-              ))}
-              <Hint>La première adresse est celle du réseau local, la plus probable. « localhost » ne sert que sur cette machine.</Hint>
+              <h4>{session.hosting ? 'Adresses de cette machine' : 'Adresse du serveur'}</h4>
+              <AddressList alternatives={invite.alternatives} onCopy={(l) => void copyLink(l)} />
+              {session.hosting && (
+                <Hint>
+                  Le lien principal utilise la première adresse. Une adresse de réseau local (10.x, 172.16-31.x, 192.168.x) ne fonctionne que pour les
+                  invités branchés sur le même réseau ; depuis un autre réseau, utilisez un VPN maillé (adresse 100.x).
+                </Hint>
+              )}
             </div>
           )}
 
+          {session.hosting && <HostNetworkCheck />}
+
           {session.hosting && (
             <div className="cf-invite-section">
-              <h4>Invités hors de votre réseau local</h4>
-              <Hint>
-                Les liens ci-dessus fonctionnent sur le même réseau (maison, bureau, même Wi-Fi). Depuis Internet, votre box doit rediriger le port{' '}
-                <b>{port}</b> (TCP) vers cette machine : dans l’interface de la box, rubrique « NAT / redirection de ports », associez le port {port} à
-                l’adresse locale ci-dessus. Le lien doit alors contenir votre adresse Internet. Autre solution : un serveur dédié ou un VPN.
-              </Hint>
-              <Hint>Si personne n’arrive à se connecter, autorisez CoForge dans le pare-feu Windows (réseaux privés).</Hint>
+              <h4>Invités sur un autre réseau</h4>
               {publicIp ? (
-                <div className="cf-invite-row">
-                  <span className="cf-dim">Adresse Internet</span>
-                  <code>{publicIp}</code>
-                  <IconButton icon={Copy} tip="Copier" onClick={() => void copyText(publicIp)} />
-                </div>
+                <PublicAddressRow alt={invite ? addPublicAlternative(publicIp) : null} ip={publicIp} />
               ) : (
                 <button
                   type="button"
@@ -358,7 +353,8 @@ export function InviteDialog({ onClose = closeInviteDialog }: { onClose?(): void
                   <Globe size={12} /> {ipBusy ? 'Interrogation…' : 'Afficher l’adresse Internet'}
                 </button>
               )}
-              {!publicIp && <div className="cf-invite-meta">Une requête sera faite au service externe api.ipify.org, uniquement si vous cliquez.</div>}
+              {!publicIp && <div className="cf-invite-meta">Une requête sera faite au service externe api.ipify.org, uniquement si vous cliquez. Le lien avec l’adresse Internet ne fonctionne que si la box redirige le port {port} (TCP) vers cette machine.</div>}
+              <RemoteHelp />
             </div>
           )}
         </>
@@ -382,6 +378,7 @@ export function JoinLinkDialog({ link }: { link: InviteLink }) {
   const [color, setColor] = useState(user.color);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testRun, setTestRun] = useState(0);
   const close = () => sessionUi.setState({ pendingLink: null });
 
   const submit = async (e?: FormEvent) => {
@@ -397,6 +394,7 @@ export function JoinLinkDialog({ link }: { link: InviteLink }) {
       close();
     } catch (err) {
       setError(errorText(err));
+      setTestRun((n) => n + 1);
     } finally {
       setBusy(false);
     }
@@ -432,6 +430,8 @@ export function JoinLinkDialog({ link }: { link: InviteLink }) {
         {error && <div className="cf-form-error">{error}</div>}
         <button type="submit" hidden />
       </form>
+      <ConnectionTester target={link} runKey={testRun} disabled={busy} />
+      <RemoteHelp />
     </Dialog>
   );
 }
@@ -476,11 +476,13 @@ export function JoinDialog() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testRun, setTestRun] = useState(0);
 
   // Un lien d'invitation collé dans le champ d'adresse remplace adresse, salle et mot de passe.
   const linkInput = looksLikeInviteLink(url);
   const parsed = linkInput ? parseInviteLink(url) : null;
   const link = parsed?.ok ? parsed.link : null;
+  const testTarget = link ?? (!linkInput && WS_URL.test(url.trim()) ? url.trim() : null);
 
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
@@ -505,6 +507,7 @@ export function JoinDialog() {
       closeDialog();
     } catch (err) {
       setError(errorText(err));
+      setTestRun((n) => n + 1);
     } finally {
       setBusy(false);
     }
@@ -548,6 +551,7 @@ export function JoinDialog() {
         {error && <div className="cf-form-error">{error}</div>}
         <button type="submit" hidden />
       </form>
+      <ConnectionTester target={testTarget} runKey={testRun} disabled={busy} />
       {recent.length > 0 && (
         <div className="cf-recent">
           <div className="cf-group-label">
@@ -585,6 +589,7 @@ export function JoinDialog() {
         </div>
       )}
       <Hint>La scène de la session remplace la scène ouverte. Si la salle est vide, votre scène y est publiée.</Hint>
+      <RemoteHelp />
     </Dialog>
   );
 }

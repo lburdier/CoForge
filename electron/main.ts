@@ -2,13 +2,14 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, net, shell } from 'electron'
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { listShareAddresses } from '../server/addresses';
+import { describeShareAddresses, listInterfaces, probeTcp } from '../server/addresses';
 import { CollabServer } from '../server/CollabServer';
-import type { BlenderEvalResult, BlenderInfo, FileFilter, HostInfo, HostOptions, OpenedFile } from '../src/app/platform';
+import type { BlenderEvalResult, BlenderInfo, FileFilter, HostDiagnostics, HostInfo, HostOptions, OpenedFile } from '../src/app/platform';
 import type { BlendEvalRequest } from '../src/engine/io/types';
 import { convertBlendBytesToGLB, convertBlendToGLB, evaluateBlend, evaluateBlendBytes, findBlender, shutdownBlenderBridge } from './blenderBridge';
-import { INVITE_SCHEME, parseInviteLink } from '../src/net/invite';
+import { INVITE_SCHEME, isValidHost, parseInviteLink } from '../src/net/invite';
 import { isValidRoomName } from '../src/net/protocol';
+import { allowInFirewall, checkFirewall } from './firewall';
 import { IPC } from './ipc';
 import { checkForUpdates, currentUpdateStatus, initUpdater, installUpdateNow } from './updater';
 
@@ -23,6 +24,8 @@ const CLOSE_TIMEOUT_MS = 3000;
 
 let mainWindow: BrowserWindow | null = null;
 let server: CollabServer | null = null;
+/** Adresses proposées par le serveur embarqué en cours. */
+let hostedUrls: string[] = [];
 
 // ------------------------------------------------------------------ liens d'invitation coforge://
 
@@ -245,7 +248,9 @@ function registerIpc(): void {
         log: (message) => console.log(`[serveur] ${message}`),
       });
       server = instance;
-      return { port: started.port, addresses: listShareAddresses(started.port), secret };
+      const addressInfo = describeShareAddresses(started.port);
+      hostedUrls = addressInfo.map((a) => a.url);
+      return { port: started.port, addresses: hostedUrls, addressInfo, secret };
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
       if (code === 'EADDRINUSE') fail(`Le port ${port} est déjà utilisé`);
@@ -351,6 +356,29 @@ function registerIpc(): void {
     return link;
   });
   ipcMain.handle(IPC.publicAddress, () => fetchPublicAddress());
+
+  // ---- diagnostic réseau (connexion entre réseaux différents, pare-feu)
+  ipcMain.handle(IPC.netInterfaces, () => listInterfaces());
+  ipcMain.handle(IPC.netProbe, (_event, host: unknown, port: unknown, tls: unknown) => {
+    const p = Number(port);
+    if (typeof host !== 'string' || !isValidHost(host) || !Number.isInteger(p) || p < 1 || p > 65535) fail('Adresse à tester invalide');
+    return probeTcp(host, p, 6000, tls === true);
+  });
+  ipcMain.handle(IPC.hostDiagnose, async (): Promise<HostDiagnostics> => {
+    const urls = server ? hostedUrls.filter((u) => !/\/\/(localhost|127\.)/.test(u)) : [];
+    const [firewall, selfReach] = await Promise.all([
+      checkFirewall(process.execPath),
+      Promise.all(
+        urls.map(async (url) => {
+          const m = /^wss?:\/\/(\[[^\]]+\]|[^:/]+):(\d+)/.exec(url);
+          const r = m ? await probeTcp(m[1], Number(m[2]), 3000) : { outcome: 'error' as const };
+          return { url, outcome: r.outcome };
+        }),
+      ),
+    ]);
+    return { firewall, selfReach };
+  });
+  ipcMain.handle(IPC.firewallAllow, () => allowInFirewall(process.execPath));
 
   ipcMain.handle(IPC.updateGetStatus, () => currentUpdateStatus());
   ipcMain.handle(IPC.updateCheck, () => checkForUpdates(true));

@@ -36,11 +36,11 @@ export function applyMaterialData(mat: MeshPhysicalMaterial, data: Omit<Material
  * Matériau du document → MeshPhysicalMaterial : par son arbre de nœuds s'il en a un (Principled
  * complet, textures procédurales), sinon par ses champs simples.
  */
-export function applyDocMaterial(mat: MeshPhysicalMaterial, doc: SceneDoc, data: MaterialData, xray = false): void {
+export function applyDocMaterial(mat: MeshPhysicalMaterial, doc: SceneDoc, data: MaterialData, xray = false, onShaderReady?: () => void): void {
   const tree = data.nodeTree && data.useNodes !== false ? doc.getNodeTree(data.nodeTree) : null;
   if (tree && tree.kind === 'shader') {
     try {
-      applyCompiledShader(mat, compileShaderTree(tree), xray, (img) => nodeImageTexture(doc, img));
+      applyCompiledShader(mat, compileShaderTree(tree), xray, (img) => nodeImageTexture(doc, img), onShaderReady);
       return;
     } catch (err) {
       console.warn('[nœuds] compilation du matériau impossible, champs simples utilisés', err);
@@ -79,6 +79,8 @@ export class MaterialLibrary {
   /** Appelé quand un matériau change hors événement du document (image décodée) : redessiner. */
   onAsyncChange: (() => void) | null = null;
   private lastDoc: SceneDoc | null = null;
+  /** Programme d'un matériau à nœuds compilé en tâche de fond et devenu actif : redessiner. */
+  private readonly shaderReady = () => this.onAsyncChange?.();
   private stopImages: () => void;
 
   constructor() {
@@ -104,7 +106,7 @@ export class MaterialLibrary {
     if (!data) return this.fallback;
     const mat = createPhysicalMaterial();
     mat.name = data.name;
-    applyDocMaterial(mat, doc, data, this.xray);
+    applyDocMaterial(mat, doc, data, this.xray, this.shaderReady);
     this.map.set(id, mat);
     return mat;
   }
@@ -120,7 +122,7 @@ export class MaterialLibrary {
       return;
     }
     mat.name = data.name;
-    applyDocMaterial(mat, doc, data, this.xray);
+    applyDocMaterial(mat, doc, data, this.xray, this.shaderReady);
   }
 
   /** Relit les matériaux qui utilisent ces arbres de nœuds. */

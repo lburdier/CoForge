@@ -104,3 +104,167 @@
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
+
+/* Diagnostic réseau : test de connexion, portée des adresses, pare-feu. */
+
+.cf-diag-box {
+  margin-top: 8px;
+}
+
+.cf-diag {
+  margin: 6px 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-field-dark);
+  color: var(--text);
+  font-size: 11px;
+}
+
+.cf-diag.is-ok {
+  border-left-color: var(--ok);
+}
+
+.cf-diag.is-warn {
+  border-left-color: var(--warn);
+}
+
+.cf-diag.is-error {
+  border-left-color: var(--danger);
+}
+
+.cf-diag-title {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.cf-diag-title svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.cf-diag.is-ok .cf-diag-title svg {
+  color: var(--ok);
+}
+
+.cf-diag.is-warn .cf-diag-title svg {
+  color: var(--warn);
+}
+
+.cf-diag.is-error .cf-diag-title svg {
+  color: var(--danger);
+}
+
+.cf-diag-detail {
+  margin: 4px 0 0;
+  color: var(--text-dim);
+}
+
+.cf-diag-sub {
+  margin-top: 6px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.cf-diag-solutions,
+.cf-diag-help ol {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.cf-diag-solutions li,
+.cf-diag-help li {
+  margin: 2px 0;
+}
+
+.cf-diag-help {
+  margin-top: 10px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.cf-diag-help summary {
+  color: var(--text);
+  cursor: pointer;
+}
+
+.cf-diag-help p {
+  margin: 6px 0;
+}
+
+.cf-diag-help pre {
+  margin: 4px 0;
+  padding: 4px 6px;
+  overflow-x: auto;
+  border-radius: var(--radius);
+  background: var(--bg-field-dark);
+  color: var(--text);
+  font: 10px Consolas, 'Cascadia Mono', monospace;
+  white-space: pre-wrap;
+}
+
+.cf-addr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cf-addr {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 2px 6px;
+  align-items: center;
+  padding: 4px 6px;
+  border-left: 3px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-field-dark);
+}
+
+.cf-addr.is-primary {
+  background: var(--bg-field);
+}
+
+.cf-addr.is-vpn {
+  border-left-color: var(--ok);
+}
+
+.cf-addr.is-lan {
+  border-left-color: var(--accent);
+}
+
+.cf-addr.is-public {
+  border-left-color: var(--warn);
+}
+
+.cf-addr.is-bad {
+  border-left-color: var(--danger);
+  opacity: 0.8;
+}
+
+.cf-addr code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cf-addr-badge {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  padding: 0 5px;
+  border-radius: var(--radius);
+  background: var(--bg-hover);
+  color: var(--text-strong);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.cf-addr-reach {
+  grid-column: 1 / -1;
+  color: var(--text-dim);
+  font-size: 10px;
+}

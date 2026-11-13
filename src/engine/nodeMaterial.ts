@@ -1,4 +1,4 @@
-import { Box3, Matrix4, Vector2, Vector3, Vector4, type BufferGeometry, type Camera, type Material, type MeshPhysicalMaterial, type Object3D, type Scene, type Texture, type WebGLRenderer } from 'three';
+import { Box3, Matrix4, Mesh, Vector2, Vector3, Vector4, type BufferGeometry, type Camera, type Material, type MeshPhysicalMaterial, type Object3D, type Scene, type Texture, type WebGLRenderer } from 'three';
 import type { CompiledShader, ShaderParams } from '../core/nodes/shaderCompile';
 
 /**
@@ -15,6 +15,13 @@ import type { CompiledShader, ShaderParams } from '../core/nodes/shaderCompile';
  * Valeurs des nœuds : uniformes `cf_u` (vec4 empaquetés) ; changer une valeur ne recompile pas le
  * programme (la clé `compiled.key` ne change pas), seules les valeurs des uniformes sont copiées.
  * Images : samplers `cf_img0…` (textures fournies par `images`, voir nodeImages.ts).
+ *
+ * Compilation asynchrone : un changement de structure (nœud relié, type changé…) produit un nouveau
+ * programme GPU. Le compiler de façon synchrone gèle l'interface (plusieurs secondes sous ANGLE /
+ * Direct3D, jusqu'au chien de garde du GPU sur un gros arbre). Le nouveau programme est donc compilé
+ * en tâche de fond (`renderer.compileAsync`, extension KHR_parallel_shader_compile) sur un matériau
+ * sonde de mêmes paramètres ; l'ancien reste affiché, puis le matériau bascule sur le programme prêt
+ * (même clé de cache : aucune recompilation).
  */
 
 interface CfUniforms {
@@ -26,27 +33,54 @@ interface CfUniforms {
   [img: `cf_img${number}`]: { value: Texture | null };
 }
 
+interface PendingCompile {
+  key: string;
+  compiled: CompiledShader;
+  uniforms: CfUniforms;
+  probe: MeshPhysicalMaterial;
+}
+
+/** Dernier rendu du matériau : de quoi précompiler son prochain programme dans le même contexte. */
+interface RenderSite {
+  renderer: WebGLRenderer;
+  scene: Scene;
+  camera: Camera;
+  geometry: BufferGeometry;
+}
+
 interface NodeState {
   key: string;
   compiled: CompiledShader | null;
   uniforms: CfUniforms;
+  pending: PendingCompile | null;
+  site: RenderSite | null;
+  /** Sondes à libérer une fois que le matériau tient son nouveau programme. */
+  retired: MeshPhysicalMaterial[];
+  /** Appelé quand un programme compilé en tâche de fond devient actif (redessiner). */
+  onReady: (() => void) | null;
 }
 
 const STATE = Symbol('cfNodeState');
 
 function stateOf(mat: MeshPhysicalMaterial): NodeState {
   const m = mat as unknown as { [STATE]?: NodeState };
-  return (m[STATE] ??= {
-    key: '',
-    compiled: null,
-    uniforms: {
-      cfBBoxMin: { value: new Vector3() },
-      cfBBoxSize: { value: new Vector3(1, 1, 1) },
-      cfViewport: { value: new Vector2(1, 1) },
-      cfModel: { value: new Matrix4() },
-      cf_u: { value: new Float32Array(4) },
-    },
-  });
+  return (m[STATE] ??= { key: '', compiled: null, uniforms: newUniforms(), pending: null, site: null, retired: [], onReady: null });
+}
+
+function newUniforms(): CfUniforms {
+  return {
+    cfBBoxMin: { value: new Vector3() },
+    cfBBoxSize: { value: new Vector3(1, 1, 1) },
+    cfViewport: { value: new Vector2(1, 1) },
+    cfModel: { value: new Matrix4() },
+    cf_u: { value: new Float32Array(4) },
+  };
+}
+
+function cancelPending(st: NodeState): void {
+  if (!st.pending) return;
+  st.pending.probe.dispose();
+  st.pending = null;
 }
 
 const clamp = (x: number, lo: number, hi: number) => (Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : lo);
@@ -101,6 +135,7 @@ export function clearNodeShader(mat: MeshPhysicalMaterial): void {
   mat.sheen = 0;
   mat.iridescence = 0;
   mat.diffuseRoughness = 0;
+  cancelPending(st);
   if (st.key === '') return;
   st.key = '';
   st.compiled = null;
@@ -111,39 +146,122 @@ export function clearNodeShader(mat: MeshPhysicalMaterial): void {
 
 /**
  * Applique un arbre compilé ; recompile le shader seulement si le GLSL a changé. `images` fournit
- * la texture de chaque image du document utilisée par l'arbre.
+ * la texture de chaque image du document utilisée par l'arbre. `onReady` est appelé quand un
+ * programme compilé en tâche de fond devient actif (il faut alors redessiner).
  */
-export function applyCompiledShader(mat: MeshPhysicalMaterial, compiled: CompiledShader, xray: boolean, images?: (id: string) => Texture): void {
+export function applyCompiledShader(
+  mat: MeshPhysicalMaterial,
+  compiled: CompiledShader,
+  xray: boolean,
+  images?: (id: string) => Texture,
+  onReady?: () => void,
+): void {
   const glsl = Object.keys(compiled.varying).length > 0;
   // En rayons X, l'alpha par pixel n'a pas d'intérêt : on garde l'alpha moyen.
   applyShaderParams(mat, compiled.params, xray, glsl && !!compiled.varying.alpha && !xray);
   const st = stateOf(mat);
+  if (onReady) st.onReady = onReady;
   const key = glsl ? `${compiled.key}|${xray ? 'x' : ''}` : '';
-  st.compiled = glsl ? compiled : null;
-  const uniforms = st.uniforms;
-  if (glsl) {
-    // Valeurs seules : copiées dans l'objet d'uniforme partagé avec le programme (pas de recompilation).
-    uniforms.cf_u.value = compiled.uniforms.length ? compiled.uniforms : new Float32Array(4);
+  // Valeurs seules : copiées dans l'objet d'uniforme partagé avec le programme (pas de recompilation).
+  const fill = (u: CfUniforms) => {
+    u.cf_u.value = compiled.uniforms.length ? compiled.uniforms : new Float32Array(4);
     compiled.images.forEach((id, i) => {
-      const slot = (uniforms[`cf_img${i}`] ??= { value: null });
+      const slot = (u[`cf_img${i}`] ??= { value: null });
       slot.value = images ? images(id) : null;
     });
+  };
+
+  // Même structure que le programme affiché : valeurs seulement, et la compilation en cours devient inutile.
+  if (key === st.key) {
+    cancelPending(st);
+    st.compiled = glsl ? compiled : null;
+    if (glsl) fill(st.uniforms);
+    return;
   }
-  if (key === st.key) return;
-  st.key = key;
+  // Même structure que la compilation en cours : on met seulement à jour ses valeurs.
+  if (st.pending && st.pending.key === key) {
+    st.pending.compiled = compiled;
+    fill(st.pending.uniforms);
+    syncProbe(st.pending.probe, mat);
+    return;
+  }
+  cancelPending(st);
+
   if (!glsl) {
+    st.key = '';
+    st.compiled = null;
     mat.onBeforeCompile = () => {};
     mat.customProgramCacheKey = () => '';
-  } else {
-    const c = compiled;
-    mat.onBeforeCompile = (shader) => {
-      Object.assign(shader.uniforms, uniforms);
-      shader.vertexShader = injectVertex(shader.vertexShader);
-      shader.fragmentShader = injectFragment(shader.fragmentShader, c, xray);
-    };
-    mat.customProgramCacheKey = () => `cfnodes:${hash(key)}`;
+    mat.needsUpdate = true;
+    return;
   }
+
+  const uniforms = newUniforms();
+  fill(uniforms);
+  const before = beforeCompile(compiled, xray, uniforms);
+  const cacheKey = `cfnodes:${hash(key)}`;
+  const site = st.site;
+  if (!site || !site.renderer.extensions.has('KHR_parallel_shader_compile')) {
+    // Jamais affiché (rien à garder à l'écran) ou pas de compilation parallèle : bascule immédiate.
+    swap(mat, st, key, compiled, uniforms, before, cacheKey);
+    return;
+  }
+
+  const probe = mat.clone();
+  probe.onBeforeCompile = before;
+  probe.customProgramCacheKey = () => cacheKey;
+  const pending: PendingCompile = { key, compiled, uniforms, probe };
+  st.pending = pending;
+  let ready: Promise<unknown>;
+  try {
+    ready = site.renderer.compileAsync(new Mesh(site.geometry, probe), site.camera, site.scene);
+  } catch (err) {
+    console.warn('[nœuds] précompilation impossible, compilation directe', err);
+    ready = Promise.resolve();
+  }
+  const finish = () => {
+    if (st.pending !== pending) return; // remplacée ou annulée entre-temps
+    st.pending = null;
+    swap(mat, st, key, pending.compiled, pending.uniforms, before, cacheKey);
+    // Libérée quand le matériau tiendra le programme (voir nodeSurfaceBeforeRender) : sinon il serait détruit.
+    st.retired.push(probe);
+    st.onReady?.();
+  };
+  ready.then(finish, finish);
+}
+
+function beforeCompile(c: CompiledShader, xray: boolean, uniforms: CfUniforms): MeshPhysicalMaterial['onBeforeCompile'] {
+  return (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = injectVertex(shader.vertexShader);
+    shader.fragmentShader = injectFragment(shader.fragmentShader, c, xray);
+  };
+}
+
+function swap(
+  mat: MeshPhysicalMaterial,
+  st: NodeState,
+  key: string,
+  compiled: CompiledShader,
+  uniforms: CfUniforms,
+  before: MeshPhysicalMaterial['onBeforeCompile'],
+  cacheKey: string,
+): void {
+  st.key = key;
+  st.compiled = compiled;
+  st.uniforms = uniforms;
+  mat.onBeforeCompile = before;
+  mat.customProgramCacheKey = () => cacheKey;
   mat.needsUpdate = true;
+}
+
+/** Les paramètres qui entrent dans la clé du programme (transparence, transmission…) doivent rester ceux du matériau. */
+function syncProbe(probe: MeshPhysicalMaterial, mat: MeshPhysicalMaterial): void {
+  const before = probe.onBeforeCompile;
+  const key = probe.customProgramCacheKey;
+  probe.copy(mat);
+  probe.onBeforeCompile = before;
+  probe.customProgramCacheKey = key;
 }
 
 // ------------------------------------------------------------------ injection GLSL
@@ -235,7 +353,13 @@ export function nodeSurfaceBeforeRender(
   material: Material,
 ): void {
   const st = (material as unknown as { [STATE]?: NodeState })[STATE];
-  if (!st?.compiled) return;
+  if (!st) return;
+  // Contexte du dernier rendu : sert à précompiler le prochain programme de ce matériau.
+  const site = st.site;
+  if (!site || site.renderer !== renderer || site.scene !== _scene || site.camera !== _camera || site.geometry !== geometry) {
+    st.site = { renderer, scene: _scene, camera: _camera, geometry };
+  }
+  if (!st.compiled) return;
   if (!geometry.boundingBox) geometry.computeBoundingBox();
   box.copy(geometry.boundingBox!);
   const u = st.uniforms;
@@ -246,8 +370,10 @@ export function nodeSurfaceBeforeRender(
   u.cfViewport.value.set(viewport.z, viewport.w);
   u.cfModel.value.copy(this.matrixWorld);
   const props = renderer.properties.get(material) as { currentProgram?: { program: WebGLProgram; getUniforms(): { setValue(gl: WebGL2RenderingContext, name: string, v: unknown): void } } };
-  const program = props.currentProgram;
+  const program = props.currentProgram as (typeof props.currentProgram & { cacheKey?: string }) | undefined;
   if (!program) return;
+  // Le matériau tient désormais le programme précompilé : les sondes peuvent le relâcher.
+  if (st.retired.length && program.cacheKey?.includes(material.customProgramCacheKey())) for (const p of st.retired.splice(0)) p.dispose();
   const gl = renderer.getContext() as WebGL2RenderingContext;
   renderer.state.useProgram(program.program);
   const pu = program.getUniforms();

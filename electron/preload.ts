@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import pkg from '../package.json';
-import type { BlendSource, BlenderEvalResult, BlenderInfo, FileFilter, HostInfo, HostOptions, NativeBridge, OpenedFile, UpdateStatus } from '../src/app/platform';
+import type { BlendSource, BlenderEvalResult, BlenderInfo, FileFilter, FirewallInfo, HostDiagnostics, HostInfo, HostOptions, NativeBridge, OpenedFile, UpdateStatus } from '../src/app/platform';
+import type { LocalNet, ProbeResult } from '../src/net/netdiag';
 import type { BlendEvalRequest } from '../src/engine/io/types';
 import { IPC } from './ipc';
 
@@ -100,6 +101,10 @@ const bridge: NativeBridge = {
     ipcRenderer.on(IPC.inviteLink, () => cb());
   },
   publicAddress: (): Promise<string> => invoke(IPC.publicAddress),
+  netInterfaces: (): Promise<LocalNet[]> => invoke(IPC.netInterfaces),
+  netProbe: (host: string, port: number, tls?: boolean): Promise<ProbeResult> => invoke(IPC.netProbe, String(host), Number(port), tls === true),
+  hostDiagnose: (): Promise<HostDiagnostics> => invoke(IPC.hostDiagnose),
+  firewallAllow: (): Promise<FirewallInfo | null> => invoke(IPC.firewallAllow),
 };
 
 contextBridge.exposeInMainWorld('coforge', bridge);

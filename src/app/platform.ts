@@ -8,6 +8,7 @@
  */
 
 import type { BlendEvalRequest, BlendEvalResult } from '../engine/io/types';
+import { guessOutcome, type LocalNet, type ProbeResult, type ShareAddress } from '../net/netdiag';
 
 /**
  * Accès à une session hébergée :
@@ -32,6 +33,23 @@ export interface HostInfo {
   addresses: string[];
   /** Accès `invite` : mot de passe aléatoire du serveur, réservé à la connexion de l'hôte (jamais affiché). */
   secret?: string;
+  /** Les mêmes adresses classées (VPN, réseau local…) avec leur portée et leur interface (versions ≥ 0.5.1). */
+  addressInfo?: ShareAddress[];
+}
+
+/** Pare-feu Windows vis-à-vis du serveur hébergé (voir electron/firewall.ts). */
+export interface FirewallInfo {
+  ok: boolean;
+  networks: { name: string; category: string; allowed: boolean; blocked: boolean }[];
+  message: string;
+}
+
+/** Vérifications faites par l'hôte sur son propre serveur. */
+export interface HostDiagnostics {
+  /** null : lecture impossible (hors Windows, PowerShell indisponible). */
+  firewall: FirewallInfo | null;
+  /** Le serveur répond-il sur chacune des adresses proposées, depuis cette machine ? */
+  selfReach: { url: string; outcome: ProbeResult['outcome'] }[];
 }
 
 export interface OpenedFile {
@@ -135,6 +153,14 @@ export interface NativeBridge {
   onInviteLink?(cb: () => void): void;
   /** Adresse IP publique de cette machine, demandée à un service externe (api.ipify.org). */
   publicAddress?(): Promise<string>;
+  /** Interfaces réseau de cette machine (diagnostic de connexion). */
+  netInterfaces?(): Promise<LocalNet[]>;
+  /** Test de connexion TCP détaillé vers hôte:port (refus, délai dépassé, pas de route…). */
+  netProbe?(host: string, port: number, tls?: boolean): Promise<ProbeResult>;
+  /** Hôte : pare-feu et joignabilité du serveur embarqué depuis ses propres adresses. */
+  hostDiagnose?(): Promise<HostDiagnostics>;
+  /** Hôte : crée la règle de pare-feu entrante pour les profils Privé et Public (demande d'élévation UAC). */
+  firewallAllow?(): Promise<FirewallInfo | null>;
 }
 
 declare global {
@@ -252,7 +278,60 @@ export const platform = {
     if (!bridge?.publicAddress) return Promise.reject(new Error("Disponible uniquement dans l'application Windows."));
     return bridge.publicAddress();
   },
+  /** Interfaces réseau de cette machine ; null si inconnues (navigateur, ancienne version). */
+  async netInterfaces(): Promise<LocalNet[] | null> {
+    const bridge = native();
+    if (!bridge?.netInterfaces) return null;
+    try {
+      return await bridge.netInterfaces();
+    } catch {
+      return null;
+    }
+  },
+  /**
+   * Teste la connexion à hôte:port. Dans l'application : test TCP précis par le processus principal.
+   * Sinon : requête HTTP vers le serveur (GET / répond en JSON), refus et délai déduits de la durée.
+   */
+  async netProbe(host: string, port: number, tls = false, timeoutMs = 6000): Promise<ProbeResult> {
+    const bridge = native();
+    if (bridge?.netProbe) {
+      try {
+        return await bridge.netProbe(host, port, tls);
+      } catch {
+        /* ancienne version du processus principal : repli ci-dessous */
+      }
+    }
+    return probeByFetch(host, port, tls, timeoutMs);
+  },
+  hostDiagnose(): Promise<HostDiagnostics | null> {
+    return native()?.hostDiagnose?.() ?? Promise.resolve(null);
+  },
+  firewallAllow(): Promise<FirewallInfo | null> {
+    const bridge = native();
+    if (!bridge?.firewallAllow) return Promise.reject(new Error('Mettez CoForge à jour pour régler le pare-feu depuis l’application.'));
+    return bridge.firewallAllow();
+  },
 };
+
+/** Test de connexion sans accès au système : GET http://hôte:port/ (le serveur CoForge répond en JSON). */
+export async function probeByFetch(host: string, port: number, tls = false, timeoutMs = 6000): Promise<ProbeResult> {
+  const started = Date.now();
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = setTimeout(() => controller?.abort(), timeoutMs);
+  const h = host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+  try {
+    const res = await fetch(`${tls ? 'https' : 'http'}://${h}:${port}/`, { signal: controller?.signal, cache: 'no-store' });
+    const ms = Date.now() - started;
+    const info = (await res.json().catch(() => null)) as { name?: unknown; version?: unknown; protocol?: unknown; secured?: unknown } | null;
+    if (!info || info.name !== 'coforge-server') return { outcome: 'not-coforge', ms, server: null };
+    return { outcome: 'ok', ms, server: { version: String(info.version ?? '?'), protocol: Number(info.protocol) || 1, secured: info.secured === true } };
+  } catch {
+    const ms = Date.now() - started;
+    return { outcome: guessOutcome(ms, timeoutMs), ms, guessed: true };
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /** Port par défaut du serveur de collaboration. */
 export const DEFAULT_PORT = 4455;

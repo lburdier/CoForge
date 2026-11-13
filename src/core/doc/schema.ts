@@ -678,13 +678,17 @@ export interface CollectionData {
 // ---------------------------------------------------------------- réglages de scène
 
 export interface WorldSettings {
-  /** 'color' : couleur unie ; 'sky' : ciel procédural avec soleil. */
-  mode: 'color' | 'sky';
+  /** 'color' : couleur unie ; 'sky' : ciel procédural avec soleil ; 'hdri' : image d'environnement (.hdr, .exr, .png, .jpg). */
+  mode: 'color' | 'sky' | 'hdri';
   color: string;
   strength: number;
   /** Ciel procédural : élévation et azimut du soleil en degrés. */
   sunElevation: number;
   sunAzimuth: number;
+  /** Image d'environnement (identifiant d'image du document, voir core/nodes/shader/images.ts) ou null. */
+  hdriImage: string | null;
+  /** Rotation de l'image d'environnement autour de Z, en degrés. */
+  hdriRotation: number;
 }
 
 /**
@@ -771,7 +775,7 @@ export interface SceneSettings {
 export const SCENE_DEFAULTS: SceneSettings = {
   name: 'Scène',
   activeCamera: null,
-  world: { mode: 'color', color: '#3d3d3d', strength: 1, sunElevation: 40, sunAzimuth: 135 },
+  world: { mode: 'color', color: '#3d3d3d', strength: 1, sunElevation: 40, sunAzimuth: 135, hdriImage: null, hdriRotation: 0 },
   render: {
     engine: 'realtime',
     resX: 1920,

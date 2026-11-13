@@ -34,4 +34,12 @@ export const IPC = {
   takeInviteLink: 'coforge:take-invite-link',
   /** renderer → main : adresse IP publique (requête externe, sur demande de l'utilisateur). */
   publicAddress: 'coforge:public-address',
+  /** renderer → main : interfaces réseau de cette machine (nom, adresse, masque) pour le diagnostic. */
+  netInterfaces: 'coforge:net-interfaces',
+  /** renderer → main : (hôte, port) → test de connexion TCP détaillé (refus, délai, route…). */
+  netProbe: 'coforge:net-probe',
+  /** renderer → main : état du serveur hébergé vu de cette machine (pare-feu, joignabilité de ses adresses). */
+  hostDiagnose: 'coforge:host-diagnose',
+  /** renderer → main : crée la règle de pare-feu entrante (Privé + Public), avec élévation UAC. */
+  firewallAllow: 'coforge:firewall-allow',
 } as const;
