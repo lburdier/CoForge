@@ -31,6 +31,14 @@ fileAssociations:
     icon: build/icon.ico
     role: Editor
 
+# Liens d'invitation coforge://join?host=…&port=…&room=…&token=… : l'installateur NSIS associe le
+# protocole à CoForge.exe (clé HKCU\Software\Classes\coforge). L'application le réenregistre aussi
+# au démarrage (app.setAsDefaultProtocolClient) et transmet le lien à la fenêtre déjà ouverte.
+protocols:
+  - name: Invitation CoForge
+    schemes:
+      - coforge
+
 win:
   target:
     - target: nsis

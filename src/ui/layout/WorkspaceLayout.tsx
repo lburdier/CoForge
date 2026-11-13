@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useApp } from '../../app/store';
 import { Outliner } from '../outliner/Outliner';
 import { PropertiesEditor } from '../properties/PropertiesEditor';
-import { clamp, usePersistent } from '../lib/util';
+import { clamp } from '../lib/util';
 import { bottomEditor, onBottomEditorsChange } from '../lib/areas';
-import { DEFAULT_BOTTOM_H, workspacePreset, type AreaLayout } from '../lib/workspaces';
+import { DEFAULT_BOTTOM_H, activeTab, updateTabLayout, useWorkspaceTabs, workspacePreset, type AreaLayout } from '../lib/workspaces';
 import { ViewportArea } from '../viewport/ViewportArea';
+import { AnimArea } from '../timeline';
 import { ErrorBoundary, Splitter } from '../widgets/basic';
 
 /** Tailles minimales des zones (px). */
@@ -39,14 +40,12 @@ function useElementSize(ref: { current: HTMLElement | null }): { width: number; 
  * Disposition des zones de l'espace de travail : viewport 3D à gauche, colonne
  * de droite avec l'outliner en haut et les propriétés en bas. Les séparateurs
  * se glissent à la souris (double-clic : taille par défaut) ; les tailles sont
- * mémorisées par espace de travail.
+ * mémorisées par onglet d'espace de travail (préférence locale, voir lib/workspaces.ts).
  */
 export function WorkspaceLayout() {
-  const workspace = useApp((s) => s.workspace);
-  const preset = workspacePreset(workspace);
-  const [all, setAll] = usePersistent<Record<string, AreaLayout>>('layout', {});
-  const stored = all[workspace];
-  const layout = validLayout(stored) ? stored : preset.layout;
+  const tab = useWorkspaceTabs((s) => activeTab(s));
+  const preset = workspacePreset(tab.preset);
+  const layout = validLayout(tab.layout) ? tab.layout : preset.layout;
 
   // Éditeur du bas (nœuds, texte Python…) : enregistré par sa zone, choisi par le store.
   const bottomId = useApp((s) => s.bottomEditor);
@@ -70,14 +69,14 @@ export function WorkspaceLayout() {
 
   /** Mise à jour fonctionnelle : plusieurs glissements entre deux rendus ne se perdent pas. */
   const update = (fn: (cur: AreaLayout) => Partial<AreaLayout>) =>
-    setAll((prev) => {
-      const cur = validLayout(prev[workspace]) ? prev[workspace] : preset.layout;
+    updateTabLayout(tab.id, (stored) => {
+      const cur = validLayout(stored) ? stored : preset.layout;
       const base: AreaLayout = {
         rightW: clamp(cur.rightW, MIN_RIGHT, maxRight),
         outlinerH: clamp(cur.outlinerH, MIN_OUTLINER, maxOutliner),
         bottomH: clamp(cur.bottomH ?? DEFAULT_BOTTOM_H, MIN_BOTTOM, maxBottom),
       };
-      return { ...prev, [workspace]: { ...base, ...fn(base) } };
+      return { ...base, ...fn(base) };
     });
 
   return (
@@ -102,6 +101,8 @@ export function WorkspaceLayout() {
             </div>
           </>
         )}
+        {/* Bandeau d'animation (frise / feuille d'exposition / courbes), hauteur propre. */}
+        <AnimArea />
       </div>
       <Splitter
         axis="x"

@@ -15,7 +15,11 @@ export type InteractionMode = 'object' | 'edit';
 export type SelectMode = 'vert' | 'edge' | 'face';
 export type ShadingMode = 'wireframe' | 'solid' | 'material' | 'rendered';
 export type ToolId = 'select' | 'move' | 'rotate' | 'scale';
-export type Workspace = 'layout' | 'modeling' | 'shading' | 'rendering' | 'geometry' | 'scripting';
+/**
+ * Espace de travail actif : identifiant d'un onglet (src/ui/lib/workspaces.ts). Les onglets par
+ * défaut portent l'identifiant de leur modèle ; les onglets ajoutés par l'utilisateur, un identifiant libre.
+ */
+export type Workspace = 'layout' | 'modeling' | 'shading' | 'rendering' | 'geometry' | 'scripting' | 'animation' | (string & {});
 export type PivotMode = 'median' | 'active' | 'cursor' | 'individual';
 export type SnapTarget = 'grid' | 'vertex';
 export type Orientation = 'global' | 'local';
@@ -208,6 +212,73 @@ export interface AppState {
   dropActive: boolean;
   /** Rapport du dernier import qui a produit des avertissements. */
   importReport: ImportReport | null;
+
+  // ---------------------------------------------------------------- animation (état LOCAL : chaque utilisateur a sa tête de lecture)
+  /** Image courante de CET utilisateur (jamais écrite dans le document partagé). */
+  frame: number;
+  /** Lecture en cours : 1 avant, -1 arrière, 0 arrêt. */
+  playing: 0 | 1 | -1;
+  /** Auto-key (bouton rond de la timeline). */
+  autoKey: boolean;
+  /** Images clés sélectionnées (identifiants de clés). */
+  keySelection: ReadonlySet<string>;
+  /** Poignées sélectionnées dans l'éditeur de courbes : `${idClé}:l` ou `${idClé}:r`. */
+  handleSelection: ReadonlySet<string>;
+  /** Courbes masquées dans l'éditeur de courbes (clés de courbe). */
+  hiddenCurves: ReadonlySet<string>;
+  /** Les éditeurs d'animation ne montrent que les objets sélectionnés. */
+  animOnlySelected: boolean;
+  /** Éditeur affiché dans la zone d'animation du bas : frise, feuille d'exposition, courbes. */
+  animEditor: AnimEditorId;
+  /** Éditeur de courbes : courbes normalisées entre -1 et 1. */
+  graphNormalize: boolean;
+  /** Menu « Insérer une image clé » (I) ouvert à une position écran, ou null. */
+  keyframeMenu: { x: number; y: number } | null;
+
+  /**
+   * Types d'objets sélectionnables dans le viewport (clic, rectangle, A), réglés dans les
+   * filtres de l'outliner et dans l'en-tête du viewport. Préférence LOCALE, persistée.
+   */
+  objectTypeSelectable: Readonly<Record<ObjectTypeCategory, boolean>>;
+}
+
+export type AnimEditorId = 'timeline' | 'dopesheet' | 'graph';
+
+// ------------------------------------------------------------------ types d'objets sélectionnables (préférence locale)
+
+/** Catégories des filtres « Types d'objets » (comme Blender) ; 'other' : tout type non reconnu. */
+export type ObjectTypeCategory = 'mesh' | 'camera' | 'light' | 'empty' | 'other';
+export const OBJECT_TYPE_CATEGORIES: readonly ObjectTypeCategory[] = ['mesh', 'camera', 'light', 'empty', 'other'];
+const TYPE_SELECTABLE_KEY = 'coforge.objectTypeSelectable';
+
+export function objectTypeCategory(type: unknown): ObjectTypeCategory {
+  return type === 'mesh' || type === 'camera' || type === 'light' || type === 'empty' ? type : 'other';
+}
+
+/** Ce type d'objet est-il sélectionnable dans le viewport d'après les préférences locales ? */
+export function isTypeSelectable(state: Pick<AppState, 'objectTypeSelectable'>, type: unknown): boolean {
+  return state.objectTypeSelectable?.[objectTypeCategory(type)] !== false;
+}
+
+function loadTypeSelectable(): Record<ObjectTypeCategory, boolean> {
+  const out = { mesh: true, camera: true, light: true, empty: true, other: true };
+  try {
+    const raw = JSON.parse(globalThis.localStorage?.getItem(TYPE_SELECTABLE_KEY) ?? 'null');
+    if (raw && typeof raw === 'object') for (const k of OBJECT_TYPE_CATEGORIES) if (typeof raw[k] === 'boolean') out[k] = raw[k];
+  } catch {
+    /* stockage indisponible ou valeur illisible */
+  }
+  return out;
+}
+
+export function setObjectTypeSelectable(patch: Partial<Record<ObjectTypeCategory, boolean>>): void {
+  const next = { ...store.getState().objectTypeSelectable, ...patch };
+  store.setState({ objectTypeSelectable: next });
+  try {
+    globalThis.localStorage?.setItem(TYPE_SELECTABLE_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
 }
 
 const USER_KEY = 'coforge.user';
@@ -275,6 +346,17 @@ export const initialState = (): AppState => ({
   update: { state: 'disabled' },
   dropActive: false,
   importReport: null,
+  frame: 1,
+  playing: 0,
+  autoKey: false,
+  keySelection: new Set(),
+  handleSelection: new Set(),
+  hiddenCurves: new Set(),
+  animOnlySelected: true,
+  animEditor: 'timeline',
+  graphNormalize: false,
+  keyframeMenu: null,
+  objectTypeSelectable: loadTypeSelectable(),
 });
 
 export const store = createStore<AppState>(() => initialState());
@@ -338,4 +420,16 @@ export function patchRender(patch: Partial<RenderJobState>): void {
 
 export function setOverlay<K extends keyof Overlays>(key: K, value: Overlays[K]): void {
   store.setState({ overlays: { ...store.getState().overlays, [key]: value } });
+}
+
+/** Déplace la tête de lecture LOCALE (arrondie au centième d'image). */
+export function setFrame(frame: number): void {
+  if (!Number.isFinite(frame)) return;
+  const f = Math.round(frame * 100) / 100;
+  if (f !== store.getState().frame) store.setState({ frame: f });
+}
+
+/** Remplace la sélection d'images clés (et, facultativement, de poignées). */
+export function setKeySelection(keys: Iterable<string>, handles: Iterable<string> = []): void {
+  store.setState({ keySelection: new Set(keys), handleSelection: new Set(handles) });
 }

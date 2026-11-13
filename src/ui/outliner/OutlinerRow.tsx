@@ -1,5 +1,20 @@
-import { memo, type DragEvent, type MouseEvent as ReactMouseEvent } from 'react';
-import { Camera, CameraOff, ChevronDown, ChevronRight, Eye, EyeOff, Folder, Layers } from 'lucide-react';
+import { memo, type DragEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  Camera,
+  CameraOff,
+  ChevronDown,
+  ChevronRight,
+  CircleDot,
+  Eye,
+  EyeOff,
+  Folder,
+  Layers,
+  Link,
+  MousePointer2,
+  MousePointer2Off,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react';
 import { objectIcon } from '../lib/icons';
 import { TextField } from '../widgets/basic';
 import { ROOT_KEY, type TreeNode } from './tree';
@@ -17,14 +32,26 @@ export interface PeerMark {
 
 export type DropState = 'ok' | 'invalid' | null;
 
+/** Colonne de restriction (bascule d'un drapeau d'objet ou de collection). */
+export type RestrictField = 'selectable' | 'visible' | 'renderable';
+
+/** Colonnes de restriction affichées (filtre « Commandes de restriction »). */
+export interface RowColumns {
+  selectable: boolean;
+  visible: boolean;
+  renderable: boolean;
+}
+
 /** Gestionnaires partagés par toutes les lignes (référence stable). */
 export interface RowController {
   click(e: ReactMouseEvent, key: string): void;
   doubleClick(key: string): void;
   contextMenu(e: ReactMouseEvent, key: string): void;
   toggleExpand(key: string, recursive: boolean): void;
-  toggleVisible(key: string): void;
-  toggleRenderable(key: string): void;
+  /** Appui sur une bascule de restriction : bascule (Ctrl : isole) et commence un glisser sur la colonne. */
+  restrictDown(e: ReactPointerEvent, key: string, field: RestrictField): void;
+  /** Le pointeur entre sur la bascule d'une autre ligne pendant ce glisser. */
+  restrictEnter(key: string, field: RestrictField): void;
   commitRename(key: string, name: string): void;
   endRename(): void;
   dragStart(e: DragEvent, key: string): void;
@@ -46,27 +73,52 @@ export interface OutlinerRowProps {
   renaming: boolean;
   drop: DropState;
   peers: PeerMark[] | undefined;
+  cols: RowColumns;
   ctl: RowController;
 }
 
 const MAX_DOTS = 4;
 
+function contentIcon(n: TreeNode): LucideIcon {
+  switch (n.content) {
+    case 'material':
+      return CircleDot;
+    case 'modifiers':
+    case 'modifier':
+      return Wrench;
+    case 'constraints':
+    case 'constraint':
+      return Link;
+    default:
+      return objectIcon(n.objType ?? 'empty', n.lightKind);
+  }
+}
+
+const TIPS: Record<RestrictField, [string, string]> = {
+  selectable: ['Désactiver la sélection dans le viewport', 'Activer la sélection dans le viewport'],
+  visible: ['Masquer dans le viewport', 'Afficher dans le viewport'],
+  renderable: ['Exclure du rendu', 'Inclure dans le rendu'],
+};
+const DRAG_TIP = ' (Ctrl+clic : isoler ; glisser sur la colonne : appliquer à plusieurs lignes)';
+
 export const OutlinerRow = memo(function OutlinerRow(p: OutlinerRowProps) {
-  const { node, depth, hasChildren, expanded, index, selected, active, current, renaming, drop, peers, ctl } = p;
+  const { node, depth, hasChildren, expanded, index, selected, active, current, renaming, drop, peers, cols, ctl } = p;
   const isRoot = node.key === ROOT_KEY;
   const isCol = node.kind === 'collection';
-  const Icon = isCol ? (isRoot ? Layers : Folder) : objectIcon(node.objType ?? 'empty', node.lightKind);
+  const isContent = node.kind === 'content';
+  const Icon = isCol ? (isRoot ? Layers : Folder) : isContent ? contentIcon(node) : objectIcon(node.objType ?? 'empty', node.lightKind);
   const hidden = !node.visible || node.parentHidden;
 
   const cls = [
     'cf-ol-row',
     index % 2 === 1 ? 'is-alt' : '',
-    isCol ? 'is-collection' : `is-object type-${node.objType}`,
+    isCol ? 'is-collection' : isContent ? `is-content content-${node.content}` : `is-object type-${node.objType}`,
     isRoot ? 'is-root' : '',
     selected ? 'is-selected' : '',
     active ? 'is-active' : '',
     current ? 'is-current' : '',
     hidden ? 'is-hidden' : '',
+    !isCol && !isContent && !node.selectable ? 'is-unselectable' : '',
     drop === 'ok' ? 'is-drop' : drop === 'invalid' ? 'is-drop-invalid' : '',
   ]
     .filter(Boolean)
@@ -75,11 +127,31 @@ export const OutlinerRow = memo(function OutlinerRow(p: OutlinerRowProps) {
   const shown = peers ? peers.slice(0, MAX_DOTS) : [];
   const extra = peers ? peers.length - shown.length : 0;
 
+  const toggle = (field: RestrictField, on: boolean, IconOn: LucideIcon, IconOff: LucideIcon, tip: string, inherited = false) => (
+    <button
+      type="button"
+      tabIndex={-1}
+      className={`cf-ol-toggle${on ? '' : ' is-off'}${inherited ? ' is-inherited' : ''}`}
+      data-tip={tip + (isCol ? '' : DRAG_TIP)}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        e.preventDefault();
+        ctl.restrictDown(e, node.key, field);
+      }}
+      onPointerEnter={() => ctl.restrictEnter(node.key, field)}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {on ? <IconOn size={13} /> : <IconOff size={13} />}
+    </button>
+  );
+  const spacer = (k: string) => <span key={k} className="cf-ol-toggle-spacer" />;
+
   return (
     <div
       className={cls}
       style={{ top: index * ROW_H, height: ROW_H }}
-      draggable={!isRoot && !renaming}
+      draggable={!isRoot && !isContent && !renaming}
       onClick={(e) => ctl.click(e, node.key)}
       onDoubleClick={(e) => {
         if ((e.target as Element).closest('.cf-ol-cols, .cf-ol-twisty')) return;
@@ -103,7 +175,7 @@ export const OutlinerRow = memo(function OutlinerRow(p: OutlinerRowProps) {
       >
         {hasChildren && (expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />)}
       </span>
-      <Icon size={13} className={`cf-ol-icon${isCol ? ' is-col' : ` is-${node.objType}`}`} />
+      <Icon size={13} className={`cf-ol-icon${isCol ? ' is-col' : isContent ? ` is-content is-${node.content}` : ` is-${node.objType}`}`} />
       {renaming ? (
         <span className="cf-ol-rename" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
           <TextField
@@ -129,44 +201,24 @@ export const OutlinerRow = memo(function OutlinerRow(p: OutlinerRowProps) {
           )}
         </span>
       )}
-      {!isRoot && (
+      {!isRoot && !isContent && (cols.selectable || cols.visible || cols.renderable) && (
         <span className="cf-ol-cols" onDoubleClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            tabIndex={-1}
-            className={`cf-ol-toggle${node.visible ? '' : ' is-off'}${node.parentHidden ? ' is-inherited' : ''}`}
-            data-tip={
+          {cols.selectable &&
+            (isCol ? spacer('s') : toggle('selectable', node.selectable, MousePointer2, MousePointer2Off, TIPS.selectable[node.selectable ? 0 : 1]))}
+          {cols.visible &&
+            toggle(
+              'visible',
+              node.visible,
+              Eye,
+              EyeOff,
               isCol
                 ? node.visible
                   ? 'Masquer la collection dans le viewport'
                   : 'Afficher la collection dans le viewport'
-                : node.visible
-                  ? 'Masquer dans le viewport'
-                  : 'Afficher dans le viewport'
-            }
-            onClick={(e) => {
-              e.stopPropagation();
-              ctl.toggleVisible(node.key);
-            }}
-          >
-            {node.visible ? <Eye size={13} /> : <EyeOff size={13} />}
-          </button>
-          {!isCol ? (
-            <button
-              type="button"
-              tabIndex={-1}
-              className={`cf-ol-toggle${node.renderable ? '' : ' is-off'}`}
-              data-tip={node.renderable ? 'Exclure du rendu' : 'Inclure dans le rendu'}
-              onClick={(e) => {
-                e.stopPropagation();
-                ctl.toggleRenderable(node.key);
-              }}
-            >
-              {node.renderable ? <Camera size={13} /> : <CameraOff size={13} />}
-            </button>
-          ) : (
-            <span className="cf-ol-toggle-spacer" />
-          )}
+                : TIPS.visible[node.visible ? 0 : 1],
+              node.parentHidden,
+            )}
+          {cols.renderable && (isCol ? spacer('r') : toggle('renderable', node.renderable, Camera, CameraOff, TIPS.renderable[node.renderable ? 0 : 1]))}
         </span>
       )}
     </div>

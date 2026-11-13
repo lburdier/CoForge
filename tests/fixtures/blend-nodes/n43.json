@@ -1,0 +1,6685 @@
+{
+ "version": [
+  4,
+  3,
+  0
+ ],
+ "nodes": {
+  "Material Output": {
+   "idname": "ShaderNodeOutputMaterial",
+   "label": "",
+   "location": [
+    600.0,
+    0.0
+   ],
+   "location_absolute": [
+    600.0,
+    0.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Displacement": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Thickness": 0.0
+   },
+   "outputs": {}
+  },
+  "Principled BSDF": {
+   "idname": "ShaderNodeBsdfPrincipled",
+   "label": "Surface principale",
+   "location": [
+    200.0,
+    0.0
+   ],
+   "location_absolute": [
+    200.0,
+    0.0
+   ],
+   "width": 240.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Base Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Metallic": 0.25,
+    "Roughness": 0.3499999940395355,
+    "IOR": 1.600000023841858,
+    "Alpha": 0.8999999761581421,
+    "Normal": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Weight": 0.0,
+    "Diffuse Roughness": 0.0,
+    "Subsurface Weight": 0.0,
+    "Subsurface Radius": [
+     1.0,
+     0.20000000298023224,
+     0.10000000149011612
+    ],
+    "Subsurface Scale": 0.05000000074505806,
+    "Subsurface IOR": 1.399999976158142,
+    "Subsurface Anisotropy": 0.0,
+    "Specular IOR Level": 0.699999988079071,
+    "Specular Tint": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "Anisotropic": 0.0,
+    "Anisotropic Rotation": 0.0,
+    "Tangent": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Transmission Weight": 0.10000000149011612,
+    "Coat Weight": 0.4000000059604645,
+    "Coat Roughness": 0.11999999731779099,
+    "Coat IOR": 1.5,
+    "Coat Tint": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "Coat Normal": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Sheen Weight": 0.20000000298023224,
+    "Sheen Roughness": 0.5,
+    "Sheen Tint": [
+     0.8999999761581421,
+     0.20000000298023224,
+     0.10000000149011612,
+     1.0
+    ],
+    "Emission Color": [
+     0.0,
+     0.5,
+     1.0,
+     1.0
+    ],
+    "Emission Strength": 2.5,
+    "Thin Film Thickness": 300.0,
+    "Thin Film IOR": 1.3300000429153442
+   },
+   "outputs": {}
+  },
+  "Texture Coordinate": {
+   "idname": "ShaderNodeTexCoord",
+   "label": "",
+   "location": [
+    -1000.0,
+    0.0
+   ],
+   "location_absolute": [
+    -1000.0,
+    0.0
+   ],
+   "width": 140.0,
+   "hide": true,
+   "mute": false,
+   "parent": null,
+   "inputs": {},
+   "outputs": {
+    "Generated": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Normal": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "UV": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Object": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Camera": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Window": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Reflection": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mapping": {
+   "idname": "ShaderNodeMapping",
+   "label": "",
+   "location": [
+    -800.0,
+    0.0
+   ],
+   "location_absolute": [
+    -800.0,
+    0.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Location": [
+     0.10000000149011612,
+     0.20000000298023224,
+     0.30000001192092896
+    ],
+    "Rotation": [
+     0.0,
+     0.0,
+     0.5
+    ],
+    "Scale": [
+     2.0,
+     2.0,
+     2.0
+    ]
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Noise Texture": {
+   "idname": "ShaderNodeTexNoise",
+   "label": "",
+   "location": [
+    100.0,
+    -200.0
+   ],
+   "location_absolute": [
+    100.0,
+    -200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": "Frame",
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 7.5,
+    "Detail": 4.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Offset": 0.0,
+    "Gain": 1.0,
+    "Distortion": 0.0
+   },
+   "outputs": {
+    "Fac": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ]
+   }
+  },
+  "Color Ramp": {
+   "idname": "ShaderNodeValToRGB",
+   "label": "",
+   "location": [
+    350.0,
+    -200.0
+   ],
+   "location_absolute": [
+    350.0,
+    -200.0
+   ],
+   "width": 240.0,
+   "hide": false,
+   "mute": false,
+   "parent": "Frame",
+   "inputs": {
+    "Fac": 0.5
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Alpha": 0.0
+   },
+   "ramp": {
+    "interpolation": "EASE",
+    "elements": [
+     {
+      "position": 0.20000000298023224,
+      "color": [
+       0.10000000149011612,
+       0.20000000298023224,
+       0.6000000238418579,
+       1.0
+      ]
+     },
+     {
+      "position": 0.5,
+      "color": [
+       0.0,
+       1.0,
+       0.0,
+       0.5
+      ]
+     },
+     {
+      "position": 0.800000011920929,
+      "color": [
+       1.0,
+       0.6000000238418579,
+       0.10000000149011612,
+       1.0
+      ]
+     }
+    ]
+   }
+  },
+  "Voronoi Texture": {
+   "idname": "ShaderNodeTexVoronoi",
+   "label": "",
+   "location": [
+    -600.0,
+    -250.0
+   ],
+   "location_absolute": [
+    -600.0,
+    -250.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": true,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 0.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Smoothness": 1.0,
+    "Exponent": 0.5,
+    "Randomness": 1.0
+   },
+   "outputs": {
+    "Distance": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Radius": 0.0
+   }
+  },
+  "Bump": {
+   "idname": "ShaderNodeBump",
+   "label": "",
+   "location": [
+    -150.0,
+    -250.0
+   ],
+   "location_absolute": [
+    -150.0,
+    -250.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Strength": 0.30000001192092896,
+    "Distance": 1.0,
+    "Height": 1.0,
+    "Normal": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Normal": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Math": {
+   "idname": "ShaderNodeMath",
+   "label": "",
+   "location": [
+    -350.0,
+    -100.0
+   ],
+   "location_absolute": [
+    -350.0,
+    -100.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "RGB": {
+   "idname": "ShaderNodeRGB",
+   "label": "",
+   "location": [
+    -350.0,
+    300.0
+   ],
+   "location_absolute": [
+    -350.0,
+    300.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {},
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.10000000149011612,
+     0.10000000149011612,
+     1.0
+    ]
+   }
+  },
+  "Value": {
+   "idname": "ShaderNodeValue",
+   "label": "",
+   "location": [
+    -350.0,
+    400.0
+   ],
+   "location_absolute": [
+    -350.0,
+    400.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {},
+   "outputs": {
+    "Value": 0.41999998688697815
+   }
+  },
+  "Reroute": {
+   "idname": "NodeReroute",
+   "label": "",
+   "location": [
+    -50.0,
+    200.0
+   ],
+   "location_absolute": [
+    -50.0,
+    200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Input": [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "outputs": {
+    "Output": [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  },
+  "Frame": {
+   "idname": "NodeFrame",
+   "label": "Bruit color\u00e9",
+   "location": [
+    -700.0,
+    300.0
+   ],
+   "location_absolute": [
+    -700.0,
+    300.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {},
+   "outputs": {}
+  },
+  "Math.001": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:ADD",
+   "location": [
+    0.0,
+    -1000.0
+   ],
+   "location_absolute": [
+    0.0,
+    -1000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.002": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:SUBTRACT",
+   "location": [
+    160.0,
+    -1000.0
+   ],
+   "location_absolute": [
+    160.0,
+    -1000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.003": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:MULTIPLY",
+   "location": [
+    320.0,
+    -1000.0
+   ],
+   "location_absolute": [
+    320.0,
+    -1000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.004": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:DIVIDE",
+   "location": [
+    480.0,
+    -1000.0
+   ],
+   "location_absolute": [
+    480.0,
+    -1000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.005": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:MULTIPLY_ADD",
+   "location": [
+    640.0,
+    -1000.0
+   ],
+   "location_absolute": [
+    640.0,
+    -1000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.006": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:POWER",
+   "location": [
+    800.0,
+    -1000.0
+   ],
+   "location_absolute": [
+    800.0,
+    -1000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.007": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:LOGARITHM",
+   "location": [
+    960.0,
+    -1000.0
+   ],
+   "location_absolute": [
+    960.0,
+    -1000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.008": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:SQRT",
+   "location": [
+    1120.0,
+    -1000.0
+   ],
+   "location_absolute": [
+    1120.0,
+    -1000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.009": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:INVERSE_SQRT",
+   "location": [
+    1280.0,
+    -1000.0
+   ],
+   "location_absolute": [
+    1280.0,
+    -1000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.010": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:ABSOLUTE",
+   "location": [
+    1440.0,
+    -1000.0
+   ],
+   "location_absolute": [
+    1440.0,
+    -1000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.011": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:EXPONENT",
+   "location": [
+    0.0,
+    -1120.0
+   ],
+   "location_absolute": [
+    0.0,
+    -1120.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.012": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:MINIMUM",
+   "location": [
+    160.0,
+    -1120.0
+   ],
+   "location_absolute": [
+    160.0,
+    -1120.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.013": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:MAXIMUM",
+   "location": [
+    320.0,
+    -1120.0
+   ],
+   "location_absolute": [
+    320.0,
+    -1120.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.014": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:LESS_THAN",
+   "location": [
+    480.0,
+    -1120.0
+   ],
+   "location_absolute": [
+    480.0,
+    -1120.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.015": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:GREATER_THAN",
+   "location": [
+    640.0,
+    -1120.0
+   ],
+   "location_absolute": [
+    640.0,
+    -1120.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.016": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:SIGN",
+   "location": [
+    800.0,
+    -1120.0
+   ],
+   "location_absolute": [
+    800.0,
+    -1120.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.017": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:COMPARE",
+   "location": [
+    960.0,
+    -1120.0
+   ],
+   "location_absolute": [
+    960.0,
+    -1120.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.018": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:SMOOTH_MIN",
+   "location": [
+    1120.0,
+    -1120.0
+   ],
+   "location_absolute": [
+    1120.0,
+    -1120.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.019": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:SMOOTH_MAX",
+   "location": [
+    1280.0,
+    -1120.0
+   ],
+   "location_absolute": [
+    1280.0,
+    -1120.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.020": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:ROUND",
+   "location": [
+    1440.0,
+    -1120.0
+   ],
+   "location_absolute": [
+    1440.0,
+    -1120.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.021": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:FLOOR",
+   "location": [
+    0.0,
+    -1240.0
+   ],
+   "location_absolute": [
+    0.0,
+    -1240.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.022": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:CEIL",
+   "location": [
+    160.0,
+    -1240.0
+   ],
+   "location_absolute": [
+    160.0,
+    -1240.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.023": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:TRUNC",
+   "location": [
+    320.0,
+    -1240.0
+   ],
+   "location_absolute": [
+    320.0,
+    -1240.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.024": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:FRACT",
+   "location": [
+    480.0,
+    -1240.0
+   ],
+   "location_absolute": [
+    480.0,
+    -1240.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.025": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:MODULO",
+   "location": [
+    640.0,
+    -1240.0
+   ],
+   "location_absolute": [
+    640.0,
+    -1240.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.026": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:FLOORED_MODULO",
+   "location": [
+    800.0,
+    -1240.0
+   ],
+   "location_absolute": [
+    800.0,
+    -1240.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.027": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:WRAP",
+   "location": [
+    960.0,
+    -1240.0
+   ],
+   "location_absolute": [
+    960.0,
+    -1240.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.028": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:SNAP",
+   "location": [
+    1120.0,
+    -1240.0
+   ],
+   "location_absolute": [
+    1120.0,
+    -1240.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.029": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:PINGPONG",
+   "location": [
+    1280.0,
+    -1240.0
+   ],
+   "location_absolute": [
+    1280.0,
+    -1240.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.030": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:SINE",
+   "location": [
+    1440.0,
+    -1240.0
+   ],
+   "location_absolute": [
+    1440.0,
+    -1240.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.031": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:COSINE",
+   "location": [
+    0.0,
+    -1360.0
+   ],
+   "location_absolute": [
+    0.0,
+    -1360.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.032": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:TANGENT",
+   "location": [
+    160.0,
+    -1360.0
+   ],
+   "location_absolute": [
+    160.0,
+    -1360.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.033": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:ARCSINE",
+   "location": [
+    320.0,
+    -1360.0
+   ],
+   "location_absolute": [
+    320.0,
+    -1360.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.034": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:ARCCOSINE",
+   "location": [
+    480.0,
+    -1360.0
+   ],
+   "location_absolute": [
+    480.0,
+    -1360.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.035": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:ARCTANGENT",
+   "location": [
+    640.0,
+    -1360.0
+   ],
+   "location_absolute": [
+    640.0,
+    -1360.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.036": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:ARCTAN2",
+   "location": [
+    800.0,
+    -1360.0
+   ],
+   "location_absolute": [
+    800.0,
+    -1360.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.037": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:SINH",
+   "location": [
+    960.0,
+    -1360.0
+   ],
+   "location_absolute": [
+    960.0,
+    -1360.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.038": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:COSH",
+   "location": [
+    1120.0,
+    -1360.0
+   ],
+   "location_absolute": [
+    1120.0,
+    -1360.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.039": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:TANH",
+   "location": [
+    1280.0,
+    -1360.0
+   ],
+   "location_absolute": [
+    1280.0,
+    -1360.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.040": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:RADIANS",
+   "location": [
+    1440.0,
+    -1360.0
+   ],
+   "location_absolute": [
+    1440.0,
+    -1360.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Math.041": {
+   "idname": "ShaderNodeMath",
+   "label": "enum:operation:DEGREES",
+   "location": [
+    0.0,
+    -1480.0
+   ],
+   "location_absolute": [
+    0.0,
+    -1480.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 0.5,
+    "Value_001": 0.5,
+    "Value_002": 0.5
+   },
+   "outputs": {
+    "Value": 0.0
+   }
+  },
+  "Vector Math": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:ADD",
+   "location": [
+    0.0,
+    -1600.0
+   ],
+   "location_absolute": [
+    0.0,
+    -1600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.001": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:SUBTRACT",
+   "location": [
+    160.0,
+    -1600.0
+   ],
+   "location_absolute": [
+    160.0,
+    -1600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.002": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:MULTIPLY",
+   "location": [
+    320.0,
+    -1600.0
+   ],
+   "location_absolute": [
+    320.0,
+    -1600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.003": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:DIVIDE",
+   "location": [
+    480.0,
+    -1600.0
+   ],
+   "location_absolute": [
+    480.0,
+    -1600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.004": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:MULTIPLY_ADD",
+   "location": [
+    640.0,
+    -1600.0
+   ],
+   "location_absolute": [
+    640.0,
+    -1600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.005": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:CROSS_PRODUCT",
+   "location": [
+    800.0,
+    -1600.0
+   ],
+   "location_absolute": [
+    800.0,
+    -1600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.006": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:PROJECT",
+   "location": [
+    960.0,
+    -1600.0
+   ],
+   "location_absolute": [
+    960.0,
+    -1600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.007": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:REFLECT",
+   "location": [
+    1120.0,
+    -1600.0
+   ],
+   "location_absolute": [
+    1120.0,
+    -1600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.008": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:REFRACT",
+   "location": [
+    1280.0,
+    -1600.0
+   ],
+   "location_absolute": [
+    1280.0,
+    -1600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.009": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:FACEFORWARD",
+   "location": [
+    1440.0,
+    -1600.0
+   ],
+   "location_absolute": [
+    1440.0,
+    -1600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.010": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:DOT_PRODUCT",
+   "location": [
+    0.0,
+    -1720.0
+   ],
+   "location_absolute": [
+    0.0,
+    -1720.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.011": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:DISTANCE",
+   "location": [
+    160.0,
+    -1720.0
+   ],
+   "location_absolute": [
+    160.0,
+    -1720.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.012": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:LENGTH",
+   "location": [
+    320.0,
+    -1720.0
+   ],
+   "location_absolute": [
+    320.0,
+    -1720.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.013": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:SCALE",
+   "location": [
+    480.0,
+    -1720.0
+   ],
+   "location_absolute": [
+    480.0,
+    -1720.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.014": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:NORMALIZE",
+   "location": [
+    640.0,
+    -1720.0
+   ],
+   "location_absolute": [
+    640.0,
+    -1720.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.015": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:ABSOLUTE",
+   "location": [
+    800.0,
+    -1720.0
+   ],
+   "location_absolute": [
+    800.0,
+    -1720.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.016": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:MINIMUM",
+   "location": [
+    960.0,
+    -1720.0
+   ],
+   "location_absolute": [
+    960.0,
+    -1720.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.017": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:MAXIMUM",
+   "location": [
+    1120.0,
+    -1720.0
+   ],
+   "location_absolute": [
+    1120.0,
+    -1720.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.018": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:FLOOR",
+   "location": [
+    1280.0,
+    -1720.0
+   ],
+   "location_absolute": [
+    1280.0,
+    -1720.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.019": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:CEIL",
+   "location": [
+    1440.0,
+    -1720.0
+   ],
+   "location_absolute": [
+    1440.0,
+    -1720.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.020": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:FRACTION",
+   "location": [
+    0.0,
+    -1840.0
+   ],
+   "location_absolute": [
+    0.0,
+    -1840.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.021": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:MODULO",
+   "location": [
+    160.0,
+    -1840.0
+   ],
+   "location_absolute": [
+    160.0,
+    -1840.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.022": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:WRAP",
+   "location": [
+    320.0,
+    -1840.0
+   ],
+   "location_absolute": [
+    320.0,
+    -1840.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.023": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:SNAP",
+   "location": [
+    480.0,
+    -1840.0
+   ],
+   "location_absolute": [
+    480.0,
+    -1840.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.024": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:SINE",
+   "location": [
+    640.0,
+    -1840.0
+   ],
+   "location_absolute": [
+    640.0,
+    -1840.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.025": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:COSINE",
+   "location": [
+    800.0,
+    -1840.0
+   ],
+   "location_absolute": [
+    800.0,
+    -1840.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Vector Math.026": {
+   "idname": "ShaderNodeVectorMath",
+   "label": "enum:operation:TANGENT",
+   "location": [
+    960.0,
+    -1840.0
+   ],
+   "location_absolute": [
+    960.0,
+    -1840.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_001": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Vector_002": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 1.0
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Value": 0.0
+   }
+  },
+  "Mix": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:MIX",
+   "location": [
+    0.0,
+    -2200.0
+   ],
+   "location_absolute": [
+    0.0,
+    -2200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.001": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:DARKEN",
+   "location": [
+    160.0,
+    -2200.0
+   ],
+   "location_absolute": [
+    160.0,
+    -2200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.002": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:MULTIPLY",
+   "location": [
+    320.0,
+    -2200.0
+   ],
+   "location_absolute": [
+    320.0,
+    -2200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.003": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:BURN",
+   "location": [
+    480.0,
+    -2200.0
+   ],
+   "location_absolute": [
+    480.0,
+    -2200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.004": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:LIGHTEN",
+   "location": [
+    640.0,
+    -2200.0
+   ],
+   "location_absolute": [
+    640.0,
+    -2200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.005": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:SCREEN",
+   "location": [
+    800.0,
+    -2200.0
+   ],
+   "location_absolute": [
+    800.0,
+    -2200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.006": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:DODGE",
+   "location": [
+    960.0,
+    -2200.0
+   ],
+   "location_absolute": [
+    960.0,
+    -2200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.007": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:ADD",
+   "location": [
+    1120.0,
+    -2200.0
+   ],
+   "location_absolute": [
+    1120.0,
+    -2200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.008": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:OVERLAY",
+   "location": [
+    1280.0,
+    -2200.0
+   ],
+   "location_absolute": [
+    1280.0,
+    -2200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.009": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:SOFT_LIGHT",
+   "location": [
+    1440.0,
+    -2200.0
+   ],
+   "location_absolute": [
+    1440.0,
+    -2200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.010": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:LINEAR_LIGHT",
+   "location": [
+    0.0,
+    -2320.0
+   ],
+   "location_absolute": [
+    0.0,
+    -2320.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.011": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:DIFFERENCE",
+   "location": [
+    160.0,
+    -2320.0
+   ],
+   "location_absolute": [
+    160.0,
+    -2320.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.012": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:EXCLUSION",
+   "location": [
+    320.0,
+    -2320.0
+   ],
+   "location_absolute": [
+    320.0,
+    -2320.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.013": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:SUBTRACT",
+   "location": [
+    480.0,
+    -2320.0
+   ],
+   "location_absolute": [
+    480.0,
+    -2320.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.014": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:DIVIDE",
+   "location": [
+    640.0,
+    -2320.0
+   ],
+   "location_absolute": [
+    640.0,
+    -2320.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.015": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:HUE",
+   "location": [
+    800.0,
+    -2320.0
+   ],
+   "location_absolute": [
+    800.0,
+    -2320.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.016": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:SATURATION",
+   "location": [
+    960.0,
+    -2320.0
+   ],
+   "location_absolute": [
+    960.0,
+    -2320.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.017": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:COLOR",
+   "location": [
+    1120.0,
+    -2320.0
+   ],
+   "location_absolute": [
+    1120.0,
+    -2320.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.018": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:blend_type:VALUE",
+   "location": [
+    1280.0,
+    -2320.0
+   ],
+   "location_absolute": [
+    1280.0,
+    -2320.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.019": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:data_type:FLOAT",
+   "location": [
+    0.0,
+    -2600.0
+   ],
+   "location_absolute": [
+    0.0,
+    -2600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.020": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:data_type:VECTOR",
+   "location": [
+    160.0,
+    -2600.0
+   ],
+   "location_absolute": [
+    160.0,
+    -2600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mix.021": {
+   "idname": "ShaderNodeMix",
+   "label": "enum:data_type:RGBA",
+   "location": [
+    320.0,
+    -2600.0
+   ],
+   "location_absolute": [
+    320.0,
+    -2600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Factor_Float": 0.5,
+    "Factor_Vector": [
+     0.5,
+     0.5,
+     0.5
+    ],
+    "A_Float": 0.0,
+    "B_Float": 0.0,
+    "A_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "A_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "B_Color": [
+     0.5,
+     0.5,
+     0.5,
+     1.0
+    ],
+    "A_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "B_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Result_Float": 0.0,
+    "Result_Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Result_Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Result_Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mapping.001": {
+   "idname": "ShaderNodeMapping",
+   "label": "enum:vector_type:POINT",
+   "location": [
+    0.0,
+    -2900.0
+   ],
+   "location_absolute": [
+    0.0,
+    -2900.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Location": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mapping.002": {
+   "idname": "ShaderNodeMapping",
+   "label": "enum:vector_type:TEXTURE",
+   "location": [
+    160.0,
+    -2900.0
+   ],
+   "location_absolute": [
+    160.0,
+    -2900.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Location": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mapping.003": {
+   "idname": "ShaderNodeMapping",
+   "label": "enum:vector_type:VECTOR",
+   "location": [
+    320.0,
+    -2900.0
+   ],
+   "location_absolute": [
+    320.0,
+    -2900.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Location": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Mapping.004": {
+   "idname": "ShaderNodeMapping",
+   "label": "enum:vector_type:NORMAL",
+   "location": [
+    480.0,
+    -2900.0
+   ],
+   "location_absolute": [
+    480.0,
+    -2900.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Location": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Rotation": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "outputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Map Range": {
+   "idname": "ShaderNodeMapRange",
+   "label": "enum:interpolation_type:LINEAR",
+   "location": [
+    0.0,
+    -3100.0
+   ],
+   "location_absolute": [
+    0.0,
+    -3100.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 1.0,
+    "From Min": 0.0,
+    "From Max": 1.0,
+    "To Min": 0.0,
+    "To Max": 1.0,
+    "Steps": 4.0,
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "From_Min_FLOAT3": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "From_Max_FLOAT3": [
+     1.0,
+     1.0,
+     1.0
+    ],
+    "To_Min_FLOAT3": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "To_Max_FLOAT3": [
+     1.0,
+     1.0,
+     1.0
+    ],
+    "Steps_FLOAT3": [
+     4.0,
+     4.0,
+     4.0
+    ]
+   },
+   "outputs": {
+    "Result": 0.0,
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Map Range.001": {
+   "idname": "ShaderNodeMapRange",
+   "label": "enum:interpolation_type:STEPPED",
+   "location": [
+    160.0,
+    -3100.0
+   ],
+   "location_absolute": [
+    160.0,
+    -3100.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 1.0,
+    "From Min": 0.0,
+    "From Max": 1.0,
+    "To Min": 0.0,
+    "To Max": 1.0,
+    "Steps": 4.0,
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "From_Min_FLOAT3": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "From_Max_FLOAT3": [
+     1.0,
+     1.0,
+     1.0
+    ],
+    "To_Min_FLOAT3": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "To_Max_FLOAT3": [
+     1.0,
+     1.0,
+     1.0
+    ],
+    "Steps_FLOAT3": [
+     4.0,
+     4.0,
+     4.0
+    ]
+   },
+   "outputs": {
+    "Result": 0.0,
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Map Range.002": {
+   "idname": "ShaderNodeMapRange",
+   "label": "enum:interpolation_type:SMOOTHSTEP",
+   "location": [
+    320.0,
+    -3100.0
+   ],
+   "location_absolute": [
+    320.0,
+    -3100.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 1.0,
+    "From Min": 0.0,
+    "From Max": 1.0,
+    "To Min": 0.0,
+    "To Max": 1.0,
+    "Steps": 4.0,
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "From_Min_FLOAT3": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "From_Max_FLOAT3": [
+     1.0,
+     1.0,
+     1.0
+    ],
+    "To_Min_FLOAT3": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "To_Max_FLOAT3": [
+     1.0,
+     1.0,
+     1.0
+    ],
+    "Steps_FLOAT3": [
+     4.0,
+     4.0,
+     4.0
+    ]
+   },
+   "outputs": {
+    "Result": 0.0,
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Map Range.003": {
+   "idname": "ShaderNodeMapRange",
+   "label": "enum:interpolation_type:SMOOTHERSTEP",
+   "location": [
+    480.0,
+    -3100.0
+   ],
+   "location_absolute": [
+    480.0,
+    -3100.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 1.0,
+    "From Min": 0.0,
+    "From Max": 1.0,
+    "To Min": 0.0,
+    "To Max": 1.0,
+    "Steps": 4.0,
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "From_Min_FLOAT3": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "From_Max_FLOAT3": [
+     1.0,
+     1.0,
+     1.0
+    ],
+    "To_Min_FLOAT3": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "To_Max_FLOAT3": [
+     1.0,
+     1.0,
+     1.0
+    ],
+    "Steps_FLOAT3": [
+     4.0,
+     4.0,
+     4.0
+    ]
+   },
+   "outputs": {
+    "Result": 0.0,
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "Clamp": {
+   "idname": "ShaderNodeClamp",
+   "label": "enum:clamp_type:MINMAX",
+   "location": [
+    0.0,
+    -3300.0
+   ],
+   "location_absolute": [
+    0.0,
+    -3300.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 1.0,
+    "Min": 0.0,
+    "Max": 1.0
+   },
+   "outputs": {
+    "Result": 0.0
+   }
+  },
+  "Clamp.001": {
+   "idname": "ShaderNodeClamp",
+   "label": "enum:clamp_type:RANGE",
+   "location": [
+    160.0,
+    -3300.0
+   ],
+   "location_absolute": [
+    160.0,
+    -3300.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Value": 1.0,
+    "Min": 0.0,
+    "Max": 1.0
+   },
+   "outputs": {
+    "Result": 0.0
+   }
+  },
+  "Gradient Texture": {
+   "idname": "ShaderNodeTexGradient",
+   "label": "enum:gradient_type:LINEAR",
+   "location": [
+    0.0,
+    -3500.0
+   ],
+   "location_absolute": [
+    0.0,
+    -3500.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Gradient Texture.001": {
+   "idname": "ShaderNodeTexGradient",
+   "label": "enum:gradient_type:QUADRATIC",
+   "location": [
+    160.0,
+    -3500.0
+   ],
+   "location_absolute": [
+    160.0,
+    -3500.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Gradient Texture.002": {
+   "idname": "ShaderNodeTexGradient",
+   "label": "enum:gradient_type:EASING",
+   "location": [
+    320.0,
+    -3500.0
+   ],
+   "location_absolute": [
+    320.0,
+    -3500.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Gradient Texture.003": {
+   "idname": "ShaderNodeTexGradient",
+   "label": "enum:gradient_type:DIAGONAL",
+   "location": [
+    480.0,
+    -3500.0
+   ],
+   "location_absolute": [
+    480.0,
+    -3500.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Gradient Texture.004": {
+   "idname": "ShaderNodeTexGradient",
+   "label": "enum:gradient_type:SPHERICAL",
+   "location": [
+    640.0,
+    -3500.0
+   ],
+   "location_absolute": [
+    640.0,
+    -3500.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Gradient Texture.005": {
+   "idname": "ShaderNodeTexGradient",
+   "label": "enum:gradient_type:QUADRATIC_SPHERE",
+   "location": [
+    800.0,
+    -3500.0
+   ],
+   "location_absolute": [
+    800.0,
+    -3500.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Gradient Texture.006": {
+   "idname": "ShaderNodeTexGradient",
+   "label": "enum:gradient_type:RADIAL",
+   "location": [
+    960.0,
+    -3500.0
+   ],
+   "location_absolute": [
+    960.0,
+    -3500.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:wave_type:BANDS",
+   "location": [
+    0.0,
+    -3800.0
+   ],
+   "location_absolute": [
+    0.0,
+    -3800.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.001": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:wave_type:RINGS",
+   "location": [
+    160.0,
+    -3800.0
+   ],
+   "location_absolute": [
+    160.0,
+    -3800.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.002": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:bands_direction:X",
+   "location": [
+    0.0,
+    -4000.0
+   ],
+   "location_absolute": [
+    0.0,
+    -4000.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.003": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:bands_direction:Y",
+   "location": [
+    160.0,
+    -4000.0
+   ],
+   "location_absolute": [
+    160.0,
+    -4000.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.004": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:bands_direction:Z",
+   "location": [
+    320.0,
+    -4000.0
+   ],
+   "location_absolute": [
+    320.0,
+    -4000.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.005": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:bands_direction:DIAGONAL",
+   "location": [
+    480.0,
+    -4000.0
+   ],
+   "location_absolute": [
+    480.0,
+    -4000.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.006": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:rings_direction:X",
+   "location": [
+    0.0,
+    -4200.0
+   ],
+   "location_absolute": [
+    0.0,
+    -4200.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.007": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:rings_direction:Y",
+   "location": [
+    160.0,
+    -4200.0
+   ],
+   "location_absolute": [
+    160.0,
+    -4200.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.008": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:rings_direction:Z",
+   "location": [
+    320.0,
+    -4200.0
+   ],
+   "location_absolute": [
+    320.0,
+    -4200.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.009": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:rings_direction:SPHERICAL",
+   "location": [
+    480.0,
+    -4200.0
+   ],
+   "location_absolute": [
+    480.0,
+    -4200.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.010": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:wave_profile:SIN",
+   "location": [
+    0.0,
+    -4400.0
+   ],
+   "location_absolute": [
+    0.0,
+    -4400.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.011": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:wave_profile:SAW",
+   "location": [
+    160.0,
+    -4400.0
+   ],
+   "location_absolute": [
+    160.0,
+    -4400.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Wave Texture.012": {
+   "idname": "ShaderNodeTexWave",
+   "label": "enum:wave_profile:TRI",
+   "location": [
+    320.0,
+    -4400.0
+   ],
+   "location_absolute": [
+    320.0,
+    -4400.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Scale": 5.0,
+    "Distortion": 0.0,
+    "Detail": 2.0,
+    "Detail Scale": 1.0,
+    "Detail Roughness": 0.5,
+    "Phase Offset": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Fac": 0.0
+   }
+  },
+  "Voronoi Texture.001": {
+   "idname": "ShaderNodeTexVoronoi",
+   "label": "enum:feature:F1",
+   "location": [
+    0.0,
+    -4600.0
+   ],
+   "location_absolute": [
+    0.0,
+    -4600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 0.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Smoothness": 1.0,
+    "Exponent": 0.5,
+    "Randomness": 1.0
+   },
+   "outputs": {
+    "Distance": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Radius": 0.0
+   }
+  },
+  "Voronoi Texture.002": {
+   "idname": "ShaderNodeTexVoronoi",
+   "label": "enum:feature:F2",
+   "location": [
+    160.0,
+    -4600.0
+   ],
+   "location_absolute": [
+    160.0,
+    -4600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 0.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Smoothness": 1.0,
+    "Exponent": 0.5,
+    "Randomness": 1.0
+   },
+   "outputs": {
+    "Distance": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Radius": 0.0
+   }
+  },
+  "Voronoi Texture.003": {
+   "idname": "ShaderNodeTexVoronoi",
+   "label": "enum:feature:SMOOTH_F1",
+   "location": [
+    320.0,
+    -4600.0
+   ],
+   "location_absolute": [
+    320.0,
+    -4600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 0.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Smoothness": 1.0,
+    "Exponent": 0.5,
+    "Randomness": 1.0
+   },
+   "outputs": {
+    "Distance": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Radius": 0.0
+   }
+  },
+  "Voronoi Texture.004": {
+   "idname": "ShaderNodeTexVoronoi",
+   "label": "enum:feature:DISTANCE_TO_EDGE",
+   "location": [
+    480.0,
+    -4600.0
+   ],
+   "location_absolute": [
+    480.0,
+    -4600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 0.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Smoothness": 1.0,
+    "Exponent": 0.5,
+    "Randomness": 1.0
+   },
+   "outputs": {
+    "Distance": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Radius": 0.0
+   }
+  },
+  "Voronoi Texture.005": {
+   "idname": "ShaderNodeTexVoronoi",
+   "label": "enum:feature:N_SPHERE_RADIUS",
+   "location": [
+    640.0,
+    -4600.0
+   ],
+   "location_absolute": [
+    640.0,
+    -4600.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 0.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Smoothness": 1.0,
+    "Exponent": 0.5,
+    "Randomness": 1.0
+   },
+   "outputs": {
+    "Distance": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Radius": 0.0
+   }
+  },
+  "Voronoi Texture.006": {
+   "idname": "ShaderNodeTexVoronoi",
+   "label": "enum:distance:EUCLIDEAN",
+   "location": [
+    0.0,
+    -4800.0
+   ],
+   "location_absolute": [
+    0.0,
+    -4800.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 0.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Smoothness": 1.0,
+    "Exponent": 0.5,
+    "Randomness": 1.0
+   },
+   "outputs": {
+    "Distance": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Radius": 0.0
+   }
+  },
+  "Voronoi Texture.007": {
+   "idname": "ShaderNodeTexVoronoi",
+   "label": "enum:distance:MANHATTAN",
+   "location": [
+    160.0,
+    -4800.0
+   ],
+   "location_absolute": [
+    160.0,
+    -4800.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 0.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Smoothness": 1.0,
+    "Exponent": 0.5,
+    "Randomness": 1.0
+   },
+   "outputs": {
+    "Distance": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Radius": 0.0
+   }
+  },
+  "Voronoi Texture.008": {
+   "idname": "ShaderNodeTexVoronoi",
+   "label": "enum:distance:CHEBYCHEV",
+   "location": [
+    320.0,
+    -4800.0
+   ],
+   "location_absolute": [
+    320.0,
+    -4800.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 0.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Smoothness": 1.0,
+    "Exponent": 0.5,
+    "Randomness": 1.0
+   },
+   "outputs": {
+    "Distance": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Radius": 0.0
+   }
+  },
+  "Voronoi Texture.009": {
+   "idname": "ShaderNodeTexVoronoi",
+   "label": "enum:distance:MINKOWSKI",
+   "location": [
+    480.0,
+    -4800.0
+   ],
+   "location_absolute": [
+    480.0,
+    -4800.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 0.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Smoothness": 1.0,
+    "Exponent": 0.5,
+    "Randomness": 1.0
+   },
+   "outputs": {
+    "Distance": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Radius": 0.0
+   }
+  },
+  "Noise Texture.001": {
+   "idname": "ShaderNodeTexNoise",
+   "label": "enum:noise_dimensions:1D",
+   "location": [
+    0.0,
+    -5000.0
+   ],
+   "location_absolute": [
+    0.0,
+    -5000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 2.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Offset": 0.0,
+    "Gain": 1.0,
+    "Distortion": 0.0
+   },
+   "outputs": {
+    "Fac": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ]
+   }
+  },
+  "Noise Texture.002": {
+   "idname": "ShaderNodeTexNoise",
+   "label": "enum:noise_dimensions:2D",
+   "location": [
+    160.0,
+    -5000.0
+   ],
+   "location_absolute": [
+    160.0,
+    -5000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 2.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Offset": 0.0,
+    "Gain": 1.0,
+    "Distortion": 0.0
+   },
+   "outputs": {
+    "Fac": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ]
+   }
+  },
+  "Noise Texture.003": {
+   "idname": "ShaderNodeTexNoise",
+   "label": "enum:noise_dimensions:3D",
+   "location": [
+    320.0,
+    -5000.0
+   ],
+   "location_absolute": [
+    320.0,
+    -5000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 2.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Offset": 0.0,
+    "Gain": 1.0,
+    "Distortion": 0.0
+   },
+   "outputs": {
+    "Fac": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ]
+   }
+  },
+  "Noise Texture.004": {
+   "idname": "ShaderNodeTexNoise",
+   "label": "enum:noise_dimensions:4D",
+   "location": [
+    480.0,
+    -5000.0
+   ],
+   "location_absolute": [
+    480.0,
+    -5000.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Vector": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "W": 0.0,
+    "Scale": 5.0,
+    "Detail": 2.0,
+    "Roughness": 0.5,
+    "Lacunarity": 2.0,
+    "Offset": 0.0,
+    "Gain": 1.0,
+    "Distortion": 0.0
+   },
+   "outputs": {
+    "Fac": 0.0,
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ]
+   }
+  },
+  "Separate Color": {
+   "idname": "ShaderNodeSeparateColor",
+   "label": "enum:mode:RGB",
+   "location": [
+    0.0,
+    -5200.0
+   ],
+   "location_absolute": [
+    0.0,
+    -5200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ]
+   },
+   "outputs": {
+    "Red": 0.0,
+    "Green": 0.0,
+    "Blue": 0.0
+   }
+  },
+  "Separate Color.001": {
+   "idname": "ShaderNodeSeparateColor",
+   "label": "enum:mode:HSV",
+   "location": [
+    160.0,
+    -5200.0
+   ],
+   "location_absolute": [
+    160.0,
+    -5200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ]
+   },
+   "outputs": {
+    "Red": 0.0,
+    "Green": 0.0,
+    "Blue": 0.0
+   }
+  },
+  "Separate Color.002": {
+   "idname": "ShaderNodeSeparateColor",
+   "label": "enum:mode:HSL",
+   "location": [
+    320.0,
+    -5200.0
+   ],
+   "location_absolute": [
+    320.0,
+    -5200.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ]
+   },
+   "outputs": {
+    "Red": 0.0,
+    "Green": 0.0,
+    "Blue": 0.0
+   }
+  },
+  "Combine Color": {
+   "idname": "ShaderNodeCombineColor",
+   "label": "enum:mode:RGB",
+   "location": [
+    0.0,
+    -5400.0
+   ],
+   "location_absolute": [
+    0.0,
+    -5400.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Red": 0.0,
+    "Green": 0.0,
+    "Blue": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ]
+   }
+  },
+  "Combine Color.001": {
+   "idname": "ShaderNodeCombineColor",
+   "label": "enum:mode:HSV",
+   "location": [
+    160.0,
+    -5400.0
+   ],
+   "location_absolute": [
+    160.0,
+    -5400.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Red": 0.0,
+    "Green": 0.0,
+    "Blue": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ]
+   }
+  },
+  "Combine Color.002": {
+   "idname": "ShaderNodeCombineColor",
+   "label": "enum:mode:HSL",
+   "location": [
+    320.0,
+    -5400.0
+   ],
+   "location_absolute": [
+    320.0,
+    -5400.0
+   ],
+   "width": 140.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Red": 0.0,
+    "Green": 0.0,
+    "Blue": 0.0
+   },
+   "outputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ]
+   }
+  },
+  "Glossy BSDF": {
+   "idname": "ShaderNodeBsdfAnisotropic",
+   "label": "enum:distribution:BECKMANN",
+   "location": [
+    0.0,
+    -5600.0
+   ],
+   "location_absolute": [
+    0.0,
+    -5600.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Roughness": 0.5,
+    "Anisotropy": 0.0,
+    "Rotation": 0.0,
+    "Normal": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Tangent": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Weight": 0.0
+   },
+   "outputs": {}
+  },
+  "Glossy BSDF.001": {
+   "idname": "ShaderNodeBsdfAnisotropic",
+   "label": "enum:distribution:GGX",
+   "location": [
+    160.0,
+    -5600.0
+   ],
+   "location_absolute": [
+    160.0,
+    -5600.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Roughness": 0.5,
+    "Anisotropy": 0.0,
+    "Rotation": 0.0,
+    "Normal": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Tangent": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Weight": 0.0
+   },
+   "outputs": {}
+  },
+  "Glossy BSDF.002": {
+   "idname": "ShaderNodeBsdfAnisotropic",
+   "label": "enum:distribution:ASHIKHMIN_SHIRLEY",
+   "location": [
+    320.0,
+    -5600.0
+   ],
+   "location_absolute": [
+    320.0,
+    -5600.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Roughness": 0.5,
+    "Anisotropy": 0.0,
+    "Rotation": 0.0,
+    "Normal": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Tangent": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Weight": 0.0
+   },
+   "outputs": {}
+  },
+  "Glossy BSDF.003": {
+   "idname": "ShaderNodeBsdfAnisotropic",
+   "label": "enum:distribution:MULTI_GGX",
+   "location": [
+    480.0,
+    -5600.0
+   ],
+   "location_absolute": [
+    480.0,
+    -5600.0
+   ],
+   "width": 150.0,
+   "hide": false,
+   "mute": false,
+   "parent": null,
+   "inputs": {
+    "Color": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "Roughness": 0.5,
+    "Anisotropy": 0.0,
+    "Rotation": 0.0,
+    "Normal": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Tangent": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "Weight": 0.0
+   },
+   "outputs": {}
+  }
+ },
+ "links": [
+  [
+   "Principled BSDF",
+   "BSDF",
+   "Material Output",
+   "Surface"
+  ],
+  [
+   "Texture Coordinate",
+   "Object",
+   "Mapping",
+   "Vector"
+  ],
+  [
+   "Mapping",
+   "Vector",
+   "Noise Texture",
+   "Vector"
+  ],
+  [
+   "Noise Texture",
+   "Fac",
+   "Color Ramp",
+   "Fac"
+  ],
+  [
+   "Color Ramp",
+   "Color",
+   "Principled BSDF",
+   "Base Color"
+  ],
+  [
+   "Voronoi Texture",
+   "Distance",
+   "Bump",
+   "Height"
+  ],
+  [
+   "Bump",
+   "Normal",
+   "Principled BSDF",
+   "Normal"
+  ],
+  [
+   "Noise Texture",
+   "Fac",
+   "Math",
+   "Value"
+  ],
+  [
+   "Math",
+   "Value",
+   "Principled BSDF",
+   "Roughness"
+  ],
+  [
+   "RGB",
+   "Color",
+   "Reroute",
+   "Input"
+  ]
+ ],
+ "enums": {
+  "ShaderNodeMath.operation": [
+   "ADD",
+   "SUBTRACT",
+   "MULTIPLY",
+   "DIVIDE",
+   "MULTIPLY_ADD",
+   "POWER",
+   "LOGARITHM",
+   "SQRT",
+   "INVERSE_SQRT",
+   "ABSOLUTE",
+   "EXPONENT",
+   "MINIMUM",
+   "MAXIMUM",
+   "LESS_THAN",
+   "GREATER_THAN",
+   "SIGN",
+   "COMPARE",
+   "SMOOTH_MIN",
+   "SMOOTH_MAX",
+   "ROUND",
+   "FLOOR",
+   "CEIL",
+   "TRUNC",
+   "FRACT",
+   "MODULO",
+   "FLOORED_MODULO",
+   "WRAP",
+   "SNAP",
+   "PINGPONG",
+   "SINE",
+   "COSINE",
+   "TANGENT",
+   "ARCSINE",
+   "ARCCOSINE",
+   "ARCTANGENT",
+   "ARCTAN2",
+   "SINH",
+   "COSH",
+   "TANH",
+   "RADIANS",
+   "DEGREES"
+  ],
+  "ShaderNodeVectorMath.operation": [
+   "ADD",
+   "SUBTRACT",
+   "MULTIPLY",
+   "DIVIDE",
+   "MULTIPLY_ADD",
+   "CROSS_PRODUCT",
+   "PROJECT",
+   "REFLECT",
+   "REFRACT",
+   "FACEFORWARD",
+   "DOT_PRODUCT",
+   "DISTANCE",
+   "LENGTH",
+   "SCALE",
+   "NORMALIZE",
+   "ABSOLUTE",
+   "MINIMUM",
+   "MAXIMUM",
+   "FLOOR",
+   "CEIL",
+   "FRACTION",
+   "MODULO",
+   "WRAP",
+   "SNAP",
+   "SINE",
+   "COSINE",
+   "TANGENT"
+  ],
+  "ShaderNodeMix.blend_type": [
+   "MIX",
+   "DARKEN",
+   "MULTIPLY",
+   "BURN",
+   "LIGHTEN",
+   "SCREEN",
+   "DODGE",
+   "ADD",
+   "OVERLAY",
+   "SOFT_LIGHT",
+   "LINEAR_LIGHT",
+   "DIFFERENCE",
+   "EXCLUSION",
+   "SUBTRACT",
+   "DIVIDE",
+   "HUE",
+   "SATURATION",
+   "COLOR",
+   "VALUE"
+  ],
+  "ShaderNodeMix.data_type": [
+   "FLOAT",
+   "VECTOR",
+   "RGBA"
+  ],
+  "ShaderNodeMapping.vector_type": [
+   "POINT",
+   "TEXTURE",
+   "VECTOR",
+   "NORMAL"
+  ],
+  "ShaderNodeMapRange.interpolation_type": [
+   "LINEAR",
+   "STEPPED",
+   "SMOOTHSTEP",
+   "SMOOTHERSTEP"
+  ],
+  "ShaderNodeClamp.clamp_type": [
+   "MINMAX",
+   "RANGE"
+  ],
+  "ShaderNodeTexGradient.gradient_type": [
+   "LINEAR",
+   "QUADRATIC",
+   "EASING",
+   "DIAGONAL",
+   "SPHERICAL",
+   "QUADRATIC_SPHERE",
+   "RADIAL"
+  ],
+  "ShaderNodeTexWave.wave_type": [
+   "BANDS",
+   "RINGS"
+  ],
+  "ShaderNodeTexWave.bands_direction": [
+   "X",
+   "Y",
+   "Z",
+   "DIAGONAL"
+  ],
+  "ShaderNodeTexWave.rings_direction": [
+   "X",
+   "Y",
+   "Z",
+   "SPHERICAL"
+  ],
+  "ShaderNodeTexWave.wave_profile": [
+   "SIN",
+   "SAW",
+   "TRI"
+  ],
+  "ShaderNodeTexVoronoi.feature": [
+   "F1",
+   "F2",
+   "SMOOTH_F1",
+   "DISTANCE_TO_EDGE",
+   "N_SPHERE_RADIUS"
+  ],
+  "ShaderNodeTexVoronoi.distance": [
+   "EUCLIDEAN",
+   "MANHATTAN",
+   "CHEBYCHEV",
+   "MINKOWSKI"
+  ],
+  "ShaderNodeTexNoise.noise_dimensions": [
+   "1D",
+   "2D",
+   "3D",
+   "4D"
+  ],
+  "ShaderNodeSeparateColor.mode": [
+   "RGB",
+   "HSV",
+   "HSL"
+  ],
+  "ShaderNodeCombineColor.mode": [
+   "RGB",
+   "HSV",
+   "HSL"
+  ],
+  "ShaderNodeBsdfGlossy.distribution": [
+   "BECKMANN",
+   "GGX",
+   "ASHIKHMIN_SHIRLEY",
+   "MULTI_GGX"
+  ]
+ }
+}

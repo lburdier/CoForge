@@ -1,15 +1,29 @@
-import { useState, type FormEvent } from 'react';
-import { Copy, History, LogIn, LogOut, Server, X } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Copy, Globe, History, Link2, LogIn, LogOut, RefreshCw, Server, Trash2, UserPlus, X } from 'lucide-react';
 import { getApp } from '../../app/context';
-import { DEFAULT_PORT, platform } from '../../app/platform';
-import { hostSession, joinSession, leaveSession } from '../../app/session';
+import { DEFAULT_PORT, platform, type HostAccess } from '../../app/platform';
+import {
+  bindInviteLinks,
+  closeInviteDialog,
+  generateInvite,
+  hostSession,
+  joinFromLink,
+  joinSession,
+  leaveSession,
+  revokeLastInvite,
+  sessionUi,
+  useSessionUi,
+} from '../../app/session';
 import { setUser, store, toast, useApp } from '../../app/store';
+import { looksLikeInviteLink, parseInviteLink, type InviteLink } from '../../net/invite';
+import { isValidRoomName } from '../../net/protocol';
 import { copyText, isHexColor, loadStored, normalizeText, saveStored } from '../lib/util';
-import { ColorField, Hint, IconButton } from '../widgets/basic';
+import { ColorField, Hint, IconButton, Select } from '../widgets/basic';
+import { useConnection } from './connection';
 import { Dialog, Field, FormRow, closeDialog } from './Dialog';
+import './session.css';
 
-/** Nom de salle : lettres, chiffres, tirets, points et soulignés. */
-const ROOM_RE = /^[\p{L}\p{N}._-]{1,64}$/u;
+const ROOM_RULE = 'Nom de salle invalide : 64 caractères au plus, lettres sans accent, chiffres, espaces, « - », « _ », « . ».';
 
 function errorText(err: unknown): string {
   return (err as Error)?.message ?? String(err);
@@ -18,8 +32,9 @@ function errorText(err: unknown): string {
 function defaultRoom(): string {
   const base = normalizeText(getApp().doc.getScene().name)
     .replace(/[^\w.-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return base || 'atelier';
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
+  return isValidRoomName(base) ? base : 'atelier';
 }
 
 /** Vérifie et applique pseudo + couleur ; renvoie un message d'erreur ou null. */
@@ -43,70 +58,29 @@ function IdentityFields({ name, color, onName, onColor, disabled }: { name: stri
   );
 }
 
+/** Copie un lien et confirme par un message explicite. */
+async function copyLink(text: string, what = 'Lien d’invitation copié dans le presse-papiers'): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(what);
+  } catch {
+    await copyText(text);
+  }
+}
+
 // ------------------------------------------------------------------ héberger
 
 interface HostPrefs {
   port: number;
   room: string;
+  access?: HostAccess;
 }
 
-function HostActive() {
-  const session = useApp((s) => s.session);
-  const [stopping, setStopping] = useState(false);
-  return (
-    <Dialog
-      title="Session hébergée"
-      icon={Server}
-      width={420}
-      busy={stopping}
-      footer={
-        <>
-          <button
-            type="button"
-            className="cf-btn is-danger"
-            disabled={stopping}
-            onClick={() => {
-              setStopping(true);
-              leaveSession()
-                .then(() => toast('Session arrêtée, la scène reste ouverte en local'))
-                .catch((err) => toast(errorText(err), 'error'))
-                .finally(() => setStopping(false));
-            }}
-          >
-            <LogOut size={13} /> Arrêter la session
-          </button>
-          <div className="cf-spacer" />
-          <button type="button" className="cf-btn is-accent" onClick={closeDialog}>
-            Fermer
-          </button>
-        </>
-      }
-    >
-      <p className="cf-dialog-text">
-        Votre scène est partagée. Communiquez aux invités l’une de ces adresses et le nom de la salle (menu Session › Rejoindre).
-      </p>
-      <div className="cf-share-list">
-        <div className="cf-share-line">
-          <span className="cf-dim">Salle</span>
-          <code>{session.room ?? '-'}</code>
-          <IconButton icon={Copy} tip="Copier le nom de la salle" onClick={() => void copyText(session.room ?? '')} />
-        </div>
-        {session.shareAddresses.map((a, i) => (
-          <div key={a} className="cf-share-line">
-            <span className="cf-dim">{i === 0 ? 'Adresse' : ''}</span>
-            <code>{a}</code>
-            <IconButton icon={Copy} tip="Copier l'adresse" onClick={() => void copyText(a)} />
-          </div>
-        ))}
-        {session.shareAddresses.length === 0 && <Hint>Aucune adresse réseau détectée : les invités doivent être sur cette machine (ws://localhost).</Hint>}
-      </div>
-      <Hint>
-        Les invités doivent être sur le même réseau local. Pour une connexion depuis Internet, ouvrez le port sur votre box ou utilisez un
-        serveur dédié.
-      </Hint>
-    </Dialog>
-  );
-}
+const ACCESS_OPTIONS: { value: HostAccess; label: string }[] = [
+  { value: 'invite', label: 'Sur invitation (lien)' },
+  { value: 'password', label: 'Mot de passe ou invitation' },
+  { value: 'open', label: 'Ouvert à tout le réseau' },
+];
 
 function HostForm() {
   const user = useApp((s) => s.user);
@@ -114,7 +88,8 @@ function HostForm() {
   const [name, setName] = useState(user.name);
   const [color, setColor] = useState(user.color);
   const [port, setPort] = useState(String(Number.isInteger(prefs.port) ? prefs.port : DEFAULT_PORT));
-  const [room, setRoom] = useState(typeof prefs.room === 'string' && prefs.room ? prefs.room : defaultRoom());
+  const [room, setRoom] = useState(typeof prefs.room === 'string' && isValidRoomName(prefs.room) ? prefs.room : defaultRoom());
+  const [access, setAccess] = useState<HostAccess>(prefs.access === 'password' || prefs.access === 'open' ? prefs.access : 'invite');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,12 +103,13 @@ function HostForm() {
     const p = Number(port);
     if (!Number.isInteger(p) || p < 1024 || p > 65535) return setError('Le port doit être un entier entre 1024 et 65535.');
     const r = room.trim();
-    if (!ROOM_RE.test(r)) return setError('Nom de salle invalide (lettres, chiffres, « - », « _ », « . »).');
+    if (!isValidRoomName(r)) return setError(ROOM_RULE);
+    if (access === 'password' && !password.trim()) return setError('Indiquez un mot de passe, ou choisissez l’accès sur invitation.');
     setError(null);
     setBusy(true);
     try {
-      await hostSession({ port: p, room: r, password: password || undefined });
-      saveStored('session.host', { port: p, room: r });
+      await hostSession({ port: p, room: r, password: access === 'password' ? password : undefined, access });
+      saveStored('session.host', { port: p, room: r, access });
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -145,7 +121,7 @@ function HostForm() {
     <Dialog
       title="Héberger une session"
       icon={Server}
-      width={420}
+      width={440}
       busy={busy}
       footer={
         <>
@@ -165,7 +141,17 @@ function HostForm() {
         <div className="cf-form-sep" />
         <Field label="Nom de la salle" value={room} onChange={setRoom} maxLength={64} disabled={busy} autoFocus />
         <Field label="Port" type="number" value={port} onChange={setPort} min={1024} max={65535} disabled={busy} />
-        <Field label="Mot de passe" type="password" value={password} onChange={setPassword} placeholder="facultatif" disabled={busy} />
+        <FormRow label="Accès">
+          <Select<HostAccess> value={access} options={ACCESS_OPTIONS} onChange={(v) => setAccess(v)} disabled={busy} />
+        </FormRow>
+        {access === 'password' && <Field label="Mot de passe" type="password" value={password} onChange={setPassword} disabled={busy} />}
+        <Hint>
+          {access === 'invite'
+            ? 'Seules les personnes à qui vous envoyez un lien d’invitation peuvent entrer (aucun mot de passe à communiquer).'
+            : access === 'password'
+              ? 'Entrée avec le mot de passe, ou par lien d’invitation (l’invité ne voit jamais le mot de passe).'
+              : 'Toute personne qui connaît l’adresse de cette machine peut entrer, sans contrôle.'}
+        </Hint>
         {!native && <div className="cf-form-error">L’hébergement n’est disponible que dans l’application Windows. Rejoignez plutôt un serveur dédié.</div>}
         {error && <div className="cf-form-error">{error}</div>}
         <button type="submit" hidden />
@@ -176,7 +162,278 @@ function HostForm() {
 
 export function HostDialog() {
   const hosting = useApp((s) => s.session.hosting && s.session.status !== 'offline');
-  return hosting ? <HostActive /> : <HostForm />;
+  return hosting ? <InviteDialog onClose={closeDialog} /> : <HostForm />;
+}
+
+// ------------------------------------------------------------------ inviter
+
+const TTL_OPTIONS: { value: string; label: string }[] = [
+  { value: '3600000', label: '1 heure' },
+  { value: '86400000', label: '24 heures' },
+  { value: '604800000', label: '7 jours' },
+  { value: '2592000000', label: '30 jours' },
+];
+
+function formatExpiry(t: number | null): string {
+  if (!t) return '';
+  try {
+    return new Date(t).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
+/** Dialogue « Inviter » : lien coforge://, variante web, adresses joignables, adresse Internet sur demande. */
+export function InviteDialog({ onClose = closeInviteDialog }: { onClose?(): void }) {
+  const session = useApp((s) => s.session);
+  const conn = useConnection();
+  const invite = useSessionUi((s) => s.lastInvite);
+  const [ttl, setTtl] = useState('86400000');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [publicIp, setPublicIp] = useState<string | null>(null);
+  const [ipBusy, setIpBusy] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const inSession = session.status !== 'offline';
+  const canCreate = conn.role === 'admin' && conn.secured === true;
+
+  const create = async (copy: boolean) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const inv = await generateInvite({ ttlMs: Number(ttl) });
+      if (copy) await copyLink(inv.link);
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // À l'ouverture : un lien est prêt tout de suite (et copié).
+  useEffect(() => {
+    if (inSession && !sessionUi.getState().lastInvite && conn.phase === 'connected') void create(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inSession, conn.phase === 'connected']);
+
+  const port = session.shareAddresses[0]?.match(/:(\d+)$/)?.[1] ?? session.url?.match(/:(\d+)$/)?.[1] ?? String(DEFAULT_PORT);
+
+  return (
+    <Dialog
+      title={session.hosting ? 'Session hébergée : inviter' : 'Inviter dans la session'}
+      icon={UserPlus}
+      width={520}
+      busy={busy || stopping}
+      onClose={onClose}
+      footer={
+        <>
+          {inSession && (
+            <button
+              type="button"
+              className="cf-btn is-danger"
+              disabled={stopping}
+              onClick={() => {
+                setStopping(true);
+                leaveSession()
+                  .then(() => toast(session.hosting ? 'Session arrêtée, la scène reste ouverte en local' : 'Session quittée'))
+                  .catch((err) => toast(errorText(err), 'error'))
+                  .finally(() => {
+                    setStopping(false);
+                    onClose();
+                  });
+              }}
+            >
+              <LogOut size={13} /> {session.hosting ? 'Arrêter la session' : 'Quitter la session'}
+            </button>
+          )}
+          <div className="cf-spacer" />
+          <button type="button" className="cf-btn is-accent" onClick={onClose}>
+            Fermer
+          </button>
+        </>
+      }
+    >
+      {!inSession && <p className="cf-dialog-text">Aucune session en cours.</p>}
+      {inSession && (
+        <>
+          <p className="cf-dialog-text">
+            Envoyez ce lien à vos invités : un clic ouvre CoForge et propose de rejoindre la session <b>{session.room}</b>.
+          </p>
+          {invite ? (
+            <>
+              <div className="cf-invite-link">
+                <input readOnly value={invite.link} onFocus={(e) => e.currentTarget.select()} aria-label="Lien d’invitation" />
+                <IconButton icon={Copy} tip="Copier le lien" onClick={() => void copyLink(invite.link)} />
+              </div>
+              <div className="cf-invite-meta">
+                {invite.open
+                  ? 'Session ouverte : le lien ne contient pas de jeton.'
+                  : invite.inviteId
+                    ? `Lien valable jusqu’au ${formatExpiry(invite.expiresAt)}, utilisable plusieurs fois, révocable.`
+                    : 'Le lien par lequel vous êtes entré (l’hôte peut le révoquer).'}
+              </div>
+              <div className="cf-invite-link">
+                <input readOnly value={invite.webLink} onFocus={(e) => e.currentTarget.select()} aria-label="Lien web" />
+                <IconButton icon={Globe} tip="Copier la variante web (cliquable dans les messageries)" onClick={() => void copyLink(invite.webLink, 'Lien web copié dans le presse-papiers')} />
+              </div>
+              <div className="cf-invite-meta">
+                Variante web : cliquable partout (Discord, Teams, courriel). Elle ouvre une page servie par le serveur de la session, qui propose d’ouvrir CoForge.
+              </div>
+            </>
+          ) : (
+            <div className="cf-invite-meta">{busy ? 'Création du lien…' : conn.phase !== 'connected' ? 'En attente de la connexion au serveur…' : ''}</div>
+          )}
+          {canCreate && (
+            <div className="cf-invite-row">
+              <span className="cf-dim">Validité</span>
+              <Select value={ttl} options={TTL_OPTIONS} onChange={setTtl} disabled={busy} />
+              <div className="cf-spacer" />
+              <button type="button" className="cf-btn" disabled={busy || conn.phase !== 'connected'} onClick={() => void create(true)}>
+                <RefreshCw size={12} /> Nouveau lien
+              </button>
+              {invite?.inviteId && (
+                <button
+                  type="button"
+                  className="cf-btn is-danger"
+                  disabled={busy}
+                  data-tip="Le lien ne fonctionne plus ; les invités entrés avec lui sont déconnectés"
+                  onClick={() => {
+                    setBusy(true);
+                    revokeLastInvite()
+                      .then(() => toast('Invitation révoquée'))
+                      .catch((err) => setError(errorText(err)))
+                      .finally(() => setBusy(false));
+                  }}
+                >
+                  <Trash2 size={12} /> Révoquer
+                </button>
+              )}
+            </div>
+          )}
+          {error && <div className="cf-form-error">{error}</div>}
+
+          {invite && invite.alternatives.length > 1 && (
+            <div className="cf-invite-section">
+              <h4>Autres adresses de cette machine</h4>
+              {invite.alternatives.map((a) => (
+                <div key={a.address} className="cf-invite-row">
+                  <code>{a.address}</code>
+                  <IconButton icon={Link2} tip="Copier le lien pour cette adresse" onClick={() => void copyLink(a.link)} />
+                </div>
+              ))}
+              <Hint>La première adresse est celle du réseau local, la plus probable. « localhost » ne sert que sur cette machine.</Hint>
+            </div>
+          )}
+
+          {session.hosting && (
+            <div className="cf-invite-section">
+              <h4>Invités hors de votre réseau local</h4>
+              <Hint>
+                Les liens ci-dessus fonctionnent sur le même réseau (maison, bureau, même Wi-Fi). Depuis Internet, votre box doit rediriger le port{' '}
+                <b>{port}</b> (TCP) vers cette machine : dans l’interface de la box, rubrique « NAT / redirection de ports », associez le port {port} à
+                l’adresse locale ci-dessus. Le lien doit alors contenir votre adresse Internet. Autre solution : un serveur dédié ou un VPN.
+              </Hint>
+              <Hint>Si personne n’arrive à se connecter, autorisez CoForge dans le pare-feu Windows (réseaux privés).</Hint>
+              {publicIp ? (
+                <div className="cf-invite-row">
+                  <span className="cf-dim">Adresse Internet</span>
+                  <code>{publicIp}</code>
+                  <IconButton icon={Copy} tip="Copier" onClick={() => void copyText(publicIp)} />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="cf-btn"
+                  disabled={ipBusy}
+                  data-tip="Une requête sera envoyée au service externe api.ipify.org"
+                  onClick={() => {
+                    setIpBusy(true);
+                    platform
+                      .publicAddress()
+                      .then(setPublicIp)
+                      .catch((err) => setError(errorText(err)))
+                      .finally(() => setIpBusy(false));
+                  }}
+                >
+                  <Globe size={12} /> {ipBusy ? 'Interrogation…' : 'Afficher l’adresse Internet'}
+                </button>
+              )}
+              {!publicIp && <div className="cf-invite-meta">Une requête sera faite au service externe api.ipify.org, uniquement si vous cliquez.</div>}
+            </div>
+          )}
+        </>
+      )}
+    </Dialog>
+  );
+}
+
+// ------------------------------------------------------------------ rejoindre par lien
+
+function linkHost(link: InviteLink): string {
+  return `${link.host}:${link.port}`;
+}
+
+/** Confirmation d'un lien d'invitation reçu (clic sur un lien coforge://). */
+export function JoinLinkDialog({ link }: { link: InviteLink }) {
+  const user = useApp((s) => s.user);
+  const dirty = useApp((s) => s.dirty);
+  const inSession = useApp((s) => s.session.status !== 'offline');
+  const [name, setName] = useState(user.name);
+  const [color, setColor] = useState(user.color);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const close = () => sessionUi.setState({ pendingLink: null });
+
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (busy) return;
+    const idErr = applyIdentity(name, color);
+    if (idErr) return setError(idErr);
+    setError(null);
+    setBusy(true);
+    try {
+      await joinFromLink(link);
+      rememberSession(`${link.tls ? 'wss' : 'ws'}://${linkHost(link)}`, link.room);
+      close();
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog
+      title="Invitation reçue"
+      icon={UserPlus}
+      width={440}
+      busy={busy}
+      onClose={close}
+      footer={
+        <>
+          <div className="cf-spacer" />
+          <button type="button" className="cf-btn" disabled={busy} onClick={close}>
+            Ignorer
+          </button>
+          <button type="button" className={`cf-btn ${dirty ? 'is-danger' : 'is-accent'}`} disabled={busy} onClick={() => void submit()}>
+            {busy ? 'Connexion…' : dirty ? 'Abandonner les modifications et rejoindre' : 'Rejoindre'}
+          </button>
+        </>
+      }
+    >
+      <form className="cf-form" onSubmit={(e) => void submit(e)}>
+        <p className="cf-dialog-text">
+          Rejoindre la session <b>« {link.room} »</b> sur l’hôte <b>{linkHost(link)}</b> ?
+        </p>
+        <IdentityFields name={name} color={color} onName={setName} onColor={setColor} disabled={busy} />
+        {dirty && <div className="cf-invite-warn">La scène ouverte a des modifications non enregistrées : elle sera remplacée par celle de la session. Enregistrez-la d’abord si besoin.</div>}
+        {inSession && <div className="cf-invite-warn">Vous quitterez la session en cours.</div>}
+        {!link.token && <Hint>Ce lien ne contient pas de jeton : la session doit être ouverte (sans mot de passe).</Hint>}
+        {error && <div className="cf-form-error">{error}</div>}
+        <button type="submit" hidden />
+      </form>
+    </Dialog>
+  );
 }
 
 // ------------------------------------------------------------------ rejoindre
@@ -220,21 +477,30 @@ export function JoinDialog() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Un lien d'invitation collé dans le champ d'adresse remplace adresse, salle et mot de passe.
+  const linkInput = looksLikeInviteLink(url);
+  const parsed = linkInput ? parseInviteLink(url) : null;
+  const link = parsed?.ok ? parsed.link : null;
+
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
     if (busy) return;
     const idErr = applyIdentity(name, color);
     if (idErr) return setError(idErr);
-    const u = url.trim();
-    if (!u || /^wss?:\/\/?$/i.test(u)) return setError('Indiquez l’adresse du serveur (ex. ws://192.168.1.20:4455).');
-    const r = room.trim();
-    if (!ROOM_RE.test(r)) return setError('Nom de salle invalide (lettres, chiffres, « - », « _ », « . »).');
+    if (parsed && !parsed.ok) return setError(`Lien d’invitation invalide : ${parsed.error}`);
+    const r = link ? link.room : room.trim();
+    const u = link ? `${link.tls ? 'wss' : 'ws'}://${linkHost(link)}` : url.trim();
+    if (!link) {
+      if (!u || /^wss?:\/\/?$/i.test(u)) return setError('Indiquez l’adresse du serveur (ex. ws://192.168.1.20:4455) ou collez un lien d’invitation.');
+      if (!isValidRoomName(r)) return setError(ROOM_RULE);
+    }
     const s = store.getState();
     if (s.dirty && !window.confirm('Rejoindre une session remplace la scène ouverte, qui a des modifications non enregistrées. Continuer ?')) return;
     setError(null);
     setBusy(true);
     try {
-      await joinSession({ url: u, room: r, password: password || undefined });
+      if (link) await joinFromLink(link);
+      else await joinSession({ url: u, room: r, password: password || undefined });
       rememberSession(u, r);
       closeDialog();
     } catch (err) {
@@ -248,7 +514,7 @@ export function JoinDialog() {
     <Dialog
       title="Rejoindre une session"
       icon={LogIn}
-      width={440}
+      width={460}
       busy={busy}
       footer={
         <>
@@ -263,9 +529,20 @@ export function JoinDialog() {
       }
     >
       <form className="cf-form" onSubmit={(e) => void submit(e)}>
-        <Field label="Adresse du serveur" value={url} onChange={setUrl} placeholder="ws://192.168.1.20:4455" disabled={busy} autoFocus />
-        <Field label="Salle" value={room} onChange={setRoom} maxLength={64} disabled={busy} />
-        <Field label="Mot de passe" type="password" value={password} onChange={setPassword} placeholder="si la salle en a un" disabled={busy} />
+        <Field label="Adresse ou lien" value={url} onChange={setUrl} placeholder="ws://192.168.1.20:4455 ou coforge://join?…" maxLength={1024} disabled={busy} autoFocus />
+        {link && (
+          <div className="cf-invite-ok">
+            Invitation reconnue : session <b>« {link.room} »</b> sur <b>{linkHost(link)}</b>
+            {link.token ? ' (aucun mot de passe nécessaire).' : '.'}
+          </div>
+        )}
+        {parsed && !parsed.ok && <div className="cf-form-error">Lien d’invitation invalide : {parsed.error}</div>}
+        {!linkInput && (
+          <>
+            <Field label="Salle" value={room} onChange={setRoom} maxLength={64} disabled={busy} />
+            <Field label="Mot de passe" type="password" value={password} onChange={setPassword} placeholder="si la salle en a un" disabled={busy} />
+          </>
+        )}
         <div className="cf-form-sep" />
         <IdentityFields name={name} color={color} onName={setName} onColor={setColor} disabled={busy} />
         {error && <div className="cf-form-error">{error}</div>}
@@ -310,4 +587,20 @@ export function JoinDialog() {
       <Hint>La scène de la session remplace la scène ouverte. Si la salle est vide, votre scène y est publiée.</Hint>
     </Dialog>
   );
+}
+
+// ------------------------------------------------------------------ fenêtres hors `store.dialog`
+
+/** Dialogue « Inviter » et confirmation d'un lien reçu ; branche aussi la réception des liens coforge://. */
+export function SessionOverlays() {
+  const inviteOpen = useSessionUi((s) => s.inviteOpen);
+  const pendingLink = useSessionUi((s) => s.pendingLink);
+  const offline = useApp((s) => s.session.status === 'offline');
+  useEffect(() => bindInviteLinks(), []);
+  useEffect(() => {
+    if (offline && inviteOpen) closeInviteDialog();
+  }, [offline, inviteOpen]);
+  if (pendingLink) return <JoinLinkDialog key={`${pendingLink.host}|${pendingLink.port}|${pendingLink.room}|${pendingLink.token}`} link={pendingLink} />;
+  if (inviteOpen && !offline) return <InviteDialog />;
+  return null;
 }

@@ -37,6 +37,8 @@ let current: AppContext | null = null;
 
 export function setAppContext(app: AppContext): void {
   current = app;
+  // Développement uniquement : accès depuis la console (inspection, essais automatisés).
+  if (import.meta.env?.DEV && typeof window !== 'undefined') (window as unknown as { __coforge?: AppContext }).__coforge = app;
 }
 
 /** Accès global au contexte (disponible après le démarrage de l'application). */

@@ -6,6 +6,8 @@ import { withOp } from '../lib/util';
 import { ColorField, Hint, IconButton, Panel, Row, TextField } from '../widgets/basic';
 import { NumberField, Slider } from '../widgets/NumberField';
 import { useDocWhen } from './docHooks';
+import { MaterialNodeFields } from './MaterialNodes';
+import { createNodeMaterial, toggleUseNodes } from '../nodes/commit';
 
 /** Nom de matériau unique (« Métal », « Métal.001 »…), en ignorant le matériau `selfId`. */
 function uniqueMaterialName(doc: SceneDoc, selfId: string, wanted: string): string {
@@ -48,12 +50,10 @@ export function MaterialTab({ obj }: { obj: ObjectData }) {
     doc.updateObject(id, { material: materialId });
   };
 
-  const createNew = () =>
-    withOp((doc) => {
-      if (!doc.getObject(id)) return;
-      const mid = doc.addMaterial({ name: 'Matériau' });
-      doc.updateObject(id, { material: mid });
-    });
+  // Comme dans Blender : un nouveau matériau utilise les nœuds (Principled BSDF → Sortie).
+  const createNew = () => {
+    if (getApp().doc.getObject(id)) createNodeMaterial(id);
+  };
 
   const duplicate = () => {
     if (!mat) return;
@@ -62,6 +62,12 @@ export function MaterialTab({ obj }: { obj: ObjectData }) {
       const cur = doc.getMaterial(source);
       if (!cur || !doc.getObject(id)) return;
       const { id: _old, ...rest } = cur;
+      // L'arbre de nœuds est copié : deux matériaux ne partagent jamais le même arbre.
+      const tree = cur.nodeTree ? doc.getNodeTree(cur.nodeTree) : null;
+      if (tree) {
+        const { id: _t, ...treeRest } = tree;
+        rest.nodeTree = doc.addNodeTree(treeRest);
+      }
       const mid = doc.addMaterial(rest);
       doc.updateObject(id, { material: mid });
     });
@@ -120,6 +126,7 @@ export function MaterialTab({ obj }: { obj: ObjectData }) {
 function MaterialFields({ mat, users }: { mat: MaterialData; users: number }) {
   const mid = mat.id;
   const set = (patch: Partial<Omit<MaterialData, 'id'>>) => getApp().doc.updateMaterial(mid, patch);
+  const useNodes = !!mat.nodeTree && mat.useNodes !== false;
   return (
     <>
       <div className="cf-props-name">
@@ -137,6 +144,26 @@ function MaterialFields({ mat, users }: { mat: MaterialData; users: number }) {
           {users} utilisateur{users > 1 ? 's' : ''}
         </span>
       </div>
+      <div className="cf-props-usenodes">
+        <button
+          type="button"
+          className={`cf-btn${useNodes ? ' is-on' : ''}`}
+          onClick={() => toggleUseNodes(mid)}
+          data-tip="Nœuds de shader : Principled BSDF complet (vernis, lustre, film mince…), textures procédurales, mélanges"
+        >
+          Utiliser les nœuds
+        </button>
+      </div>
+      {useNodes ? <MaterialNodeFields mat={mat} /> : <SimpleFields mat={mat} />}
+    </>
+  );
+}
+
+function SimpleFields({ mat }: { mat: MaterialData }) {
+  const mid = mat.id;
+  const set = (patch: Partial<Omit<MaterialData, 'id'>>) => getApp().doc.updateMaterial(mid, patch);
+  return (
+    <>
       <Panel id="material.surface" title="Surface">
         <Row label="Couleur de base">
           <ColorField value={mat.baseColor} onChange={(baseColor) => set({ baseColor })} />

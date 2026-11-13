@@ -1,7 +1,8 @@
 import { Vector3 } from 'three';
 import type { AppContext } from '../app/context';
-import { EMPTY_EDIT_SELECTION, setSelection, store, type SelectMode } from '../app/store';
-import { edgeKey, edgeVerts } from '../core/doc/schema';
+import { EMPTY_EDIT_SELECTION, isTypeSelectable, setSelection, store, type AppState, type SelectMode } from '../app/store';
+import { edgeKey, edgeVerts, type ObjectData } from '../core/doc/schema';
+import type { SceneDoc } from '../core/doc/SceneDoc';
 import { edgeLoop, expandSelection, faceLoop } from '../core/mesh/select';
 import { buildTopology } from '../core/mesh/topology';
 import type { OperatorDef } from './api';
@@ -26,6 +27,22 @@ export function selectActionOf(e: { shiftKey: boolean; ctrlKey: boolean; metaKey
 }
 
 // ------------------------------------------------------------------ mode objet
+
+/**
+ * Objet sélectionnable dans le viewport : drapeau propre (`selectable`, colonne flèche de
+ * l'outliner) et type autorisé par les préférences locales. L'outliner, lui, n'applique pas
+ * le filtre par type (comme Blender).
+ */
+export function isViewportSelectable(state: Pick<AppState, 'objectTypeSelectable'>, obj: Pick<ObjectData, 'type' | 'selectable'> | null): boolean {
+  return !!obj && obj.selectable !== false && isTypeSelectable(state, obj.type);
+}
+
+/** Parmi `ids`, les objets visibles et sélectionnables dans le viewport (ordre conservé). */
+export function selectableInViewport(doc: Pick<SceneDoc, 'getObject' | 'isObjectVisible'>, state: Pick<AppState, 'objectTypeSelectable'>, ids: Iterable<string>): string[] {
+  const out: string[] = [];
+  for (const id of ids) if (doc.isObjectVisible(id) && isViewportSelectable(state, doc.getObject(id))) out.push(id);
+  return out;
+}
 
 /** Clic de sélection en mode objet. */
 export function clickSelectObject(app: AppContext, x: number, y: number, action: SelectAction): void {
@@ -230,7 +247,8 @@ export function selectOperators(): OperatorDef[] {
       exec(app, inv) {
         const doc = app.doc;
         const s = store.getState();
-        const visible = doc.objectIds().filter((id) => doc.isObjectVisible(id));
+        // Objets visibles ET sélectionnables (drapeau d'objet et filtres « Types d'objets » locaux).
+        const visible = selectableInViewport(doc, s, doc.objectIds());
         const current = new Set([...s.selection].filter((id) => doc.hasObject(id)));
         let action = String(inv.args.action ?? 'toggle');
         if (action === 'toggle') action = current.size ? 'deselect' : 'select';

@@ -7,6 +7,9 @@ import { runOp } from '../lib/ops';
 import { useActiveToast } from '../lib/toast';
 import { IconButton } from '../widgets/basic';
 import { STATUS_LABELS } from '../topbar/TopBar';
+import { openInviteDialog } from '../../app/session';
+import { connectionText, pendingText, retryNow, transferPercent, useConnection, useNow } from '../dialogs/connection';
+import '../dialogs/session.css';
 
 /** Une aide « touche / souris → action » de la barre d'état. */
 interface HintItem {
@@ -98,24 +101,40 @@ function SessionState() {
   const peers = useApp((s) => s.session.peers.length);
   const hosting = useApp((s) => s.session.hosting);
   const error = useApp((s) => s.session.error);
+  const info = useConnection();
+  const now = useNow(info.nextRetryAt !== null);
   const offline = status === 'offline';
-  const Icon = offline ? WifiOff : Wifi;
-  const text = offline
-    ? 'Hors ligne'
-    : `${STATUS_LABELS[status]} - « ${room ?? '?'} »${status === 'connected' ? ` · ${peers + 1} participant${peers > 0 ? 's' : ''}` : ''}${hosting ? ' (hôte)' : ''}`;
+  const lost = info.phase === 'reconnecting' || info.phase === 'offline';
+  const Icon = offline || lost ? WifiOff : Wifi;
+  let text: string;
+  if (offline) text = info.phase === 'error' ? `Hors ligne - ${info.error ?? 'erreur'}` : 'Hors ligne';
+  else if (lost) text = `${connectionText(info, now)} - « ${room ?? '?'} »${info.pendingChanges ? ` · ${pendingText(info.pendingChanges)}` : ''}`;
+  else if (info.phase === 'connecting' && info.transfer) text = `Réception de la scène ${transferPercent(info)} %`;
+  else text = `${STATUS_LABELS[status]} - « ${room ?? '?'} »${status === 'connected' ? ` · ${peers + 1} participant${peers > 0 ? 's' : ''}` : ''}${hosting ? ' (hôte)' : ''}`;
+  const tip = lost
+    ? 'Clic : réessayer maintenant. Vos modifications sont gardées et partiront au retour de la connexion.'
+    : (error ?? (offline ? 'Héberger ou rejoindre une session' : 'Détails de la session'));
   return (
     <button
       type="button"
       tabIndex={-1}
-      className={`cf-status-session is-${status}`}
-      data-tip={error ?? (offline ? 'Héberger ou rejoindre une session' : 'Détails de la session')}
+      className={`cf-status-session is-${info.phase === 'error' ? 'error' : lost ? 'reconnecting' : status}`}
+      data-tip={tip}
       onClick={() => {
-        if (offline || hosting) store.setState({ dialog: 'host' });
+        if (lost) retryNow();
+        else if (offline) store.setState({ dialog: 'host' });
+        else if (hosting) openInviteDialog();
         else store.setState({ showSidebar: true });
       }}
     >
       <Icon size={12} />
       {text}
+      {status === 'connected' && info.latencyMs !== null && (
+        <span className="cf-status-latency" data-tip="Aller-retour vers le serveur">
+          · {info.latencyMs} ms
+        </span>
+      )}
+      {status === 'connected' && info.pendingChanges > 0 && <span className="cf-status-latency">· envoi…</span>}
     </button>
   );
 }

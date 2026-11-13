@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { buildInviteLink, buildWebInviteLink } from '../src/net/invite';
+import { isValidRoomName } from '../src/net/protocol';
 import { listShareAddresses } from './addresses';
 import { CollabServer, SERVER_VERSION } from './CollabServer';
 
@@ -15,6 +17,7 @@ Utilisation : node coforge-server.cjs [options]
   --password <mdp>  Mot de passe exigé des clients (ou variable COFORGE_PASSWORD)
   --data <dossier>  Dossier de persistance des sessions (sans lui : mémoire seule)
   --host <adresse>  Interface d'écoute (défaut 0.0.0.0 = toutes)
+  --invite <salle>  Affiche des liens d'invitation (valables 24 h) pour cette salle (exige --password)
   --help            Affiche cette aide
 `;
 
@@ -23,6 +26,7 @@ interface CliOptions {
   password?: string;
   data?: string;
   host: string;
+  invite?: string;
 }
 
 function fail(message: string): never {
@@ -64,6 +68,9 @@ function parseArgs(argv: string[]): CliOptions {
       case '--host':
         opts.host = next();
         break;
+      case '--invite':
+        opts.invite = next();
+        break;
       case '--help':
       case '-h':
         console.log(HELP);
@@ -74,6 +81,8 @@ function parseArgs(argv: string[]): CliOptions {
     }
   }
   if (!Number.isInteger(opts.port) || opts.port < 0 || opts.port > 65535) fail('le port doit être un entier entre 0 et 65535');
+  if (opts.invite !== undefined && !isValidRoomName(opts.invite)) fail('nom de salle invalide pour --invite');
+  if (opts.invite !== undefined && !opts.password) fail('--invite exige --password (sans mot de passe, la session est ouverte à tous)');
   return opts;
 }
 
@@ -107,6 +116,17 @@ async function main(): Promise<void> {
   for (const address of addresses) console.log(`  ${address}`);
   console.log(`Mot de passe : ${opts.password ? 'exigé' : 'aucun'}`);
   console.log(`Persistance : ${dataDir ?? 'aucune (sessions en mémoire uniquement)'}`);
+  if (opts.invite) {
+    const invite = server.createInvite(opts.invite);
+    console.log(`Liens d'invitation pour « ${opts.invite} » (valables jusqu'au ${new Date(invite.expiresAt).toLocaleString('fr-FR')}) :`);
+    for (const address of addresses) {
+      const m = /^wss?:\/\/(\[[^\]]+\]|[^:/]+):(\d+)/.exec(address);
+      if (!m || m[1] === 'localhost') continue;
+      const link = { host: m[1], port: Number(m[2]), room: opts.invite, token: invite.token, tls: false };
+      console.log(`  ${buildInviteLink(link)}`);
+      console.log(`  ${buildWebInviteLink(link)}`);
+    }
+  }
   console.log('Ctrl+C pour arrêter.');
 
   let stopping = false;

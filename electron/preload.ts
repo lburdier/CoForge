@@ -53,7 +53,7 @@ function blendSource(source: BlendSource): BlendSource {
 
 const bridge: NativeBridge = {
   version: pkg.version,
-  hostStart: (opts: HostOptions): Promise<HostInfo> => invoke(IPC.hostStart, { port: opts.port, password: opts.password }),
+  hostStart: (opts: HostOptions): Promise<HostInfo> => invoke(IPC.hostStart, { port: opts.port, password: opts.password, room: opts.room, access: opts.access }),
   hostStop: (): Promise<void> => invoke(IPC.hostStop),
   openFile: async (filters: FileFilter[], title?: string): Promise<OpenedFile | null> => {
     const file = await invoke<OpenedFile | null>(IPC.openFile, filters, title);
@@ -91,6 +91,15 @@ const bridge: NativeBridge = {
     ipcRenderer.removeAllListeners(IPC.updateStatus);
     ipcRenderer.on(IPC.updateStatus, (_event, status: UpdateStatus) => cb(status));
   },
+  takeInviteLink: async (): Promise<string | null> => {
+    const link = await invoke<unknown>(IPC.takeInviteLink);
+    return typeof link === 'string' ? link : null;
+  },
+  onInviteLink: (cb: () => void): void => {
+    ipcRenderer.removeAllListeners(IPC.inviteLink);
+    ipcRenderer.on(IPC.inviteLink, () => cb());
+  },
+  publicAddress: (): Promise<string> => invoke(IPC.publicAddress),
 };
 
 contextBridge.exposeInMainWorld('coforge', bridge);

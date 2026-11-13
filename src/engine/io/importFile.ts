@@ -1,5 +1,5 @@
 import type { SceneDoc } from '../../core/doc/SceneDoc';
-import { applyImportedScene, type ApplyOptions, type ImportResult, type ImportedScene } from './scene';
+import { applyImportedScene, setTreeBaseColor, type ApplyOptions, type ImportResult, type ImportedScene } from './scene';
 import type { BlendConverter, BlendEvalResult, BlendEvaluator } from './types';
 import type { BlendScene } from './blend';
 
@@ -114,6 +114,7 @@ async function resolvePending(scene: BlendScene, evaluate: BlendEvaluator | unde
       const mat = scene.materials[t.material];
       if (mat && typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color)) {
         mat.baseColor = color.toLowerCase();
+        setTreeBaseColor(mat, mat.baseColor);
         averaged++;
       }
     }

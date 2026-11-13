@@ -290,6 +290,59 @@ code {
   color: var(--text-strong);
 }
 
+/* Barre d'onglets modifiables : occupe l'espace libre (clic droit dans le vide = menu). */
+.cf-workspace-bar {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-end;
+  align-self: stretch;
+  min-width: 0;
+}
+
+.cf-workspace.is-dragging {
+  opacity: 0.5;
+}
+
+.cf-workspace.is-drop-before {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.cf-workspace.is-drop-after {
+  box-shadow: inset -2px 0 0 var(--accent);
+}
+
+.cf-workspace.is-renaming {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.cf-workspace-rename {
+  height: 20px;
+  min-width: 60px;
+  padding: 0 6px;
+}
+
+.cf-workspace-add {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 0 0 1px 2px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-dim);
+}
+
+.cf-workspace-add:hover,
+.cf-workspace-add.is-open {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
 .cf-scene-name {
   display: flex;
   flex: 0 1 auto;

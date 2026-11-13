@@ -2,14 +2,16 @@ import {
   Color,
   Matrix4,
   type Camera,
+  type PerspectiveCamera,
   type Material,
   type Scene,
   type Texture,
   type Vector2,
   type WebGLRenderer,
 } from 'three';
-import { GradientEquirectTexture, WebGLPathTracer } from 'three-gpu-pathtracer';
+import { GradientEquirectTexture, PhysicalCamera, WebGLPathTracer } from 'three-gpu-pathtracer';
 import { clampNum, finiteOr } from './state';
+import type { TracerParams } from './settings';
 
 /**
  * Accès aux membres internes de WebGLPathTracer (three-gpu-pathtracer 0.0.28) dont nous
@@ -20,7 +22,13 @@ interface PathTracerInternals {
   _pathTracer?: {
     setSize(w: number, h: number): void;
     getSize(out: Vector2): void;
-    material: Material;
+    material: Material & {
+      fragmentShader: string;
+      uniforms: Record<string, { value: unknown }>;
+      seed: number;
+      stratifiedTexture?: { generator?: { seed: number } };
+    };
+    reset(): void;
     dispose(): void;
   };
   _lowResPathTracer?: { dispose(): void };
@@ -57,6 +65,40 @@ export function hasTraceableMesh(scene: Scene): boolean {
 }
 
 /**
+ * Ouverture (mm) donnée au path tracer quand la profondeur de champ est coupée : non nulle, pour
+ * que la variante « profondeur de champ » du shader reste compilée (l'activer ensuite ne coûte
+ * alors aucune recompilation, qui peut durer une minute sous ANGLE), mais si petite que le
+ * décalage des rayons (≈ 5e-10 m) est sans effet visible.
+ */
+const DOF_OFF_APERTURE_MM = 1e-6;
+
+/**
+ * Injecte l'écrêtage des lucioles dans le shader du path tracer (uniform, donc réglable sans
+ * recompilation) : chaque échantillon est ramené à `cfSampleClamp` sur sa composante la plus
+ * forte avant d'être accumulé. Renvoie false si la version du shader n'a pas le point
+ * d'insertion attendu (l'écrêtage est alors indisponible, le reste fonctionne).
+ */
+export function patchSampleClamp(material: { fragmentShader: string; uniforms: Record<string, { value: unknown }>; needsUpdate: boolean }): boolean {
+  const src = material.fragmentShader;
+  if (typeof src !== 'string') return false;
+  if (src.includes('cfSampleClamp')) return true;
+  const tail = 'gl_FragColor.a *= opacity;';
+  const main = /void\s+main\s*\(\s*\)\s*\{/;
+  if (src.split(tail).length !== 2 || !main.test(src)) return false;
+  material.fragmentShader = src
+    .replace(main, 'uniform float cfSampleClamp;\nvoid main() {')
+    .replace(
+      tail,
+      'if ( cfSampleClamp > 0.0 ) { float cfMax = max( gl_FragColor.r, max( gl_FragColor.g, gl_FragColor.b ) ); ' +
+        'if ( cfMax > cfSampleClamp ) gl_FragColor.rgb *= cfSampleClamp / cfMax; }\n' +
+        tail,
+    );
+  material.uniforms.cfSampleClamp = { value: 0 };
+  material.needsUpdate = true;
+  return true;
+}
+
+/**
  * Enveloppe de WebGLPathTracer pour CoForge :
  *  - pas de rendu direct dans le canvas (nous présentons nous-mêmes la cible, avec le même
  *    tone mapping que le temps réel) ;
@@ -70,6 +112,12 @@ export class PathTracerHost {
   private internals: PathTracerInternals;
   private gradient: GradientEquirectTexture | null = null;
   private compileStart = 0;
+  /** Caméra physique transmise au path tracer (profondeur de champ), copie de la caméra source. */
+  private physCam = new PhysicalCamera();
+  private sourceCamera: Camera | null = null;
+  private seed = 0;
+  private clampOk = false;
+  private applied = { transmission: -1, glossy: -1, seed: -1, clamp: -1 };
 
   constructor(private renderer: WebGLRenderer, tiles: number) {
     if (!pathTracingSupported(renderer)) {
@@ -91,8 +139,69 @@ export class PathTracerHost {
     pt.renderScale = 1;
     pt.multipleImportanceSampling = true;
     pt.filterGlossyFactor = 0.5;
+    // Bruit reproductible (graine réglable, comme Cycles) : même image pour les mêmes réglages.
+    (pt as unknown as { stableNoise: boolean }).stableNoise = true;
     const t = Math.max(1, Math.round(tiles));
     pt.tiles.set(t, t);
+    const inner = this.internals._pathTracer!;
+    this.clampOk = patchSampleClamp(inner.material as any);
+    // La graine est réappliquée après chaque remise à zéro de l'accumulation (qui la remet à 0).
+    const baseReset = inner.reset.bind(inner);
+    inner.reset = () => {
+      baseReset();
+      this.applySeed();
+    };
+    this.physCam.filmGauge = 36;
+    this.physCam.matrixAutoUpdate = false;
+  }
+
+  /** L'écrêtage des lucioles est-il disponible avec cette version du path tracer ? */
+  get sampleClampSupported(): boolean {
+    return this.clampOk;
+  }
+
+  private applySeed(): void {
+    const mat = this.internals._pathTracer?.material;
+    if (!mat) return;
+    mat.seed = this.seed;
+    const gen = mat.stratifiedTexture?.generator;
+    if (gen) gen.seed = this.seed;
+  }
+
+  /**
+   * Chemins de lumière et échantillonnage : tous des uniforms (aucune recompilation). Relance
+   * l'accumulation seulement si quelque chose a changé.
+   */
+  setTracerParams(p: TracerParams): void {
+    const pt = this.pt;
+    let changed = false;
+    if (pt.bounces !== p.bounces) {
+      pt.bounces = p.bounces;
+      changed = true;
+    }
+    if (this.applied.transmission !== p.transmissionBounces) {
+      this.applied.transmission = p.transmissionBounces;
+      pt.transmissiveBounces = p.transmissionBounces;
+      changed = true;
+    }
+    if (this.applied.glossy !== p.filterGlossy) {
+      this.applied.glossy = p.filterGlossy;
+      pt.filterGlossyFactor = p.filterGlossy;
+      changed = true;
+    }
+    if (this.applied.seed !== p.seed) {
+      this.applied.seed = p.seed;
+      this.seed = p.seed;
+      changed = true;
+    }
+    const clamp = this.clampOk ? p.sampleClamp : 0;
+    if (this.applied.clamp !== clamp) {
+      this.applied.clamp = clamp;
+      const u = this.internals._pathTracer?.material.uniforms.cfSampleClamp;
+      if (u) u.value = clamp;
+      changed = true;
+    }
+    if (changed) pt.reset();
   }
 
   /** Échantillons accumulés (fractionnaires pendant le rendu par tuiles). */
@@ -155,16 +264,6 @@ export class PathTracerHost {
     return out;
   }
 
-  setBounces(bounces: number): void {
-    const b = Math.round(clampNum(finiteOr(bounces, 5), 1, 64));
-    if (this.pt.bounces !== b) {
-      this.pt.bounces = b;
-      // Le verre doit pouvoir être traversé même avec peu de rebonds.
-      this.pt.transmissiveBounces = Math.max(b, 6);
-      this.pt.reset();
-    }
-  }
-
   /**
    * Environnement à donner au path tracer : `scene.userData.ptEnvironment` (fourni par le
    * moteur de scène), sinon l'environnement de la scène s'il n'est pas préfiltré, sinon une
@@ -201,10 +300,43 @@ export class PathTracerHost {
     }
   }
 
+  /**
+   * Caméra effectivement donnée au path tracer. Perspective : une `PhysicalCamera` recopiée de
+   * la caméra source (pose, projection) et réglée d'après `camera.userData.dof` (déposé par le
+   * viewport depuis `CameraData.dofEnabled / focusDistance / fstop`). Orthographique : telle quelle.
+   */
+  private effectiveCamera(camera: Camera): Camera {
+    this.sourceCamera = camera;
+    const any = camera as any;
+    if (!any.isPerspectiveCamera) return camera;
+    const src = camera as PerspectiveCamera;
+    const cam = this.physCam;
+    src.updateMatrixWorld();
+    cam.fov = src.fov;
+    cam.aspect = src.aspect;
+    cam.near = src.near;
+    cam.far = src.far;
+    cam.zoom = src.zoom;
+    cam.matrix.copy(src.matrixWorld);
+    cam.matrixWorld.copy(src.matrixWorld);
+    cam.matrixWorldInverse.copy(src.matrixWorldInverse);
+    cam.projectionMatrix.copy(src.projectionMatrix);
+    cam.projectionMatrixInverse.copy(src.projectionMatrixInverse);
+    const dof = readDof(src);
+    if (dof) {
+      cam.fStop = dof.fstop;
+      cam.focusDistance = dof.focusDistance;
+    } else {
+      cam.fStop = cam.getFocalLength() / DOF_OFF_APERTURE_MM;
+      cam.focusDistance = 10;
+    }
+    return cam;
+  }
+
   /** (Re)construit la BVH et toutes les données : géométrie, matériaux, lumières, environnement, caméra. */
   setScene(scene: Scene, camera: Camera, env: Texture | null = this.environmentFor(scene)): void {
     this.withEnvironment(scene, env, () => {
-      this.pt.setScene(scene, camera);
+      this.pt.setScene(scene, this.effectiveCamera(camera));
     });
   }
 
@@ -221,11 +353,13 @@ export class PathTracerHost {
   }
 
   setCamera(camera: Camera): void {
-    this.pt.setCamera(camera);
+    this.pt.setCamera(this.effectiveCamera(camera));
   }
 
+  /** La caméra source a bougé (ou ses réglages de profondeur de champ ont changé). */
   updateCamera(): void {
-    this.pt.updateCamera();
+    if (this.sourceCamera) this.pt.setCamera(this.effectiveCamera(this.sourceCamera));
+    else this.pt.updateCamera();
   }
 
   reset(): void {
@@ -249,6 +383,22 @@ export class PathTracerHost {
   }
 }
 
+/** Profondeur de champ demandée pour une caméra (null si coupée ou invalide). */
+export function readDof(camera: Camera): { fstop: number; focusDistance: number } | null {
+  const d = (camera.userData as any)?.dof;
+  if (!d || d.enabled !== true) return null;
+  const fstop = finiteOr(d.fstop, 2.8);
+  const focus = finiteOr(d.focusDistance, 10);
+  if (fstop <= 0 || focus <= 0) return null;
+  return { fstop: clampNum(fstop, 0.01, 1e4), focusDistance: clampNum(focus, 1e-3, 1e6) };
+}
+
+/** Clé des réglages de profondeur de champ d'une caméra (détection des changements). */
+export function dofKey(camera: Camera): string {
+  const d = readDof(camera);
+  return d ? `${d.fstop}|${d.focusDistance}` : 'off';
+}
+
 /** Mémorise la pose et la projection d'une caméra pour détecter ses mouvements. */
 export class CameraWatch {
   private world = new Matrix4();
@@ -258,13 +408,20 @@ export class CameraWatch {
   /** Vrai si la caméra a changé (objet, pose ou projection) depuis le dernier appel. */
   changed(camera: Camera): boolean {
     camera.updateMatrixWorld();
-    const same = this.camera === camera && this.world.equals(camera.matrixWorld) && this.proj.equals(camera.projectionMatrix);
+    const same =
+      this.camera === camera &&
+      this.world.equals(camera.matrixWorld) &&
+      this.proj.equals(camera.projectionMatrix) &&
+      this.dof === dofKey(camera);
     if (!same) this.record(camera);
     return !same;
   }
 
+  private dof = 'off';
+
   record(camera: Camera): void {
     this.camera = camera;
+    this.dof = dofKey(camera);
     this.world.copy(camera.matrixWorld);
     this.proj.copy(camera.projectionMatrix);
   }

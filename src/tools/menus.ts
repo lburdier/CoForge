@@ -103,6 +103,7 @@ export const EDIT_MENU: MenuItem[] = [
 
 export const RENDER_MENU: MenuItem[] = [
   { op: 'render.render', label: "Rendre l'image", shortcut: 'F12', icon: 'Image' },
+  { op: 'render.render_animation', label: "Rendre l'animation", shortcut: 'Ctrl+F12', icon: 'Film' },
   { op: 'render.view', label: 'Voir le rendu', shortcut: 'F11' },
   sep,
   { op: 'object.set_active_camera', label: "Définir l'objet actif comme caméra", shortcut: 'Ctrl+Num 0' },
@@ -217,6 +218,15 @@ export const OBJECT_MENU: MenuItem[] = [
     ],
   },
   { op: 'object.move_to_collection', label: 'Déplacer vers une nouvelle collection', shortcut: 'M' },
+  sep,
+  {
+    label: 'Animation',
+    children: [
+      { op: 'anim.keyframe_insert_menu', label: 'Insérer une image clé…', shortcut: 'I' },
+      { op: 'anim.keyframe_delete', label: 'Supprimer les images clés', shortcut: 'Alt+I' },
+      { op: 'anim.keyframe_clear', label: "Effacer l'animation", shortcut: 'Maj+Alt+I' },
+    ],
+  },
   sep,
   { op: 'object.shade', args: { smooth: true }, label: 'Ombrage lisse' },
   { op: 'object.shade', args: { smooth: false }, label: 'Ombrage plat' },
@@ -340,6 +350,14 @@ export const CONTEXT_MENU_EDIT: MenuItem[] = [
  *   view.add_menu                 Maj+A : store.setState({ popup: { kind: 'add', x, y } })
  *   view.delete_menu              X : supprime (mode objet) ou ouvre le menu Supprimer (mode édition : popup kind 'delete')
  *
+ * Animation (src/tools/anim) : tête de lecture LOCALE (anim.play { reverse? }, anim.frame_offset { delta },
+ *   anim.frame_jump { end }, anim.keyframe_jump { next }, anim.frame_set { frame }, anim.autokey_toggle),
+ *   clés des objets (anim.keyframe_insert { type }, anim.keyframe_insert_menu, anim.keyframe_delete, anim.keyframe_clear),
+ *   clés d'une propriété (anim.property_keyframe_insert / _delete { owner, path, index? }, anim.property_clear),
+ *   édition dans les éditeurs (anim.keys_select_all, anim.keys_delete, anim.keys_duplicate, anim.keys_interpolation { type },
+ *   anim.keys_easing { easing }, anim.keys_handle_type { type }, anim.keys_transform { mode, view, x, y }, anim.curve_flags),
+ *   anim.set_range { frameStart?, frameEnd?, fps? }, render.render_animation.
+ *
  * Opérateurs enregistrés par l'application (src/app/appOps.ts), pas par les outils :
  *   file.new, file.open (scène .coforge, ou fichier 3D ouvert comme nouvelle scène), file.save, file.save_as,
  *   file.import { format?: 'all' | 'blend' | 'gltf' | 'fbx' | 'obj' | 'misc' } (formats proposés d'abord dans la boîte),
@@ -347,4 +365,35 @@ export const CONTEXT_MENU_EDIT: MenuItem[] = [
  *   edit.undo, edit.redo, render.render, render.view, session.leave,
  *   ui.dialog { dialog }, view.search
  */
+/** Menu « Lecture » de la frise. */
+export const PLAYBACK_MENU: MenuItem[] = [
+  { op: 'anim.play', label: 'Lire / arrêter', shortcut: 'Espace', icon: 'Play' },
+  { op: 'anim.play', args: { reverse: true }, label: 'Lire à rebours', shortcut: 'Maj+Ctrl+Espace' },
+  sep,
+  { op: 'anim.frame_jump', args: { end: false }, label: 'Aller au début', shortcut: 'Maj+←' },
+  { op: 'anim.frame_jump', args: { end: true }, label: 'Aller à la fin', shortcut: 'Maj+→' },
+  { op: 'anim.frame_offset', args: { delta: -1 }, label: 'Image précédente', shortcut: '←' },
+  { op: 'anim.frame_offset', args: { delta: 1 }, label: 'Image suivante', shortcut: '→' },
+  { op: 'anim.keyframe_jump', args: { next: false }, label: 'Image clé précédente', shortcut: '↓' },
+  { op: 'anim.keyframe_jump', args: { next: true }, label: 'Image clé suivante', shortcut: '↑' },
+  sep,
+  { op: 'anim.autokey_toggle', label: 'Auto-key' },
+  { op: 'render.render_animation', label: "Rendre l'animation", shortcut: 'Ctrl+F12' },
+];
+
+/** Menu « Insérer une image clé » (I dans le viewport). */
+export const INSERT_KEYFRAME_MENU: MenuItem[] = [
+  { op: 'anim.keyframe_insert', args: { type: 'location' }, label: 'Position' },
+  { op: 'anim.keyframe_insert', args: { type: 'rotation' }, label: 'Rotation' },
+  { op: 'anim.keyframe_insert', args: { type: 'scale' }, label: 'Échelle' },
+  { op: 'anim.keyframe_insert', args: { type: 'locrotscale' }, label: 'Position, rotation et échelle' },
+  sep,
+  { op: 'anim.keyframe_insert', args: { type: 'locrot' }, label: 'Position et rotation' },
+  { op: 'anim.keyframe_insert', args: { type: 'locscale' }, label: 'Position et échelle' },
+  { op: 'anim.keyframe_insert', args: { type: 'rotscale' }, label: 'Rotation et échelle' },
+  sep,
+  { op: 'anim.keyframe_insert', args: { type: 'visibility' }, label: 'Visibilité' },
+  { op: 'anim.keyframe_insert', args: { type: 'available' }, label: 'Disponibles' },
+];
+
 export const CATALOG_VERSION = 1;

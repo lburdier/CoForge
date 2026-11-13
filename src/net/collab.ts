@@ -1,25 +1,37 @@
-import { WebsocketProvider } from 'y-websocket';
-import type { Awareness } from 'y-protocols/awareness';
+import { Awareness } from 'y-protocols/awareness';
 import type { AppContext } from '../app/context';
 import type { PeerInfo, SessionState } from '../app/store';
 import type { SceneDoc } from '../core/doc/SceneDoc';
 import type { Vec3 } from '../core/doc/schema';
-import type { ConnectOptions, ICollab, Peer, PresenceCamera, PresenceState } from './api';
+import type { ConnectionErrorKind, ConnectionInfo, ConnectionPhase, ConnectOptions, ICollab, InviteOptions, Peer, PresenceCamera, PresenceState } from './api';
+import {
+  CLOSE_BAD_PASSWORD,
+  CLOSE_BAD_ROOM,
+  CLOSE_BAD_TOKEN,
+  CLOSE_REVOKED,
+  CLOSE_ROOM_NOT_FOUND,
+  CLOSE_TOO_MANY,
+  CLOSE_VERSION,
+  type InviteCreated,
+  type InviteInfo,
+  isValidRoomName,
+  isValidToken,
+  PROTOCOL_VERSION,
+} from './protocol';
+import { CoforgeProvider, type ProviderSnapshot } from './provider';
 
 /**
  * Client de collaboration : relie un SceneDoc à une room du serveur CoForge
- * (WebsocketProvider de y-websocket) et gère la présence (awareness Yjs).
+ * (CoforgeProvider, voir provider.ts) et gère la présence (awareness Yjs).
  */
 
-/** Délai maximal de la première synchronisation. */
+/** Délai maximal de la première connexion tant qu'aucune donnée n'arrive. */
 const CONNECT_TIMEOUT_MS = 10_000;
 /** Intervalle minimal entre deux envois de présence (~20/s). */
 const PRESENCE_INTERVAL_MS = 50;
 const MAX_EDIT_VERTS = 400;
-/** Codes de fermeture définitifs du serveur (voir server/CollabServer.ts). */
-const CLOSE_BAD_ROOM = 4400;
-const CLOSE_BAD_PASSWORD = 4401;
-const ROOM_NAME = /^[\w\-. ]{1,64}$/;
+/** Après ce nombre d'échecs consécutifs, l'état affiché passe de « reconnexion » à « hors ligne ». */
+const OFFLINE_AFTER_ATTEMPTS = 4;
 
 /** Accepte « 192.168.1.20:4455 », « http://… » : renvoie une URL ws(s):// sans barre finale, ou null si invalide. */
 export function normalizeServerUrl(input: string): string | null {
@@ -31,6 +43,7 @@ export function normalizeServerUrl(input: string): string | null {
     const parsed = new URL(url);
     if (parsed.protocol !== 'ws:' && parsed.protocol !== 'wss:') return null;
     if (!parsed.hostname) return null;
+    if (parsed.username || parsed.password) return null;
   } catch {
     return null;
   }
@@ -73,8 +86,75 @@ function readPresence(raw: any): PresenceState | null {
   };
 }
 
+/** Message (français) et nature d'un refus définitif du serveur. */
+export function describeClose(code: number, reason: string): { message: string; kind: ConnectionErrorKind } {
+  switch (code) {
+    case CLOSE_BAD_PASSWORD:
+      return { message: 'Mot de passe refusé', kind: 'password' };
+    case CLOSE_BAD_TOKEN:
+      if (reason === 'expired') return { message: 'Invitation expirée : demandez un nouveau lien à l’hôte', kind: 'token' };
+      if (reason === 'revoked') return { message: 'Invitation révoquée par l’hôte', kind: 'revoked' };
+      if (reason === 'exhausted') return { message: 'Invitation déjà utilisée le nombre de fois autorisé', kind: 'token' };
+      if (reason === 'room') return { message: 'Cette invitation concerne une autre session', kind: 'token' };
+      return { message: 'Invitation invalide ou inconnue de ce serveur', kind: 'token' };
+    case CLOSE_REVOKED:
+      return { message: 'L’hôte a révoqué votre invitation : vous avez été déconnecté', kind: 'revoked' };
+    case CLOSE_BAD_ROOM:
+      return { message: 'Nom de session refusé par le serveur', kind: 'room' };
+    case CLOSE_ROOM_NOT_FOUND:
+      return { message: 'Session introuvable sur ce serveur (l’hôte l’a peut-être arrêtée)', kind: 'room-not-found' };
+    case CLOSE_VERSION: {
+      if (reason.startsWith('server:')) return { message: 'Serveur CoForge trop ancien pour cette version : mettez le serveur à jour', kind: 'version' };
+      const m = /^version:(\d+)-(\d+)$/.exec(reason);
+      const newer = m && Number(m[1]) > PROTOCOL_VERSION;
+      return {
+        message: newer
+          ? 'Version incompatible : le serveur est plus récent, mettez CoForge à jour'
+          : 'Version incompatible : le serveur est plus ancien que cette version de CoForge',
+        kind: 'version',
+      };
+    }
+    case CLOSE_TOO_MANY:
+      return { message: 'Trop de tentatives refusées depuis cette adresse : réessayez dans une minute', kind: 'too-many' };
+    default:
+      return { message: `Connexion fermée par le serveur (code ${code})`, kind: 'other' };
+  }
+}
+
+const IDLE: ConnectionInfo = {
+  phase: 'idle',
+  url: null,
+  room: null,
+  attempt: 0,
+  nextRetryAt: null,
+  latencyMs: null,
+  pendingChanges: 0,
+  error: null,
+  errorKind: null,
+  serverVersion: null,
+  protocol: null,
+  role: null,
+  secured: null,
+  inviteToken: null,
+  transfer: null,
+};
+
+function sameInfo(a: ConnectionInfo, b: ConnectionInfo): boolean {
+  for (const k of Object.keys(a) as (keyof ConnectionInfo)[]) {
+    if (k === 'transfer') {
+      const x = a.transfer;
+      const y = b.transfer;
+      if (x === y) continue;
+      if (!x || !y || x.direction !== y.direction || x.done !== y.done || x.total !== y.total) return false;
+      continue;
+    }
+    if (a[k] !== b[k]) return false;
+  }
+  return true;
+}
+
 class Collab implements ICollab {
-  private provider: WebsocketProvider | null = null;
+  private provider: CoforgeProvider | null = null;
   private awareness: Awareness | null = null;
   private doc: SceneDoc | null = null;
   /** La première synchronisation a réussi. */
@@ -86,7 +166,10 @@ class Collab implements ICollab {
   private presenceTimer: ReturnType<typeof setTimeout> | null = null;
   private lastPresenceSent = 0;
   /** Interrompt une connexion en cours d'établissement (rejette sa promesse). */
-  private abortConnect: ((message: string) => void) | null = null;
+  private abortConnect: ((message: string, kind?: ConnectionErrorKind) => void) | null = null;
+  private info: ConnectionInfo = IDLE;
+  private infoListeners = new Set<(info: ConnectionInfo) => void>();
+  private token: string | null = null;
 
   constructor(private readonly app: AppContext) {
     // Le nom ou la couleur de l'utilisateur local change : les autres doivent le voir.
@@ -96,7 +179,7 @@ class Collab implements ICollab {
   }
 
   get connected(): boolean {
-    return this.established && !!this.provider && this.provider.wsconnected;
+    return this.established && !!this.provider && this.provider.isSynced;
   }
 
   get clientId(): number | null {
@@ -104,59 +187,71 @@ class Collab implements ICollab {
   }
 
   connect(doc: SceneDoc, opts: ConnectOptions): Promise<void> {
-    // Un seul provider à la fois.
+    // Un seul fournisseur à la fois.
     if (this.provider || this.abortConnect) this.disconnect();
 
     const url = normalizeServerUrl(opts.url);
     const room = opts.room.trim();
-    if (!url) return this.refuse(`Adresse de serveur invalide : « ${opts.url} »`);
-    if (!ROOM_NAME.test(room)) return this.refuse('Nom de session invalide (64 caractères au plus : lettres, chiffres, espaces, tirets, points)');
+    if (!url) return this.refuse(`Adresse de serveur invalide : « ${opts.url} »`, 'other');
+    if (!isValidRoomName(room)) return this.refuse('Nom de session invalide (64 caractères au plus : lettres sans accent, chiffres, espaces, « - », « _ », « . »)', 'room');
+    const token = opts.token?.trim() || null;
+    if (token !== null && !isValidToken(token)) return this.refuse('Jeton d’invitation invalide', 'token');
 
     this.patch({ status: 'connecting', url, room, error: null, peers: [] });
+    this.token = token;
+    this.setInfo({ ...IDLE, phase: 'connecting', url, room, inviteToken: token });
 
-    let provider: WebsocketProvider;
+    const awareness = new Awareness(doc.ydoc);
+    let provider: CoforgeProvider;
     try {
-      provider = new WebsocketProvider(url, room, doc.ydoc, {
-        connect: false,
-        params: opts.password ? { password: opts.password } : {},
-        // Pas de canal inter-onglets : tout passe par le serveur (et son mot de passe).
-        disableBc: true,
-      });
+      provider = new CoforgeProvider({ url, room, doc: doc.ydoc, awareness, credentials: { password: opts.password || undefined, token: token ?? undefined } });
     } catch (err) {
-      return this.refuse(`Connexion impossible : ${err instanceof Error ? err.message : String(err)}`);
+      awareness.destroy();
+      return this.refuse(`Connexion impossible : ${err instanceof Error ? err.message : String(err)}`, 'other');
     }
-    const awareness = provider.awareness;
     this.provider = provider;
     this.awareness = awareness;
     this.doc = doc;
     this.established = false;
     awareness.setLocalState(this.defaultPresence());
     awareness.on('change', this.onAwarenessChange);
+    provider.onStatus((snap) => {
+      if (this.provider === provider) this.onProviderStatus(snap);
+    });
 
     return new Promise<void>((resolve, reject) => {
       let settled = false;
-      const fail = (message: string): void => {
+      const started = Date.now();
+      const fail = (message: string, kind: ConnectionErrorKind = 'other'): void => {
         if (settled) return;
         settled = true;
-        clearTimeout(timeout);
+        clearInterval(watchdog);
         this.abortConnect = null;
         if (this.provider === provider) {
           this.teardown();
           this.patch({ status: 'offline', url: null, room: null, peers: [], error: message });
+          this.setInfo({ ...IDLE, phase: 'error', url, room, error: message, errorKind: kind });
         }
         reject(new Error(message));
       };
-      const timeout = setTimeout(() => fail(`Serveur injoignable à l'adresse ${url}`), CONNECT_TIMEOUT_MS);
+      // Première connexion : on abandonne si rien n'a pu s'ouvrir, ou si la synchronisation est
+      // interrompue ; tant que des données arrivent (grosse scène, lien lent), on attend.
+      const watchdog = setInterval(() => {
+        if (settled || Date.now() - started < CONNECT_TIMEOUT_MS) return;
+        if (!provider.everOpened) fail(`Serveur injoignable à l'adresse ${url}`, 'unreachable');
+        else if (provider.snapshot().phase !== 'syncing' && provider.snapshot().phase !== 'connecting') fail(`Connexion au serveur ${url} interrompue pendant la synchronisation`, 'unreachable');
+      }, 250);
       this.abortConnect = fail;
 
-      provider.on('sync', (synced: boolean) => {
-        if (this.provider !== provider || !synced) return;
+      provider.onSynced(() => {
+        if (this.provider !== provider) return;
         if (!settled) {
           settled = true;
-          clearTimeout(timeout);
+          clearInterval(watchdog);
           this.abortConnect = null;
           this.established = true;
           this.patch({ status: 'connected', error: null });
+          this.onProviderStatus(provider.snapshot());
           this.refreshPeers();
           resolve();
         } else {
@@ -164,26 +259,17 @@ class Collab implements ICollab {
         }
       });
 
-      provider.on('status', (event: { status: string }) => {
-        if (this.provider !== provider || !this.established) return;
-        if (event.status !== 'connected') this.patch({ status: 'reconnecting' });
-      });
-
-      // Fermeture définitive décidée par le serveur (codes 44xx) : le provider a déjà cessé de se reconnecter.
-      provider.on('closed', (event: { code: number; reason: string }) => {
+      // Fermeture définitive décidée par le serveur (codes 44xx) : le fournisseur a cessé de se reconnecter.
+      provider.onClosed((event) => {
         if (this.provider !== provider) return;
-        const message =
-          event.code === CLOSE_BAD_PASSWORD
-            ? 'Mot de passe refusé'
-            : event.code === CLOSE_BAD_ROOM
-              ? 'Nom de session refusé par le serveur'
-              : `Connexion fermée par le serveur (code ${event.code})`;
+        const { message, kind } = describeClose(event.code, event.reason);
         if (!settled) {
-          fail(message);
+          fail(message, kind);
         } else {
-          // Refus survenu lors d'une reconnexion (ex. mot de passe changé par l'hôte).
+          // Refus survenu lors d'une reconnexion (mot de passe changé, invitation révoquée…).
           this.teardown();
           this.patch({ status: 'offline', url: null, room: null, peers: [], error: message });
+          this.setInfo({ ...IDLE, phase: 'error', url, room, error: message, errorKind: kind });
         }
       });
 
@@ -200,11 +286,46 @@ class Collab implements ICollab {
       // Connexion encore en cours : sa promesse est rejetée, la session repasse hors ligne.
       this.abortConnect('Connexion annulée');
       this.patch({ error: null });
+      this.setInfo(IDLE);
       return;
     }
-    if (!this.provider) return;
+    if (!this.provider) {
+      if (this.info.phase !== 'idle') this.setInfo(IDLE);
+      return;
+    }
     this.teardown();
     this.patch({ status: 'offline', url: null, room: null, peers: [], error: null });
+    this.setInfo(IDLE);
+  }
+
+  retryNow(): void {
+    this.provider?.retryNow();
+  }
+
+  getConnection(): ConnectionInfo {
+    return this.info;
+  }
+
+  onConnection(cb: (info: ConnectionInfo) => void): () => void {
+    this.infoListeners.add(cb);
+    return () => {
+      this.infoListeners.delete(cb);
+    };
+  }
+
+  createInvite(opts: InviteOptions = {}): Promise<InviteCreated> {
+    if (!this.provider) return Promise.reject(new Error('Hors session'));
+    return this.provider.request<InviteCreated>('invite.create', { ttlMs: opts.ttlMs, maxUses: opts.maxUses, label: opts.label });
+  }
+
+  listInvites(): Promise<InviteInfo[]> {
+    if (!this.provider) return Promise.reject(new Error('Hors session'));
+    return this.provider.request<InviteInfo[]>('invite.list');
+  }
+
+  async revokeInvite(id: string): Promise<void> {
+    if (!this.provider) throw new Error('Hors session');
+    await this.provider.request('invite.revoke', { id });
   }
 
   setPresence(patch: Partial<PresenceState>): void {
@@ -230,12 +351,57 @@ class Collab implements ICollab {
   // ------------------------------------------------------------------ interne
 
   private patch(patch: Partial<SessionState>): void {
-    // Ne touche jamais à `hosting` / `shareAddresses`, gérés par l'application.
-    this.app.store.setState({ session: { ...this.app.store.getState().session, ...patch } });
+    // Ne touche jamais à `hosting` / `shareAddresses`, gérés par l'application ; n'écrit que ce qui change.
+    const session = this.app.store.getState().session;
+    if ((Object.keys(patch) as (keyof SessionState)[]).every((k) => session[k] === patch[k])) return;
+    this.app.store.setState({ session: { ...session, ...patch } });
   }
 
-  private refuse(message: string): Promise<void> {
+  private setInfo(info: ConnectionInfo): void {
+    if (sameInfo(info, this.info)) return;
+    this.info = info;
+    for (const cb of [...this.infoListeners]) {
+      try {
+        cb(info);
+      } catch (err) {
+        console.error('[collab] erreur dans un écouteur de connexion', err);
+      }
+    }
+  }
+
+  private onProviderStatus(snap: ProviderSnapshot): void {
+    if (snap.phase === 'stopped') return; // refus définitif ou fin : traité par onClosed / teardown
+    let phase: ConnectionPhase;
+    if (!this.established) phase = 'connecting';
+    else if (snap.phase === 'connected') phase = 'connected';
+    else {
+      const navOffline = typeof navigator !== 'undefined' && (navigator as Navigator).onLine === false;
+      phase = navOffline || snap.attempt >= OFFLINE_AFTER_ATTEMPTS ? 'offline' : 'reconnecting';
+    }
+    if (this.established) this.patch({ status: snap.phase === 'connected' ? 'connected' : 'reconnecting' });
+    const hello = snap.hello;
+    this.setInfo({
+      ...this.info,
+      phase,
+      error: null,
+      errorKind: null,
+      attempt: snap.attempt,
+      nextRetryAt: snap.phase === 'waiting' ? snap.nextRetryAt : null,
+      latencyMs: snap.phase === 'connected' ? snap.latencyMs : null,
+      pendingChanges: snap.pending,
+      serverVersion: hello?.server ?? this.info.serverVersion,
+      protocol: hello ? hello.protocol : snap.phase === 'connected' ? 1 : this.info.protocol,
+      // Ancien serveur (sans HELLO) : tout participant est administrateur de fait.
+      role: hello ? hello.role : snap.phase === 'connected' ? 'admin' : this.info.role,
+      secured: hello ? hello.secured : this.info.secured,
+      inviteToken: hello?.role === 'guest' ? this.token : this.info.inviteToken,
+      transfer: snap.transfer,
+    });
+  }
+
+  private refuse(message: string, kind: ConnectionErrorKind): Promise<void> {
     this.patch({ status: 'offline', url: null, room: null, peers: [], error: message });
+    this.setInfo({ ...IDLE, phase: 'error', error: message, errorKind: kind });
     return Promise.reject(new Error(message));
   }
 
@@ -290,7 +456,7 @@ class Collab implements ICollab {
     }
   }
 
-  /** Détruit le provider et la présence, sans toucher au store. */
+  /** Détruit le fournisseur et la présence, sans toucher au store. */
   private teardown(): void {
     const provider = this.provider;
     const awareness = this.awareness;
@@ -298,6 +464,7 @@ class Collab implements ICollab {
     this.awareness = null;
     this.doc = null;
     this.established = false;
+    this.token = null;
     if (this.presenceTimer !== null) clearTimeout(this.presenceTimer);
     this.presenceTimer = null;
     this.pendingPresence = null;

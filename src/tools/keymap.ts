@@ -12,7 +12,7 @@ import type { InteractionMode } from '../app/store';
  * Ctrl et Cmd sont équivalents. Les modificateurs doivent correspondre exactement.
  */
 
-export type ShortcutSection = 'Général' | 'Vue' | 'Mode objet' | 'Mode édition' | 'Transformation';
+export type ShortcutSection = 'Général' | 'Vue' | 'Mode objet' | 'Mode édition' | 'Transformation' | 'Animation';
 
 export interface KeyBinding {
   op: string;
@@ -51,6 +51,8 @@ export const KEYMAP: readonly KeyBinding[] = [
   { op: 'view.search', key: 'f3', display: 'F3', section: 'Général' },
   { op: 'render.render', key: 'f12', display: 'F12', section: 'Général' },
   { op: 'render.view', key: 'f11', display: 'F11', section: 'Général' },
+  { op: 'screen.workspace_cycle', args: { dir: -1 }, key: 'pageup', ctrl: true, display: 'Ctrl+Pg Préc', section: 'Général', label: 'Espace de travail précédent', repeat: true },
+  { op: 'screen.workspace_cycle', args: { dir: 1 }, key: 'pagedown', ctrl: true, display: 'Ctrl+Pg Suiv', section: 'Général', label: 'Espace de travail suivant', repeat: true },
   { op: 'object.mode_toggle', key: 'tab', display: 'Tab', section: 'Vue', label: 'Basculer mode objet / mode édition' },
 
   // ------------------------------------------------------------ vue
@@ -122,6 +124,21 @@ export const KEYMAP: readonly KeyBinding[] = [
   { op: 'mesh.merge', args: { at: 'center' }, key: 'm', modes: EDIT, display: 'M', section: 'Mode édition', label: 'Fusionner au centre' },
   { op: 'mesh.recalc_normals', key: 'n', shift: true, modes: EDIT, display: 'Maj+N', section: 'Mode édition' },
   { op: 'mesh.dissolve', key: 'x', ctrl: true, modes: EDIT, display: 'Ctrl+X', section: 'Mode édition' },
+
+  // ------------------------------------------------------------ animation
+  // Lecture : tête de lecture LOCALE (n'écrit rien dans le document), active partout hors champs de saisie.
+  { op: 'anim.play', key: ' ', display: 'Espace', section: 'Général', label: 'Lire / arrêter' },
+  { op: 'anim.play', args: { reverse: true }, key: ' ', ctrl: true, shift: true, display: 'Maj+Ctrl+Espace', section: 'Général', label: 'Lire à rebours' },
+  { op: 'anim.frame_offset', args: { delta: 1 }, key: 'arrowright', display: '→', section: 'Général', label: 'Image suivante', repeat: true },
+  { op: 'anim.frame_offset', args: { delta: -1 }, key: 'arrowleft', display: '←', section: 'Général', label: 'Image précédente', repeat: true },
+  { op: 'anim.frame_jump', args: { end: true }, key: 'arrowright', shift: true, display: 'Maj+→', section: 'Général', label: 'Aller à la fin' },
+  { op: 'anim.frame_jump', args: { end: false }, key: 'arrowleft', shift: true, display: 'Maj+←', section: 'Général', label: 'Aller au début' },
+  { op: 'anim.keyframe_jump', args: { next: true }, key: 'arrowup', display: '↑', section: 'Général', label: 'Image clé suivante', repeat: true },
+  { op: 'anim.keyframe_jump', args: { next: false }, key: 'arrowdown', display: '↓', section: 'Général', label: 'Image clé précédente', repeat: true },
+  { op: 'render.render_animation', key: 'f12', ctrl: true, display: 'Ctrl+F12', section: 'Général' },
+  { op: 'anim.keyframe_insert_menu', key: 'i', modes: OBJ, display: 'I', section: 'Animation' },
+  { op: 'anim.keyframe_delete', key: 'i', alt: true, modes: OBJ, display: 'Alt+I', section: 'Animation' },
+  { op: 'anim.keyframe_clear', key: 'i', alt: true, shift: true, modes: OBJ, display: 'Maj+Alt+I', section: 'Animation' },
 ];
 
 /** Nom normalisé de la touche (`event.key` en minuscules ; « Delete », « Home »… en minuscules aussi). */

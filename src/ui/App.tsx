@@ -1,4 +1,5 @@
 import './styles/theme.css';
+import './nodes';
 import { Dialogs } from './dialogs/Dialogs';
 import { ImportOverlays } from './dialogs/ImportDialogs';
 import { WorkspaceLayout } from './layout/WorkspaceLayout';

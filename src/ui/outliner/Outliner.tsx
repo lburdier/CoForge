@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { FolderPlus, Search, X } from 'lucide-react';
+import { FolderPlus, Funnel, Search, X } from 'lucide-react';
 import { getApp } from '../../app/context';
-import { setSelection, store, toast, useApp } from '../../app/store';
+import { setSelection, store, toast, useApp, type PropertiesTab } from '../../app/store';
 import { ROOT_COLLECTION } from '../../core/doc/schema';
 import type { SceneDoc } from '../../core/doc/SceneDoc';
 import type { Peer } from '../../net/api';
@@ -10,12 +10,46 @@ import { IconButton } from '../widgets/basic';
 import { Menu, type UiMenuItem } from '../widgets/Menu';
 import { isSelfOrDescendant, reparentKeepWorld, runOp } from '../properties/actions';
 import { useDocWhen } from '../properties/docHooks';
-import { OutlinerRow, ROW_H, type DropState, type PeerMark, type RowController } from './OutlinerRow';
-import { buildTree, colKey, descendantKeys, flattenTree, isUnder, objKey, ROOT_KEY, type Tree } from './tree';
+import { OutlinerFilterPopover } from './FilterPopover';
+import { OutlinerRow, ROW_H, type DropState, type PeerMark, type RestrictField, type RowColumns, type RowController } from './OutlinerRow';
+import {
+  buildTree,
+  colKey,
+  contentSignature,
+  DEFAULT_FILTERS,
+  descendantKeys,
+  filtersActive,
+  filtersUseSelection,
+  flattenTree,
+  isUnder,
+  keysToReveal,
+  normalizeFilters,
+  objectPasses,
+  objKey,
+  ROOT_KEY,
+  scrollToReveal,
+  type ContentKind,
+  type OutlinerFilters,
+  type SelectionContext,
+  type Tree,
+  type TreeNode,
+} from './tree';
 import './outliner.css';
 
-/** Propriétés d'objet qui modifient l'arbre (position, modificateurs… : les autres sont ignorées). */
-const TREE_KEYS = new Set(['name', 'parent', 'collection', 'type', 'visible', 'renderable', 'data']);
+/** Propriétés d'objet qui modifient l'arbre (position… : les autres sont ignorées). */
+const TREE_KEYS = new Set(['name', 'parent', 'collection', 'type', 'visible', 'renderable', 'selectable', 'data']);
+/** Propriétés affichées comme contenu : l'arbre n'est reconstruit que si leur signature change. */
+const CONTENT_KEYS = new Set(['material', 'modifiers', 'constraints']);
+/** Onglet des propriétés ouvert par un clic sur une ligne de contenu. */
+const CONTENT_TAB: Record<ContentKind, PropertiesTab> = {
+  data: 'data',
+  material: 'material',
+  modifiers: 'modifiers',
+  modifier: 'modifiers',
+  constraints: 'constraints',
+  constraint: 'constraints',
+};
+const NO_SELECTION: SelectionContext = { selection: new Set(), activeId: null };
 /** Lignes rendues au-delà de la zone visible, de chaque côté. */
 const OVERSCAN = 8;
 /** Nombre maximal de nœuds repliés mémorisés. */
@@ -139,6 +173,36 @@ function objectsUnder(tree: Tree, key: string): string[] {
     .map((n) => n!.id);
 }
 
+/** État d'une bascule de restriction d'une ligne (les collections n'ont que la visibilité). */
+function readRestrict(node: TreeNode, field: RestrictField): boolean {
+  if (node.kind === 'collection' && field !== 'visible') return true;
+  return node[field];
+}
+
+/** Écrit une bascule de restriction dans le document (sans effet si la valeur est déjà la bonne). */
+function writeRestrict(node: TreeNode, field: RestrictField, value: boolean): void {
+  const doc = getApp().doc;
+  if (node.kind === 'object') {
+    const o = doc.getObject(node.id);
+    if (o && o[field] !== value) doc.updateObject(node.id, { [field]: value });
+  } else if (node.kind === 'collection' && field === 'visible' && node.key !== ROOT_KEY) {
+    const c = doc.getCollection(node.id);
+    if (c && c.visible !== value) doc.updateCollection(node.id, { visible: value });
+  }
+}
+
+/**
+ * Objets devenus non sélectionnables : retirés de la sélection locale (comme Blender), sauf en
+ * mode édition où la sélection d'objets est figée.
+ */
+function dropFromSelection(ids: string[]): void {
+  const s = store.getState();
+  if (s.mode === 'edit' || !ids.some((id) => s.selection.has(id))) return;
+  const drop = new Set(ids);
+  const next = [...s.selection].filter((id) => !drop.has(id));
+  setSelection(next, s.activeId && !drop.has(s.activeId) ? s.activeId : (next[next.length - 1] ?? null));
+}
+
 function uniqueCollectionName(doc: SceneDoc, id: string, wanted: string): string {
   const names = new Set(doc.listCollections().filter((c) => c.id !== id).map((c) => c.name));
   if (!names.has(wanted)) return wanted;
@@ -155,30 +219,65 @@ function uniqueCollectionName(doc: SceneDoc, id: string, wanted: string): string
 export function Outliner() {
   const treeRef = useRef<Tree | null>(null);
   const tree = useDocWhen((doc) => buildTree(doc), {
-    objects: (e) => e.added.length > 0 || e.removed.length > 0 || e.changed.some((c) => c.keys.some((k) => TREE_KEYS.has(k))),
+    objects: (e) =>
+      e.added.length > 0 ||
+      e.removed.length > 0 ||
+      e.changed.some((c) => {
+        if (c.keys.some((k) => TREE_KEYS.has(k))) return true;
+        if (!c.keys.some((k) => CONTENT_KEYS.has(k))) return false;
+        // Réglage d'un modificateur (glisser une valeur…) : pas de reconstruction si rien d'affiché ne change.
+        const o = getApp().doc.getObject(c.id);
+        return !o || treeRef.current?.contentSigs.get(c.id) !== contentSignature(o);
+      }),
     data: (e) => {
       if (e.table === 'collections') return true;
-      if (e.table !== 'lights') return false;
-      const known = treeRef.current?.lightKinds;
-      if (!known) return true;
+      const t = treeRef.current;
+      if (!t) return true;
       const doc = getApp().doc;
+      if (e.table === 'materials') {
+        return [...e.changed, ...e.removed].some((id) => t.dataNames.has(id) && t.dataNames.get(id) !== doc.getMaterial(id)?.name);
+      }
+      if (e.table !== 'lights') return false;
+      const known = t.lightKinds;
       return e.changed.some((id) => known.has(id) && known.get(id) !== (doc.getLight(id)?.kind ?? 'point'));
     },
+    // Renommage d'un maillage (ni sommets ni topologie) affiché comme contenu d'un objet.
+    mesh: (e) =>
+      !e.topologyChanged &&
+      !e.removed &&
+      e.vertsChanged.length === 0 &&
+      !!treeRef.current?.dataNames.has(e.id) &&
+      treeRef.current.dataNames.get(e.id) !== getApp().doc.getMeshName(e.id),
   });
   treeRef.current = tree;
+
+  const [storedFilters, setStoredFilters] = usePersistent<OutlinerFilters>('outliner.filters', DEFAULT_FILTERS);
+  const filters = useMemo(() => normalizeFilters(storedFilters), [storedFilters]);
+  const patchFilters = (patch: Partial<OutlinerFilters>) => setStoredFilters((prev) => ({ ...normalizeFilters(prev), ...patch }));
+  const filtering = filtersActive(filters);
+  const cols = useMemo<RowColumns>(
+    () => ({ selectable: filters.colSelectable, visible: filters.colViewport, renderable: filters.colRender }),
+    [filters.colSelectable, filters.colViewport, filters.colRender],
+  );
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const [collapsedList, setCollapsedList] = usePersistent<string[]>('outliner.collapsed', []);
   const collapsed = useMemo(() => new Set(collapsedList), [collapsedList]);
   const [query, setQuery] = useState('');
-  const rows = useMemo(() => flattenTree(tree, collapsed, query), [tree, collapsed, query]);
+  const selection = useApp((s) => s.selection);
+  const activeId = useApp((s) => s.activeId);
+  // La sélection n'entre dans l'aplatissement que pour les filtres « Sélectionnés » / « Actif » :
+  // sinon un changement de sélection ne recalcule ni l'arbre ni la liste (grandes scènes).
+  const useSel = filtersUseSelection(filters);
+  const selCtx = useMemo<SelectionContext>(() => (useSel ? { selection, activeId } : NO_SELECTION), [useSel, selection, activeId]);
+  const rows = useMemo(() => flattenTree(tree, collapsed, query, filters, selCtx), [tree, collapsed, query, filters, selCtx]);
   const keyIndex = useMemo(() => {
     const m = new Map<string, number>();
     rows.forEach((r, i) => m.set(r.node.key, i));
     return m;
   }, [rows]);
 
-  const selection = useApp((s) => s.selection);
-  const activeId = useApp((s) => s.activeId);
   const peers = usePeerMarks();
 
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -192,8 +291,12 @@ export function Outliner() {
   const [viewTop, setViewTop] = useState(0);
   const [viewH, setViewH] = useState(400);
   const dragRef = useRef<DragPayload | null>(null);
+  /** Glisser en cours sur une colonne de restriction : même valeur appliquée à chaque ligne survolée. */
+  const restrictDrag = useRef<{ field: RestrictField; value: boolean; kind: TreeNode['kind']; doc: SceneDoc } | null>(null);
   const dropRef = useRef<{ key: string; state: DropState } | null>(null);
   const anchorRef = useRef<string | null>(null);
+  /** Objet rendu actif par l'outliner lui-même (pas de « suivi » dans ce cas, seulement le défilement). */
+  const outlinerActive = useRef<string | null>(null);
 
   // Taille de la zone visible (virtualisation).
   useEffect(() => {
@@ -213,33 +316,6 @@ export function Outliner() {
     setRenaming((r) => (r && !tree.nodes.has(r) ? null : r));
   }, [tree]);
 
-  // ---------------------------------------------------------------- défilement vers l'objet actif
-  const scrollToIndex = (i: number) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const top = i * ROW_H;
-    if (top < el.scrollTop) el.scrollTop = top;
-    else if (top + ROW_H > el.scrollTop + el.clientHeight) el.scrollTop = top + ROW_H - el.clientHeight;
-  };
-  const pending = useRef<{ key: string; seen: Tree | null } | null>(null);
-  const prevActive = useRef<string | null>(null);
-  useLayoutEffect(() => {
-    if (activeId !== prevActive.current) {
-      prevActive.current = activeId;
-      pending.current = activeId ? { key: objKey(activeId), seen: null } : null;
-    }
-    const p = pending.current;
-    if (!p) return;
-    const i = keyIndex.get(p.key);
-    if (i !== undefined) {
-      pending.current = null;
-      scrollToIndex(i);
-    } else if (p.seen && p.seen !== tree) {
-      // L'arbre a été reconstruit et la ligne reste invisible (repliée, filtrée) : on abandonne.
-      pending.current = null;
-    } else p.seen = tree;
-  }, [activeId, keyIndex, tree]);
-
   // ---------------------------------------------------------------- repli
   const setCollapsed = (fn: (s: Set<string>) => void) =>
     setCollapsedList((prev) => {
@@ -248,6 +324,51 @@ export function Outliner() {
       const out = [...s];
       return out.length > MAX_COLLAPSED ? out.slice(out.length - MAX_COLLAPSED) : out;
     });
+
+  // ---------------------------------------------------------------- suivi de l'objet actif
+  // Défilement minimal, sans prendre le focus clavier, et seulement si la ligne n'est pas déjà visible.
+  const scrollToIndex = (i: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const top = scrollToReveal(i, ROW_H, el.scrollTop, el.clientHeight);
+    if (top !== null) el.scrollTop = top;
+  };
+  /** Ligne à montrer ; `reveal` : déplier ses parents repliés (objet actif changé hors de l'outliner). */
+  const pending = useRef<{ key: string; seen: Tree | null; reveal: boolean } | null>(null);
+  const prevActive = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (activeId !== prevActive.current) {
+      prevActive.current = activeId;
+      const fromOutliner = activeId !== null && activeId === outlinerActive.current;
+      outlinerActive.current = null;
+      if (!activeId) pending.current = null;
+      else if (fromOutliner) pending.current = { key: objKey(activeId), seen: null, reveal: false };
+      else pending.current = filters.followActive ? { key: objKey(activeId), seen: null, reveal: true } : null;
+    }
+    const p = pending.current;
+    if (!p) return;
+    const i = keyIndex.get(p.key);
+    if (i !== undefined) {
+      pending.current = null;
+      scrollToIndex(i);
+      return;
+    }
+    const node = tree.nodes.get(p.key);
+    if (p.reveal && node && !query.trim() && objectPasses(node, filters, { selection: store.getState().selection, activeId })) {
+      // Parents ou collections repliés sur le chemin affiché : on les déplie ; la ligne apparaîtra
+      // au prochain aplatissement et cet effet la fera alors défiler.
+      const open = keysToReveal(tree, p.key, collapsed, filters);
+      if (open.length) {
+        setCollapsed((s) => open.forEach((k) => s.delete(k)));
+        return;
+      }
+    }
+    if (p.seen && p.seen !== tree) {
+      // L'arbre a été reconstruit et la ligne reste invisible (filtrée, recherche) : on abandonne.
+      pending.current = null;
+    } else p.seen = tree;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, keyIndex, tree]);
 
   const expand = (key: string) => {
     if (!collapsed.has(key)) return;
@@ -265,7 +386,7 @@ export function Outliner() {
     if (!id || !doc.getCollection(id)) return;
     expand(colKey(parent));
     setCurrentCol(colKey(id));
-    pending.current = { key: colKey(id), seen: null };
+    pending.current = { key: colKey(id), seen: null, reveal: false };
     if (!query.trim()) setRenaming(colKey(id));
   };
 
@@ -279,7 +400,7 @@ export function Outliner() {
   const dropStateFor = (payload: DragPayload, key: string): DropState => {
     const doc = getApp().doc;
     const target = tree.nodes.get(key);
-    if (!target) return 'invalid';
+    if (!target || target.kind === 'content') return 'invalid';
     if (payload.kind === 'collection') {
       if (target.kind !== 'collection') return 'invalid';
       if (!doc.getCollection(payload.id)) return 'invalid';
@@ -373,9 +494,19 @@ export function Outliner() {
         setCurrentCol(key);
         return;
       }
+      if (node.kind === 'content') {
+        // Contenu : sélectionne l'objet propriétaire et ouvre l'onglet de propriétés correspondant.
+        if (node.content) store.setState({ propertiesTab: CONTENT_TAB[node.content] });
+        if (!node.owner || !getApp().doc.hasObject(node.owner) || store.getState().mode === 'edit') return;
+        outlinerActive.current = node.owner;
+        setSelection([node.owner], node.owner);
+        anchorRef.current = objKey(node.owner);
+        return;
+      }
       if (!canSelect()) return;
       const s = store.getState();
       const id = node.id;
+      outlinerActive.current = id;
       if (e.shiftKey) {
         const anchor = anchorRef.current && keyIndex.has(anchorRef.current) ? anchorRef.current : s.activeId ? objKey(s.activeId) : key;
         const a = keyIndex.get(anchor) ?? keyIndex.get(key)!;
@@ -404,17 +535,24 @@ export function Outliner() {
       }
     },
     doubleClick(key) {
-      if (key !== ROOT_KEY && tree.nodes.has(key)) setRenaming(key);
+      const node = tree.nodes.get(key);
+      if (key !== ROOT_KEY && node && node.kind !== 'content') setRenaming(key);
     },
     contextMenu(e, key) {
       e.preventDefault();
       e.stopPropagation();
       const node = tree.nodes.get(key);
       if (!node) return;
+      if (node.kind === 'content') {
+        // Pas de menu propre au contenu : le clic droit agit comme un clic (objet + onglet).
+        latest.current.click(e, key);
+        return;
+      }
       let items: UiMenuItem[];
       if (node.kind === 'object') {
         const s = store.getState();
         if (!s.selection.has(node.id) && s.mode !== 'edit') {
+          outlinerActive.current = node.id;
           setSelection([node.id], node.id);
           anchorRef.current = key;
         }
@@ -477,24 +615,47 @@ export function Outliner() {
         }
       });
     },
-    toggleVisible(key) {
+    restrictDown(e, key, field) {
       const node = tree.nodes.get(key);
-      if (!node) return;
+      if (!node || node.kind === 'content') return;
       const doc = getApp().doc;
-      if (node.kind === 'object') {
-        const o = doc.getObject(node.id);
-        if (o) doc.updateObject(node.id, { visible: !o.visible });
-      } else {
-        const c = doc.getCollection(node.id);
-        if (c) doc.updateCollection(node.id, { visible: !c.visible });
+      if ((e.ctrlKey || e.metaKey) && node.parentKey) {
+        // Isoler (Ctrl+clic, comme Blender) : seule cette ligne garde la bascule active parmi ses
+        // voisines de même nature ; si c'est déjà le cas, Ctrl+clic rétablit toutes les voisines.
+        const siblings = (tree.nodes.get(node.parentKey)?.children ?? []).map((k) => tree.nodes.get(k)!).filter((n) => n && n.kind === node.kind);
+        const isolated = readRestrict(node, field) && siblings.every((n) => n.key === key || !readRestrict(n, field));
+        withOp(() => {
+          for (const n of siblings) writeRestrict(n, field, isolated || n.key === key);
+        });
+        if (field === 'selectable' && !isolated) dropFromSelection(siblings.filter((n) => n.key !== key && n.kind === 'object').map((n) => n.id));
+        restrictDrag.current = null;
+        return;
       }
+      const value = !readRestrict(node, field);
+      // Toute la passe de glisser forme UNE étape d'annulation.
+      doc.beginOp();
+      restrictDrag.current = { field, value, kind: node.kind, doc };
+      doc.transact(() => writeRestrict(node, field, value));
+      if (field === 'selectable' && !value && node.kind === 'object') dropFromSelection([node.id]);
+      const end = () => {
+        if (restrictDrag.current?.doc === doc) restrictDrag.current = null;
+        doc.endOp();
+        window.removeEventListener('pointerup', end);
+        window.removeEventListener('pointercancel', end);
+        window.removeEventListener('blur', end);
+      };
+      window.addEventListener('pointerup', end);
+      window.addEventListener('pointercancel', end);
+      window.addEventListener('blur', end);
     },
-    toggleRenderable(key) {
+    restrictEnter(key, field) {
+      const drag = restrictDrag.current;
+      if (!drag || drag.field !== field || drag.doc !== getApp().doc) return;
       const node = tree.nodes.get(key);
-      if (node?.kind !== 'object') return;
-      const doc = getApp().doc;
-      const o = doc.getObject(node.id);
-      if (o) doc.updateObject(node.id, { renderable: !o.renderable });
+      if (!node || node.kind !== drag.kind) return;
+      if (readRestrict(node, field) === drag.value) return;
+      drag.doc.transact(() => writeRestrict(node, field, drag.value));
+      if (field === 'selectable' && !drag.value && node.kind === 'object') dropFromSelection([node.id]);
     },
     commitRename(key, name) {
       const node = tree.nodes.get(key);
@@ -514,7 +675,7 @@ export function Outliner() {
     },
     dragStart(e, key) {
       const node = tree.nodes.get(key);
-      if (!node || node.key === ROOT_KEY || renaming) {
+      if (!node || node.key === ROOT_KEY || node.kind === 'content' || renaming || restrictDrag.current) {
         e.preventDefault();
         return;
       }
@@ -591,6 +752,7 @@ export function Outliner() {
       for (let i = start + dir; i >= 0 && i < rows.length; i += dir) {
         const n = rows[i].node;
         if (n.kind !== 'object') continue;
+        outlinerActive.current = n.id;
         if (e.shiftKey) setSelection([...s.selection, n.id], n.id);
         else setSelection([n.id], n.id);
         anchorRef.current = n.key;
@@ -647,7 +809,26 @@ export function Outliner() {
           }
           onClick={() => newCollection(currentCol)}
         />
+        <IconButton
+          icon={Funnel}
+          tip={filtering ? 'Filtres (des filtres masquent des éléments)' : 'Filtres'}
+          active={filterOpen}
+          className={`cf-ol-filter-btn${filtering ? ' is-filtering' : ''}`}
+          buttonRef={(el) => {
+            filterBtnRef.current = el;
+          }}
+          onClick={() => setFilterOpen((o) => !o)}
+        />
       </div>
+      {filterOpen && (
+        <OutlinerFilterPopover
+          anchorEl={filterBtnRef.current}
+          onClose={() => setFilterOpen(false)}
+          filters={filters}
+          onChange={patchFilters}
+          counts={tree.typeCounts}
+        />
+      )}
       <div
         ref={scrollRef}
         className="cf-ol-scroll"
@@ -697,6 +878,7 @@ export function Outliner() {
                 renaming={renaming === n.key}
                 drop={drop?.key === n.key ? drop.state : null}
                 peers={isObj ? peers.get(n.id) : undefined}
+                cols={cols}
                 ctl={ctl}
               />
             );
@@ -704,6 +886,9 @@ export function Outliner() {
         </div>
         {tree.objectCount === 0 && !query && <div className="cf-ol-empty">Scène vide. Maj+A dans le viewport pour ajouter un objet.</div>}
         {query && total <= 1 && <div className="cf-ol-empty">Aucun élément ne correspond à « {query} ».</div>}
+        {!query && filtering && tree.objectCount > 0 && total <= 1 && (
+          <div className="cf-ol-empty">Aucun objet ne passe les filtres (bouton entonnoir).</div>
+        )}
       </div>
       {menu && <Menu items={menu.items} x={menu.x} y={menu.y} onClose={() => setMenu(null)} />}
     </div>

@@ -1,0 +1,235 @@
+/* Éditeurs d'animation : frise (timeline), feuille d'exposition, éditeur de courbes. */
+
+.cf-anim-area {
+  background: var(--bg-panel);
+}
+
+.cf-anim-header .cf-num {
+  flex: none;
+  width: 74px;
+  height: 20px;
+}
+
+.cf-anim-header .cf-num.cf-anim-frame {
+  width: 82px;
+}
+
+.cf-anim-header .cf-select {
+  height: 20px;
+}
+
+.cf-anim-transport {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0 4px;
+}
+
+.cf-anim-transport .cf-iconbtn {
+  width: 22px;
+  height: 20px;
+}
+
+.cf-anim-reverse svg {
+  transform: scaleX(-1);
+}
+
+.cf-anim-autokey.is-active {
+  background: #5a2626;
+  color: #ff5a5a;
+}
+
+.cf-anim-autokey.is-active:hover:not(:disabled) {
+  background: #6a2c2c;
+}
+
+.cf-anim-label {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.cf-anim-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+
+.cf-anim-canvas-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  outline: none;
+}
+
+.cf-anim-canvas-wrap canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  touch-action: none;
+}
+
+.cf-anim-canvas-wrap.is-autokey::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px rgba(220, 60, 60, 0.55);
+}
+
+.cf-anim-box {
+  position: absolute;
+  pointer-events: none;
+  border: 1px dashed rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ------------------------------------------------------------------ liste des canaux */
+
+.cf-anim-channels {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 220px;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: #262626;
+}
+
+.cf-anim-channels-head {
+  flex: none;
+  height: 22px;
+  padding: 0 6px;
+  line-height: 22px;
+  color: var(--text-dim);
+  font-size: 11px;
+  background: #2b2b2b;
+  border-bottom: 1px solid var(--border);
+}
+
+.cf-anim-channels-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.cf-anim-channel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding-right: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+
+.cf-anim-channel.is-summary {
+  background: #3b4a63;
+}
+
+.cf-anim-channel.is-object {
+  background: #3a3a3a;
+  font-weight: 600;
+}
+
+.cf-anim-channel.is-owner {
+  background: #333333;
+}
+
+.cf-anim-channel.is-curve:nth-child(even) {
+  background: #2a2a2a;
+}
+
+.cf-anim-channel.is-selected .cf-anim-channel-label {
+  color: #ffffff;
+}
+
+.cf-anim-channel.is-selected {
+  box-shadow: inset 2px 0 0 var(--select);
+}
+
+.cf-anim-channel-toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+}
+
+.cf-anim-channel-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.cf-anim-channel-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.cf-anim-channel .cf-iconbtn {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--text-dim);
+}
+
+.cf-anim-channel .cf-iconbtn.is-on {
+  color: var(--text);
+}
+
+.cf-anim-channel.is-locked .cf-anim-channel-label {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.cf-anim-empty {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  transform: translate(-50%, -50%);
+  color: var(--text-dim);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ champs animés (panneau Transformation) */
+
+.cf-anim-field[data-k0='keyed'] .cf-vec > .cf-num:nth-child(1),
+.cf-anim-field[data-k1='keyed'] .cf-vec > .cf-num:nth-child(2),
+.cf-anim-field[data-k2='keyed'] .cf-vec > .cf-num:nth-child(3) {
+  background: #9c8f1d;
+  color: #ffffff;
+}
+
+.cf-anim-field[data-k0='animated'] .cf-vec > .cf-num:nth-child(1),
+.cf-anim-field[data-k1='animated'] .cf-vec > .cf-num:nth-child(2),
+.cf-anim-field[data-k2='animated'] .cf-vec > .cf-num:nth-child(3) {
+  background: #4a7a2c;
+  color: #ffffff;
+}
+
+.cf-anim-field[data-k0='changed'] .cf-vec > .cf-num:nth-child(1),
+.cf-anim-field[data-k1='changed'] .cf-vec > .cf-num:nth-child(2),
+.cf-anim-field[data-k2='changed'] .cf-vec > .cf-num:nth-child(3) {
+  background: #b5651d;
+  color: #ffffff;
+}
+
+.cf-anim-field .cf-vec > .cf-num:hover {
+  filter: brightness(1.15);
+}

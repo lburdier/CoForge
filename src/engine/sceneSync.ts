@@ -34,6 +34,7 @@ import {
   type SceneLight,
 } from './lights';
 import { createStudioMaterial, MaterialLibrary } from './materials';
+import { nodeSurfaceBeforeRender } from './nodeMaterial';
 import { MeshEvaluator, booleanTargets } from './meshCache';
 import { createOccluderMaterial, createOutlineMaterial, LineMaterialCache, ORDER } from './overlayMaterials';
 import { COLOR_ACTIVE, COLOR_SELECTED, COLOR_VIEWPORT_BG, finite } from './util';
@@ -184,6 +185,8 @@ export class SceneSync {
   private xray = false;
 
   constructor(private host: SyncHost) {
+    // Matériau à nœuds modifié hors événement du document (image décodée) : redessiner.
+    this.materials.onAsyncChange = () => this.host.markDirty('materials');
     this.evaluator = new MeshEvaluator(
       () => this.host.getDoc(),
       (id) => {
@@ -256,6 +259,8 @@ export class SceneSync {
           for (const id of [...e.changed, ...e.removed]) this.materials.update(doc, id);
           if (e.added.length || e.removed.length) for (const n of this.nodes.values()) if (n.type === 'mesh') this.mark(n.id, F_MATERIAL);
           this.host.markDirty('materials');
+        } else if (e.table === 'nodeTrees') {
+          if (this.materials.updateTrees(doc, ids)) this.host.markDirty('materials');
         } else if (e.table === 'collections') {
           for (const n of this.nodes.values()) this.mark(n.id, F_VISIBILITY);
         } else {
@@ -610,6 +615,7 @@ export class SceneSync {
     if (g) {
       if (!n.surface) {
         n.surface = new Mesh(g.surface, this.materials.fallback);
+        n.surface.onBeforeRender = nodeSurfaceBeforeRender;
         n.surface.castShadow = true;
         n.surface.receiveShadow = true;
         n.surface.userData.objectId = n.id;

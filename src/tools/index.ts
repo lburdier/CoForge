@@ -1,6 +1,7 @@
 import type { AppContext } from '../app/context';
 import { Gizmo } from './gizmo';
 import { InputManager } from './input';
+import { registerAnimOps } from './anim';
 import { registerMeshOps } from './mesh';
 import { registerBaseOperators } from './operators';
 
@@ -10,18 +11,20 @@ export { baseOperators, registerBaseOperators } from './operators';
 
 /**
  * Point d'entrée des outils : enregistre tous les opérateurs (object.*, mesh.*,
- * transform.*, view.*) dans `app.ops` et branche le gestionnaire d'entrées
+ * transform.*, view.*, anim.*) dans `app.ops` et branche le gestionnaire d'entrées
  * (clavier, souris) et les gizmos sur le viewport. Renvoie la fonction de nettoyage.
  */
 export function registerTools(app: AppContext): () => void {
   registerBaseOperators(app);
   registerMeshOps(app);
-  if (typeof window === 'undefined') return () => {};
+  const unbindAnim = registerAnimOps(app);
+  if (typeof window === 'undefined') return unbindAnim;
   const gizmo = new Gizmo(app);
   const input = new InputManager(app, gizmo);
   const detach = input.attach();
   return () => {
     detach();
     gizmo.dispose();
+    unbindAnim();
   };
 }

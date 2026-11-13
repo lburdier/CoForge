@@ -1,6 +1,6 @@
 import { DoubleSide, Matrix3, Matrix4, Ray, Sphere, Vector3, type Camera } from 'three';
 import type { ElementHit, SurfaceHit } from './api';
-import type { AppState, SelectMode } from '../app/store';
+import { isTypeSelectable, type AppState, type SelectMode } from '../app/store';
 import type { SceneDoc } from '../core/doc/SceneDoc';
 import { edgeKey, type MeshData } from '../core/doc/schema';
 import type { GeoEntry } from './geometryPool';
@@ -189,6 +189,15 @@ export interface PickEnv {
   xray: boolean;
 }
 
+/**
+ * Objet sélectionnable dans le viewport : drapeau propre (`ObjectData.selectable`, colonne flèche
+ * de l'outliner) et type autorisé dans les préférences locales (filtres « Types d'objets »).
+ * Les objets non sélectionnables sont traversés par le clic et ignorés par le rectangle.
+ */
+function selectableNode(env: PickEnv, n: ObjNode): boolean {
+  return n.obj.selectable !== false && isTypeSelectable(env.state, n.type);
+}
+
 interface RayHit {
   id: string;
   distance: number;
@@ -294,7 +303,7 @@ export class Picker {
     };
     const vp = this.viewProj(env);
     for (const n of this.sync.nodes.values()) {
-      if (!n.visible) continue;
+      if (!n.visible || !selectableNode(env, n)) continue;
       if (n.type === 'mesh') {
         if (!n.geo) continue;
         const display = n.obj.displayAs;
@@ -368,7 +377,7 @@ export class Picker {
     const cx = (r.x0 + r.x1) / 2;
     const cy = (r.y0 + r.y1) / 2;
     for (const n of this.sync.nodes.values()) {
-      if (!n.visible) continue;
+      if (!n.visible || !selectableNode(env, n)) continue;
       const world = n.root.matrix;
       const m = this.viewProj(env, world).elements;
       const proj = makeProjector(m, env.width, env.height);

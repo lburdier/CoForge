@@ -1,6 +1,10 @@
 import { Color, DoubleSide, MeshPhysicalMaterial, ShaderMaterial } from 'three';
 import type { SceneDoc } from '../core/doc/SceneDoc';
 import { MATERIAL_DEFAULTS, type MaterialData } from '../core/doc/schema';
+import { clearShaderCache, compileShaderTree, defaultShaderTree } from '../core/nodes/shaderCompile';
+import type { NodeTreeData } from '../core/doc/schema';
+import { applyCompiledShader, clearNodeShader } from './nodeMaterial';
+import { nodeImageTexture, onNodeImagesReady } from './nodeImages';
 import { clamp, finite, parseColor } from './util';
 
 /**
@@ -28,6 +32,32 @@ export function applyMaterialData(mat: MeshPhysicalMaterial, data: Omit<Material
   if (needsUpdate) mat.needsUpdate = true;
 }
 
+/**
+ * Matériau du document → MeshPhysicalMaterial : par son arbre de nœuds s'il en a un (Principled
+ * complet, textures procédurales), sinon par ses champs simples.
+ */
+export function applyDocMaterial(mat: MeshPhysicalMaterial, doc: SceneDoc, data: MaterialData, xray = false): void {
+  const tree = data.nodeTree && data.useNodes !== false ? doc.getNodeTree(data.nodeTree) : null;
+  if (tree && tree.kind === 'shader') {
+    try {
+      applyCompiledShader(mat, compileShaderTree(tree), xray, (img) => nodeImageTexture(doc, img));
+      return;
+    } catch (err) {
+      console.warn('[nœuds] compilation du matériau impossible, champs simples utilisés', err);
+    }
+  }
+  clearNodeShader(mat);
+  applyMaterialData(mat, data, xray);
+}
+
+/**
+ * Arbre de nœuds initial d'un matériau (« Utiliser les nœuds ») : Principled BSDF → Sortie du
+ * matériau, initialisés d'après les champs simples du matériau. À écrire avec `doc.addNodeTree`.
+ */
+export function createDefaultShaderTree(material?: Partial<MaterialData>): Pick<NodeTreeData, 'nodes' | 'links'> {
+  return defaultShaderTree(material);
+}
+
 export function createPhysicalMaterial(): MeshPhysicalMaterial {
   const m = new MeshPhysicalMaterial({ side: DoubleSide });
   // Recule légèrement les surfaces pour que les arêtes et la cage d'édition dessinées par-dessus ne scintillent pas.
@@ -46,22 +76,35 @@ export class MaterialLibrary {
   private xray = false;
   /** Matériau des objets sans matériau : gris neutre. */
   readonly fallback: MeshPhysicalMaterial;
+  /** Appelé quand un matériau change hors événement du document (image décodée) : redessiner. */
+  onAsyncChange: (() => void) | null = null;
+  private lastDoc: SceneDoc | null = null;
+  private stopImages: () => void;
 
   constructor() {
     this.fallback = createPhysicalMaterial();
     this.fallback.name = 'defaut';
     applyMaterialData(this.fallback, MATERIAL_DEFAULTS);
+    // Image décodée : sa couleur moyenne change le repli (path tracing) et sa texture remplace le gris d'attente.
+    this.stopImages = onNodeImagesReady(() => {
+      const doc = this.lastDoc;
+      if (!doc || this.map.size === 0) return;
+      clearShaderCache();
+      for (const id of [...this.map.keys()]) if (doc.getMaterial(id)?.nodeTree) this.update(doc, id);
+      this.onAsyncChange?.();
+    });
   }
 
   get(doc: SceneDoc | null, id: string | null): MeshPhysicalMaterial {
     if (!id || !doc) return this.fallback;
+    this.lastDoc = doc;
     const cached = this.map.get(id);
     if (cached) return cached;
     const data = doc.getMaterial(id);
     if (!data) return this.fallback;
     const mat = createPhysicalMaterial();
     mat.name = data.name;
-    applyMaterialData(mat, data, this.xray);
+    applyDocMaterial(mat, doc, data, this.xray);
     this.map.set(id, mat);
     return mat;
   }
@@ -77,7 +120,21 @@ export class MaterialLibrary {
       return;
     }
     mat.name = data.name;
-    applyMaterialData(mat, data, this.xray);
+    applyDocMaterial(mat, doc, data, this.xray);
+  }
+
+  /** Relit les matériaux qui utilisent ces arbres de nœuds. */
+  updateTrees(doc: SceneDoc, treeIds: Iterable<string>): boolean {
+    const set = new Set(treeIds);
+    let any = false;
+    for (const id of [...this.map.keys()]) {
+      const data = doc.getMaterial(id);
+      if (!data || (data.nodeTree && set.has(data.nodeTree))) {
+        this.update(doc, id);
+        any = true;
+      }
+    }
+    return any;
   }
 
   setXray(doc: SceneDoc | null, xray: boolean): void {
@@ -94,6 +151,7 @@ export class MaterialLibrary {
   }
 
   dispose(): void {
+    this.stopImages();
     this.clear();
     this.fallback.dispose();
   }

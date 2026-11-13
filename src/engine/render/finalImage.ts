@@ -3,6 +3,8 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import type { RenderSettings } from '../../core/doc/schema';
 import { RealtimeChain, applyShadowQuality, presentTexture, renderCoverageMask } from './realtime';
 import { PathTracerHost, hasTraceableMesh } from './pathtracer';
+import { PathPost, type PostArgs } from './post';
+import { readAtrousParams, readBloomParams, readTracerParams, resolveDenoiser, timeLimitMs } from './settings';
 import {
   abortError,
   applyColorManagement,
@@ -109,6 +111,7 @@ async function renderPathTraced(a: FinalImageArgs): Promise<string> {
   const tiles = pixelsCount > 6e6 ? 4 : pixelsCount > 2.5e6 ? 3 : pixelsCount > 1.2e6 ? 2 : 1;
 
   const host = new PathTracerHost(renderer, tiles);
+  const post = new PathPost(renderer);
   const output = new OutputPass();
   const out = new WebGLRenderTarget(width, height, { depthBuffer: false });
   const pScale = Math.min(1, PREVIEW_MAX_SIDE / Math.max(width, height));
@@ -127,9 +130,29 @@ async function renderPathTraced(a: FinalImageArgs): Promise<string> {
     }
   };
 
+  const limitMs = timeLimitMs(settings);
+  const postBase: Omit<PostArgs, 'source' | 'samples' | 'guidesStale'> = {
+    scene,
+    camera,
+    srcW: width,
+    srcH: height,
+    outW: width,
+    outH: height,
+    denoiser: resolveDenoiser(settings, 'final'),
+    atrous: readAtrousParams(settings),
+    bloom: readBloomParams(settings),
+  };
+  let guidesStale = true;
+  /** Accumulation → débruitage → bloom (HDR linéaire), dans l'état du renderer du rendu final. */
+  const processed = (samples: number) => {
+    const tex = post.process({ ...postBase, source: host.texture, samples, guidesStale });
+    guidesStale = false;
+    return tex;
+  };
+
   try {
     host.setSize(width, height);
-    host.setBounces(settings.bounces);
+    host.setTracerParams(readTracerParams(settings));
     withState(() => {
       // L'environnement est déterminé avant de retirer le fond (fond transparent).
       const env = host.environmentFor(scene);
@@ -144,7 +167,10 @@ async function renderPathTraced(a: FinalImageArgs): Promise<string> {
 
     let lastPreview = performance.now();
     let lastReported = -1;
-    while (Math.floor(host.samples) < target) {
+    /** Début du chronomètre de la limite de temps : premier échantillon tracé (compilation exclue). */
+    let traceStart = 0;
+    const timeUp = () => limitMs > 0 && traceStart > 0 && Math.floor(host.samples) >= 1 && performance.now() - traceStart >= limitMs;
+    while (Math.floor(host.samples) < target && !timeUp()) {
       if (signal.aborted) throw abortError();
       withState(() => host.renderSample());
       if (host.failed) throw new Error('Le shader de path tracing ne fonctionne pas sur ce GPU');
@@ -154,6 +180,7 @@ async function renderPathTraced(a: FinalImageArgs): Promise<string> {
         continue;
       }
       await waitForGpu(renderer);
+      if (traceStart === 0) traceStart = performance.now();
       const done = Math.floor(host.samples);
       if (done !== lastReported) {
         lastReported = done;
@@ -162,20 +189,21 @@ async function renderPathTraced(a: FinalImageArgs): Promise<string> {
         if (done >= 1 && done < target && now - lastPreview >= PREVIEW_INTERVAL_MS) {
           lastPreview = now;
           const px = withState(() => {
-            presentTexture(renderer, output, host.texture, previewRT);
+            presentTexture(renderer, output, processed(done), previewRT);
             return readTargetRGBA(renderer, previewRT, pw, ph, { opaque: true });
           });
           preview = await pixelsToDataUrl(px, pw, ph, 'jpeg');
           if (signal.aborted) throw abortError();
         }
-        safeProgress(a, done / target, done, preview);
+        const byTime = limitMs > 0 && traceStart > 0 ? (performance.now() - traceStart) / limitMs : 0;
+        safeProgress(a, Math.max(done / target, byTime), done, preview);
       }
       await yieldToUI();
     }
 
     if (signal.aborted) throw abortError();
     const pixels = withState(() => {
-      presentTexture(renderer, output, host.texture, out);
+      presentTexture(renderer, output, processed(Math.max(1, Math.floor(host.samples))), out);
       return readTargetRGBA(renderer, out, width, height, { opaque: !transparent });
     });
     const url = await pixelsToDataUrl(pixels, width, height, 'png');
@@ -184,6 +212,7 @@ async function renderPathTraced(a: FinalImageArgs): Promise<string> {
     return url;
   } finally {
     host.dispose();
+    post.dispose();
     output.dispose();
     out.dispose();
     previewRT.dispose();

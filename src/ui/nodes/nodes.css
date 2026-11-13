@@ -1,0 +1,775 @@
+/* Éditeur de nœuds (shaders), dans l'esprit de l'éditeur de nœuds de Blender. */
+
+.cf-ne {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-panel);
+}
+
+.cf-ne-loading {
+  padding: 12px;
+  color: var(--text-dim);
+}
+
+.cf-ne-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 6px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+}
+
+.cf-ne-header .cf-select {
+  min-width: 140px;
+  max-width: 220px;
+}
+
+.cf-ne-icon {
+  color: var(--text-dim);
+}
+
+.cf-ne-title {
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.cf-ne-usenodes.is-on {
+  background: var(--accent);
+  color: #fff;
+}
+
+.cf-ne-notes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--warn);
+  cursor: help;
+  white-space: nowrap;
+}
+
+.cf-ne-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+}
+
+/* ------------------------------------------------------------------ canevas */
+
+.cf-ne-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  outline: none;
+  background-color: #1d1d1d;
+  background-image: radial-gradient(circle, #2c2c2c 1px, transparent 1.2px);
+  cursor: default;
+  user-select: none;
+  touch-action: none;
+}
+
+.cf-ne-canvas.is-panning {
+  cursor: grabbing;
+}
+
+.cf-ne-canvas.is-moving {
+  cursor: move;
+}
+
+.cf-ne-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.cf-ne-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.cf-ne-link {
+  fill: none;
+  stroke: #9a9a9a;
+  stroke-width: 2px;
+  opacity: 0.9;
+}
+
+.cf-ne-link.is-hot {
+  stroke: #ffffff;
+  stroke-width: 2.5px;
+}
+
+.cf-ne-link.is-invalid {
+  stroke: #e04040;
+  stroke-dasharray: 6 4;
+}
+
+.cf-ne-link.is-muted {
+  opacity: 0.35;
+}
+
+.cf-ne-link.is-ghost {
+  stroke: #ffffff;
+  stroke-dasharray: 5 4;
+}
+
+.cf-ne-link.is-lazy {
+  stroke: #e6a33a;
+  stroke-width: 2px;
+  stroke-dasharray: 3 3;
+}
+
+.cf-ne-cut {
+  fill: none;
+  stroke: #e04040;
+  stroke-width: 1.5px;
+  stroke-dasharray: 4 3;
+}
+
+.cf-ne-cut.is-reroute {
+  stroke: #6fc06f;
+}
+
+.cf-ne-box {
+  position: absolute;
+  border: 1px dashed rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+.cf-ne-overlay {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.cf-ne-overlay > * {
+  pointer-events: auto;
+}
+
+.cf-ne-status {
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  background: var(--bg-overlay);
+  color: var(--text);
+  pointer-events: none !important;
+}
+
+/* ------------------------------------------------------------------ cadres */
+
+.cf-ne-frame {
+  position: absolute;
+  border-radius: 6px;
+  background: rgba(70, 70, 70, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cf-ne-frame > span {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+}
+
+.cf-ne-frame.is-selected {
+  border-color: var(--select);
+}
+
+/* ------------------------------------------------------------------ nœuds */
+
+.cf-nd {
+  position: absolute;
+  border-radius: 6px;
+  background: #303030;
+  border: 1px solid #111;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.cf-nd.is-selected {
+  border-color: var(--select);
+  box-shadow: 0 0 0 1px var(--select), 0 3px 10px rgba(0, 0, 0, 0.45);
+}
+
+.cf-nd.is-active {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px #ffffff, 0 3px 10px rgba(0, 0, 0, 0.45);
+}
+
+.cf-nd.is-muted {
+  opacity: 0.55;
+}
+
+.cf-nd.is-muted .cf-nd-header {
+  background: #5a2020 !important;
+}
+
+.cf-nd-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px 0 2px;
+  border-radius: 5px 5px 0 0;
+  color: #fff;
+  overflow: hidden;
+}
+
+.cf-nd.is-collapsed .cf-nd-header {
+  border-radius: 5px;
+}
+
+.cf-nd-collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.cf-nd-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.cf-nd-unknown {
+  padding: 4px 8px;
+  color: var(--warn);
+  margin-top: 26px;
+}
+
+.cf-nd-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.cf-nd-out {
+  justify-content: flex-end;
+}
+
+.cf-nd-color {
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.cf-nd-color > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cf-nd-panel {
+  gap: 4px;
+  color: var(--text-dim);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.03);
+  border-top: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.cf-nd-panel:hover {
+  color: var(--text);
+}
+
+.cf-nd-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+}
+
+.cf-nd-field .cf-num,
+.cf-nd-field .cf-select {
+  height: 18px;
+  font-size: 11px;
+}
+
+.cf-nd-field .cf-select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cf-nd-colorprop .cf-color {
+  flex: 1 1 auto;
+}
+
+.cf-nd-swatch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid #111;
+  cursor: pointer;
+}
+
+.cf-nd-swatch input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.cf-nd-socket {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  border: 1px solid #111;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.cf-nd-socket.is-folded {
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+}
+
+.cf-nd-reroute {
+  position: absolute;
+  border-radius: 50%;
+  background: #888;
+  border: 2px solid #222;
+  box-sizing: border-box;
+}
+
+.cf-nd-reroute.is-selected {
+  border-color: var(--select);
+}
+
+/* Rampe de couleurs */
+
+.cf-nd-ramp {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 2px 0;
+}
+
+.cf-nd-ramp-tools,
+.cf-nd-ramp-edit {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cf-nd-ramp-tools .cf-select {
+  flex: 1 1 auto;
+  height: 18px;
+  font-size: 11px;
+}
+
+.cf-nd-ramp-edit .cf-num {
+  height: 18px;
+  font-size: 11px;
+}
+
+.cf-nd-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: var(--bg-field);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.cf-nd-mini:disabled {
+  opacity: 0.4;
+}
+
+.cf-nd-ramp-bar {
+  position: relative;
+  height: 14px;
+  border-radius: 2px;
+  border: 1px solid #111;
+}
+
+.cf-nd-ramp-stop {
+  position: absolute;
+  top: -2px;
+  width: 8px;
+  height: 16px;
+  margin-left: -4px;
+  border: 1px solid #000;
+  outline: 1px solid #fff;
+  cursor: ew-resize;
+}
+
+.cf-nd-ramp-stop.is-active {
+  outline: 2px solid var(--select);
+}
+
+/* ------------------------------------------------------------------ menu Ajouter */
+
+.cf-ne-add {
+  position: fixed;
+  z-index: 2000;
+  width: 400px;
+  max-height: 380px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-menu);
+  border: 1px solid #000;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font: var(--font);
+  color: var(--text);
+}
+
+.cf-ne-add-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #000;
+  color: var(--text-dim);
+}
+
+.cf-ne-add-search input {
+  flex: 1 1 auto;
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 3px;
+  background: var(--bg-field-dark);
+  color: var(--text);
+  font: var(--font);
+  outline: none;
+}
+
+.cf-ne-add-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.cf-ne-add-cats {
+  display: flex;
+  flex-direction: column;
+  width: 140px;
+  padding: 4px;
+  border-right: 1px solid #000;
+}
+
+.cf-ne-add-items {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  padding: 4px;
+  overflow-y: auto;
+}
+
+.cf-ne-add-cat,
+.cf-ne-add-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--text);
+  font: var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cf-ne-add-cat:hover,
+.cf-ne-add-item:hover,
+.cf-ne-add-cat.is-active,
+.cf-ne-add-item.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.cf-ne-add-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cf-ne-add-sub {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.cf-ne-add-hint {
+  padding: 8px;
+  color: var(--text-dim);
+}
+
+/* ------------------------------------------------------------------ barre latérale */
+
+.cf-ne-sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 240px;
+  overflow-y: auto;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  background: rgba(40, 40, 40, 0.96);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: default;
+}
+
+.cf-ne-side-title {
+  margin-top: 4px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.cf-ne-side-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cf-ne-side-row > span:first-child {
+  flex: 0 0 72px;
+  color: var(--text-dim);
+}
+
+.cf-ne-side-row > :last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cf-ne-side-notes,
+.cf-ne-side-keys {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.cf-ne-side-notes li {
+  color: var(--warn);
+}
+
+/* ------------------------------------------------------------------ menus de l'en-tête, renommage, support */
+
+.cf-ne-menus {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.cf-ne-menubar {
+  height: 100%;
+}
+
+.cf-ne-rename {
+  position: absolute;
+  z-index: 5;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--bg-input, #1e1e1e);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.cf-nd-support {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: #f0c040;
+  cursor: help;
+}
+
+.cf-nd-support.is-none {
+  color: #ff7a6b;
+}
+
+.cf-ne-add-warn {
+  flex: 0 0 auto;
+  margin-left: 4px;
+  color: #f0c040;
+}
+
+.cf-ne-add-warn.is-none {
+  color: #ff7a6b;
+}
+
+/* ------------------------------------------------------------------ panneau Surface (onglet Matériau) */
+
+.cf-props-nodefield {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cf-props-nodefield > :last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cf-props-linkbtn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.cf-props-linkbtn:hover {
+  background: var(--bg-field-dark, #2a2a2a);
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------------ courbes, texture image */
+
+.cf-nd-curve {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 8px;
+}
+
+.cf-nd-curve-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.cf-nd-curve-tab {
+  flex: 1 1 0;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: #2b2b2b;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cf-nd-curve-tab.is-active {
+  background: #4a4a4a;
+}
+
+.cf-nd-curve-svg {
+  width: 100%;
+  border-radius: 3px;
+  background: #1e1e1e;
+  cursor: crosshair;
+}
+
+.cf-nd-curve-grid line {
+  stroke: #333;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.cf-nd-curve-pt {
+  fill: #111;
+  stroke: #eee;
+  stroke-width: 1;
+}
+
+.cf-nd-curve-pt.is-active {
+  fill: #fff;
+}
+
+.cf-nd-image {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 8px;
+}
+
+.cf-nd-image-row {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cf-nd-image-row .cf-select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cf-nd-image-open {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.cf-nd-image-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 86px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #1e1e1e;
+}
+
+.cf-nd-image-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.cf-nd-image-none {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-dim);
+}

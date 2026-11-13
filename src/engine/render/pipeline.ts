@@ -2,7 +2,9 @@ import { BoxGeometry, Mesh, MeshPhysicalMaterial, NoToneMapping, Scene, Vector2,
 import type { RenderSettings } from '../../core/doc/schema';
 import { DepthPrepass, RealtimeChain, applyShadowQuality } from './realtime';
 import { CameraWatch, PathTracerHost, environmentKey, hasTraceableMesh } from './pathtracer';
-import { Upscaler, samplesPerFrame, upscaleScale } from './upscale';
+import { samplesPerFrame, upscaleScale } from './upscale';
+import { PathPost } from './post';
+import { readAtrousParams, readBloomParams, readTracerParams, readViewportSamples, resolveDenoiser } from './settings';
 import { applyColorManagement, applyShadowSettings, clampNum, finiteOr } from './state';
 
 export type FrameMode = 'plain' | 'realtime' | 'pathtrace';
@@ -17,7 +19,9 @@ const GEOMETRY_SETTLE_MS = 150;
  *  - `plain`     : rendu direct dans le canvas (fil de fer / solide / matériau), sans post-traitement ;
  *                  le tone mapping et l'exposition du renderer s'appliquent aux matériaux `toneMapped`.
  *  - `realtime`  : chaîne HDR (ombres PCF, GTAO, bloom, MSAA) puis tone mapping + sRGB.
- *  - `pathtrace` : three-gpu-pathtracer, un échantillon par image jusqu'à `viewportSamples`.
+ *  - `pathtrace` : three-gpu-pathtracer, un échantillon par image jusqu'à `viewportSamples`
+ *                  (affiché à partir de `viewportMinSamples`), puis débruitage, remise à
+ *                  l'échelle et bloom selon les réglages (voir `PathPost`).
  *                  Tant que la BVH n'est pas prête (édition en cours, compilation du shader)
  *                  ou si le GPU ne le permet pas, l'image temps réel est affichée à la place.
  *
@@ -28,7 +32,9 @@ export class RenderPipeline {
   private chain: RealtimeChain;
   private prepass = new DepthPrepass();
   private host: PathTracerHost | null = null;
-  private upscaler: Upscaler | null = null;
+  private post: PathPost | null = null;
+  /** Les passes guides du débruiteur haute qualité sont à refaire (scène, caméra, taille). */
+  private guidesStale = true;
   private readonly ptSize = new Vector2();
   private ptFailed = false;
   private ptScene: Scene | null = null;
@@ -77,7 +83,7 @@ export class RenderPipeline {
     try {
       const host = this.ensureHost();
       if (!host) return;
-      host.setBounces(settings.bounces);
+      host.setTracerParams(readTracerParams(settings));
       host.setScene(warm, camera);
       // ptScene reste nul : au passage réel en path tracing, la vraie scène est reconstruite.
       this.ptScene = null;
@@ -164,8 +170,8 @@ export class RenderPipeline {
     this.prepass.dispose();
     this.host?.dispose();
     this.host = null;
-    this.upscaler?.dispose();
-    this.upscaler = null;
+    this.post?.dispose();
+    this.post = null;
     this.ptScene = null;
     this.ptCamera = null;
   }
@@ -227,6 +233,7 @@ export class RenderPipeline {
       }
       try {
         host.setScene(scene, camera);
+        this.guidesStale = true;
         this.ptScene = scene;
         this.ptCamera = camera;
         this.camWatch.record(camera);
@@ -252,16 +259,18 @@ export class RenderPipeline {
       host.setCamera(camera);
       this.ptCamera = camera;
       this.camWatch.record(camera);
+      this.guidesStale = true;
     } else if (this.camWatch.changed(camera) || this.dirty.has('camera')) {
       host.updateCamera();
+      this.guidesStale = true;
     }
     this.dirty.clear();
-    host.setBounces(settings.bounces);
+    host.setTracerParams(readTracerParams(settings));
 
     const scale = upscaleScale(settings.upscale);
     host.setScale(scale);
 
-    const target = Math.round(clampNum(finiteOr(settings.viewportSamples, 64), 1, 100000));
+    const { min: minSamples, max: target } = readViewportSamples(settings);
     // À résolution réduite un échantillon coûte moins : on en trace plusieurs par image.
     for (let i = samplesPerFrame(scale); i > 0 && host.samples < target; i--) host.renderSample();
 
@@ -274,17 +283,29 @@ export class RenderPipeline {
     }
 
     const samples = Math.floor(host.samples);
-    if (samples >= 1) {
-      let image = host.texture;
-      if (scale < 1 || settings.denoise) {
-        if (!this.upscaler) this.upscaler = new Upscaler(this.renderer);
-        const src = host.getSize(this.ptSize);
-        image = this.upscaler.process(image, src.x, src.y, this.bufferSize.x, this.bufferSize.y, samples, settings.denoise !== false);
-      }
+    if (samples >= 1 && samples >= minSamples) {
+      if (!this.post) this.post = new PathPost(this.renderer);
+      const src = host.getSize(this.ptSize);
+      this.renderer.getDrawingBufferSize(this.bufferSize);
+      const image = this.post.process({
+        scene,
+        camera,
+        source: host.texture,
+        srcW: src.x,
+        srcH: src.y,
+        outW: this.bufferSize.x,
+        outH: this.bufferSize.y,
+        samples,
+        denoiser: resolveDenoiser(settings, 'viewport'),
+        atrous: readAtrousParams(settings),
+        bloom: readBloomParams(settings),
+        guidesStale: this.guidesStale,
+      });
+      this.guidesStale = false;
       this.chain.present(image, null);
       this._samples = samples;
     } else {
-      // Shader en compilation ou premier échantillon pas encore prêt.
+      // Shader en compilation, ou pas encore assez d'échantillons pour afficher l'image tracée.
       this.renderRealtime(scene, camera, settings);
     }
     return host.compiling || host.samples < target;

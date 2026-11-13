@@ -22,7 +22,18 @@ import {
   type SceneSettings,
   type Vec3,
   type WorldSettings,
+  ANIM_CURVE_DEFAULTS,
+  ANIM_DEFAULTS,
+  ANIM_FRAME_EPS,
+  curveKey,
+  type AnimCurveFlags,
+  type AnimPath,
+  type AnimSettings,
+  type KeyframeData,
 } from './schema';
+import { AnimLayer } from '../anim/layer';
+import { evaluatePoints, keyAtFrame, type CurveEval } from '../anim/fcurve';
+import { animProp, animPropByField, animPropsOf, fieldComponents, propOrder, readProp, type AnimOwnerKind, type AnimTarget } from '../anim/props';
 
 /**
  * SceneDoc : façade typée au-dessus du Y.Doc partagé.
@@ -40,6 +51,13 @@ import {
  *   scene       Y.Map (clés 'name', 'activeCamera', 'w:<clé monde>', 'r:<clé rendu>')
  *   chat        Y.Array<ChatMessage>
  *   meta        Y.Map { schema }
+ *   animKeys    Y.Map<idClé, KeyframeData>   images clés, une entrée indépendante chacune (voir schema.ts)
+ *   animCurves  Y.Map<cléCourbe, AnimCurveFlags>
+ *
+ * Animation : les lecteurs (getObject, getLight, getCamera, getMaterial) renvoient la scène
+ * ÉVALUÉE à l'image courante LOCALE (`setAnimFrame`), comme les propriétés de Blender après un
+ * changement d'image. Modifier une propriété animée sans auto-key la change temporairement (jusqu'au
+ * prochain changement d'image) ; avec auto-key (`setAutoKey(true)`) une clé est posée / mise à jour.
  *
  * Tolérance aux conflits : comme les éditions sont concurrentes, une référence
  * peut pointer vers un élément supprimé par quelqu'un d'autre. Les lecteurs
@@ -50,8 +68,13 @@ import {
 export type DataTable = 'lights' | 'cameras' | 'materials' | 'collections' | 'nodeTrees' | 'texts';
 
 export interface DocEvents {
-  /** Émis une fois après toute transaction ayant modifié le document. */
-  change: { local: boolean };
+  /**
+   * Émis une fois après toute transaction ayant modifié le document. Aussi émis (local: false,
+   * anim: true) quand la scène ÉVALUÉE change sans que le document change (changement d'image).
+   */
+  change: { local: boolean; anim?: boolean };
+  /** Des images clés ou des réglages de courbe ont changé (propriétaires concernés). */
+  anim: { owners: string[]; local: boolean };
   objects: {
     added: string[];
     removed: string[];
@@ -96,6 +119,14 @@ export class SceneDoc {
   private yScene: Y.Map<any>;
   private yChat: Y.Array<ChatMessage>;
   private yMeta: Y.Map<any>;
+  private yAnimKeys: Y.Map<KeyframeData>;
+  private yAnimCurves: Y.Map<Partial<AnimCurveFlags>>;
+
+  /** Évaluation locale de l'animation (tête de lecture, valeurs animées et temporaires). */
+  private anim = new AnimLayer();
+  private autoKeyOn = false;
+  private animAuthor: string | undefined;
+  private tempAtOpStart: Map<string, Map<string, unknown>> | null = null;
 
   private undoManager: Y.UndoManager;
   private opDepth = 0;
@@ -122,9 +153,27 @@ export class SceneDoc {
     this.yScene = this.ydoc.getMap('scene');
     this.yChat = this.ydoc.getArray('chat');
     this.yMeta = this.ydoc.getMap('meta');
+    this.yAnimKeys = this.ydoc.getMap('animKeys');
+    this.yAnimCurves = this.ydoc.getMap('animCurves');
+    // Documents existants (fichier ouvert) : index des clés ; un document sans animation est simplement vide.
+    this.yAnimCurves.forEach((f, ck) => this.anim.setFlags(ck, f && typeof f === 'object' ? f : null));
+    this.yAnimKeys.forEach((k, id) => this.anim.setKey(id, k && typeof k === 'object' ? k : null));
+    for (const owner of this.anim.owners()) this.anim.evaluateOwner(owner);
 
     this.undoManager = new Y.UndoManager(
-      [this.yObjects, this.yMeshes, this.yTables.lights, this.yTables.cameras, this.yTables.materials, this.yTables.collections, this.yTables.nodeTrees, this.yTables.texts, this.yScene],
+      [
+        this.yObjects,
+        this.yMeshes,
+        this.yTables.lights,
+        this.yTables.cameras,
+        this.yTables.materials,
+        this.yTables.collections,
+        this.yTables.nodeTrees,
+        this.yTables.texts,
+        this.yScene,
+        this.yAnimKeys,
+        this.yAnimCurves,
+      ],
       { trackedOrigins: new Set([this.localOrigin]), captureTimeout: 1e9 },
     );
     const emitUndo = () => this.emit('undo', { canUndo: this.canUndo(), canRedo: this.canRedo() });
@@ -333,6 +382,24 @@ export class SceneDoc {
     });
     this.yChat.observe((_ev, tr) => this.emit('chat', { local: tr.local }));
 
+    this.yAnimKeys.observe((ev, tr) => {
+      const owners = new Set<string>();
+      ev.changes.keys.forEach((_c, id) => {
+        const k = this.yAnimKeys.get(id);
+        for (const o of this.anim.setKey(id, k && typeof k === 'object' ? k : null)) owners.add(o);
+      });
+      this.afterAnimChange(owners, tr.local);
+    });
+    this.yAnimCurves.observe((ev, tr) => {
+      const owners = new Set<string>();
+      ev.changes.keys.forEach((_c, ck) => {
+        const f = this.yAnimCurves.get(ck);
+        this.anim.setFlags(ck, f && typeof f === 'object' ? f : null);
+        owners.add(ck.split('|')[0]);
+      });
+      this.afterAnimChange(owners, tr.local);
+    });
+
     this.ydoc.on('afterTransaction', (tr: Y.Transaction) => {
       if (tr.changed.size > 0) this.emit('change', { local: tr.local });
     });
@@ -366,6 +433,7 @@ export class SceneDoc {
     if (this.opDepth === 0) {
       this.undoManager.stopCapturing();
       this.opStackLength = this.undoManager.undoStack.length;
+      this.tempAtOpStart = this.anim.snapshotTemp();
     }
     this.opDepth++;
   }
@@ -386,6 +454,10 @@ export class SceneDoc {
       this.undoManager.redoStack.pop();
       this.emit('undo', { canUndo: this.canUndo(), canRedo: this.canRedo() });
     }
+    // Valeurs temporaires (propriétés animées modifiées sans auto-key) : remises comme avant l'opération.
+    const snap = this.tempAtOpStart;
+    this.tempAtOpStart = null;
+    if (snap) this.emitAnimValues(new Set(this.anim.restoreTemp(snap)), true);
   }
 
   endOp(): void {
@@ -394,6 +466,7 @@ export class SceneDoc {
     if (this.opDepth === 0) {
       this.undoManager.stopCapturing();
       this.lastLooseTransact = 0;
+      this.tempAtOpStart = null;
     }
   }
 
@@ -441,6 +514,7 @@ export class SceneDoc {
     if (obj.collection !== ROOT_COLLECTION && !this.yTables.collections.has(obj.collection)) obj.collection = ROOT_COLLECTION;
     if (obj.material && !this.yTables.materials.has(obj.material)) obj.material = null;
     if (!Array.isArray(obj.modifiers)) obj.modifiers = [];
+    this.anim.apply(id, 'object', obj, this.renderAspect());
     this.objectCache.set(id, obj);
     return obj;
   }
@@ -520,11 +594,13 @@ export class SceneDoc {
   updateObject(id: string, patch: Partial<Omit<ObjectData, 'id'>>): void {
     const y = this.yObjects.get(id);
     if (!y) return;
+    const before = this.getObject(id);
     this.transact(() => {
       for (const [k, v] of Object.entries(patch)) {
         if (k === 'id' || v === undefined) continue;
         y.set(k, clone(v));
       }
+      if (before) this.animIntercept('object', id, before, patch);
     });
   }
 
@@ -540,6 +616,7 @@ export class SceneDoc {
     this.transact(() => {
       for (const child of this.childrenOf(id)) this.yObjects.get(child)?.set('parent', obj.parent);
       this.yObjects.delete(id);
+      this.dropAnimOf(id);
       if (this.yScene.get('activeCamera') === id) this.yScene.set('activeCamera', null);
       if (obj.data) {
         const stillUsed = this.listObjects().some((o) => o.id !== id && o.data === obj.data && o.type === obj.type);
@@ -547,6 +624,7 @@ export class SceneDoc {
           if (obj.type === 'mesh') this.yMeshes.delete(obj.data);
           else if (obj.type === 'light') this.yTables.lights.delete(obj.data);
           else if (obj.type === 'camera') this.yTables.cameras.delete(obj.data);
+          if (obj.type === 'light' || obj.type === 'camera') this.dropAnimOf(obj.data);
         }
       }
     });
@@ -576,7 +654,11 @@ export class SceneDoc {
       const copy: Partial<ObjectData> & Pick<ObjectData, 'type'> = { ...clone(obj), data };
       delete copy.id;
       copy.modifiers = obj.modifiers.map((m) => ({ ...clone(m), id: newId(8) }));
-      return this.addObject(copy);
+      const newIdent = this.addObject(copy);
+      // L'animation suit la copie (comme « Dupliquer les données : action » de Blender).
+      this.copyAnimTo(id, newIdent);
+      if (data && obj.data && data !== obj.data && (obj.type === 'light' || obj.type === 'camera')) this.copyAnimTo(obj.data, data);
+      return newIdent;
     });
   }
 
@@ -693,7 +775,10 @@ export class SceneDoc {
   private tableGet<T extends { id: string }>(table: DataTable, id: string, defaults: object): T | null {
     const y = this.yTables[table].get(id);
     if (!y) return null;
-    return { ...clone(defaults), ...(y.toJSON() as object), id } as T;
+    const out = { ...clone(defaults), ...(y.toJSON() as object), id } as T;
+    const kind = TABLE_ANIM_KIND[table];
+    if (kind) this.anim.apply(id, kind, out as unknown as AnimTarget, this.renderAspect());
+    return out;
   }
 
   private tableAdd(table: DataTable, values: Record<string, any>, id = newId()): string {
@@ -710,10 +795,13 @@ export class SceneDoc {
   private tableUpdate(table: DataTable, id: string, patch: Record<string, any>): void {
     const y = this.yTables[table].get(id);
     if (!y) return;
+    const kind = TABLE_ANIM_KIND[table];
+    const before = kind ? this.animTarget(kind, id) : null;
     this.transact(() => {
       for (const [k, v] of Object.entries(patch)) {
         if (k !== 'id' && v !== undefined) y.set(k, clone(v));
       }
+      if (kind && before) this.animIntercept(kind, id, before, patch);
     });
   }
 
@@ -821,6 +909,7 @@ export class SceneDoc {
   removeMaterial(id: string): void {
     this.transact(() => {
       this.yTables.materials.delete(id);
+      this.dropAnimOf(id);
       this.yObjects.forEach((y) => {
         if (y.get('material') === id) y.set('material', null);
       });
@@ -911,6 +1000,399 @@ export class SceneDoc {
     });
   }
 
+  // ------------------------------------------------------------------ animation : réglages partagés
+
+  getAnimSettings(): AnimSettings {
+    const num = (k: keyof AnimSettings) => {
+      const v = this.yScene.get(`a:${k}`);
+      return typeof v === 'number' && Number.isFinite(v) ? v : ANIM_DEFAULTS[k];
+    };
+    const frameStart = Math.round(num('frameStart'));
+    const frameEnd = Math.max(frameStart, Math.round(num('frameEnd')));
+    const fps = Math.max(1, Math.min(240, num('fps')));
+    return { frameStart, frameEnd, fps };
+  }
+
+  updateAnimSettings(patch: Partial<AnimSettings>): void {
+    this.transact(() => {
+      for (const [k, v] of Object.entries(patch)) {
+        if (typeof v === 'number' && Number.isFinite(v)) this.yScene.set(`a:${k}`, k === 'fps' ? v : Math.round(v));
+      }
+    });
+  }
+
+  // ------------------------------------------------------------------ animation : état local
+
+  /** Image courante LOCALE (non partagée) à laquelle la scène est évaluée. */
+  get animFrame(): number {
+    return this.anim.frame;
+  }
+
+  /**
+   * Change l'image courante locale : la scène lue (getObject…) est réévaluée, les valeurs
+   * temporaires sont oubliées. N'écrit RIEN dans le document partagé.
+   */
+  setAnimFrame(frame: number): void {
+    if (!Number.isFinite(frame) || frame === this.anim.frame) return;
+    this.anim.frame = frame;
+    const hadTemp = this.anim.clearTemp();
+    this.emitAnimValues(new Set([...this.anim.owners(), ...hadTemp]), true, { force: new Set(hadTemp), notify: true });
+  }
+
+  get autoKey(): boolean {
+    return this.autoKeyOn;
+  }
+
+  /** Auto-key : modifier une propriété animable pose ou met à jour une clé à l'image courante. */
+  setAutoKey(on: boolean): void {
+    this.autoKeyOn = !!on;
+  }
+
+  /** Utilisateur local, noté dans les clés qu'il écrit (`KeyframeData.by`). */
+  setAnimAuthor(userId: string | undefined): void {
+    this.animAuthor = userId;
+  }
+
+  // ------------------------------------------------------------------ animation : lecture
+
+  /** Propriétaires (objets, lumières, caméras, matériaux EXISTANTS) qui ont des clés. */
+  animOwners(): string[] {
+    return this.anim.owners().filter((o) => this.ownerKind(o) !== null);
+  }
+
+  /** Type d'un propriétaire d'animation, ou null s'il n'existe pas (ou plus). */
+  ownerKind(owner: string): AnimOwnerKind | null {
+    if (this.yObjects.has(owner)) return 'object';
+    if (this.yTables.lights.has(owner)) return 'light';
+    if (this.yTables.cameras.has(owner)) return 'camera';
+    if (this.yTables.materials.has(owner)) return 'material';
+    return null;
+  }
+
+  /** Propriétaires d'animation liés à un objet : lui-même, sa lumière / caméra, son matériau. */
+  objectAnimOwners(objectId: string): { owner: string; kind: AnimOwnerKind }[] {
+    const o = this.getObject(objectId);
+    if (!o) return [];
+    const out: { owner: string; kind: AnimOwnerKind }[] = [{ owner: objectId, kind: 'object' }];
+    if (o.type === 'light' && o.data && this.yTables.lights.has(o.data)) out.push({ owner: o.data, kind: 'light' });
+    if (o.type === 'camera' && o.data && this.yTables.cameras.has(o.data)) out.push({ owner: o.data, kind: 'camera' });
+    if (o.type === 'mesh' && o.material && this.yTables.materials.has(o.material)) out.push({ owner: o.material, kind: 'material' });
+    return out;
+  }
+
+  /** Clés de courbe d'un propriétaire, dans l'ordre d'affichage (propriété, composante). */
+  animCurveKeys(owner: string): string[] {
+    return this.anim.curveKeysOf(owner).sort((a, b) => {
+      const [, pa, ia] = a.split('|');
+      const [, pb, ib] = b.split('|');
+      return propOrder(pa) - propOrder(pb) || Number(ia) - Number(ib);
+    });
+  }
+
+  /** Courbe évaluée (clés effectives triées, clés masquées, points avec poignées) et ses réglages. */
+  getAnimCurve(ck: string): (CurveEval & { key: string; owner: string; path: AnimPath; index: number; flags: AnimCurveFlags }) | null {
+    const c = this.anim.curve(ck);
+    if (!c || c.keys.length === 0) return null;
+    const [owner, path, index] = ck.split('|');
+    return { ...c, key: ck, owner, path: path as AnimPath, index: Number(index), flags: this.anim.flagsOf(ck) };
+  }
+
+  getKeyframe(id: string): KeyframeData | null {
+    return this.anim.getKey(id);
+  }
+
+  /** Clé de courbe d'une image clé, ou null. */
+  keyframeCurve(id: string): string | null {
+    return this.anim.curveOf(id);
+  }
+
+  /** La propriété (ou une de ses composantes) a-t-elle des clés ? */
+  isAnimated(owner: string, path?: AnimPath, index?: number): boolean {
+    if (path === undefined) return this.anim.hasAnimation(owner);
+    const idx = this.anim.animatedIndices(owner, path);
+    return index === undefined ? idx.length > 0 : idx.includes(index);
+  }
+
+  /** Clé effective d'une composante à une image (par défaut l'image courante), ou null. */
+  keyframeAt(owner: string, path: AnimPath, index: number, frame = this.anim.frame): KeyframeData | null {
+    const c = this.anim.curve(curveKey(owner, path, index));
+    return c ? keyAtFrame(c.keys, frame) : null;
+  }
+
+  /** Valeur d'une courbe à une image (null si vide). */
+  evaluateCurve(ck: string, frame = this.anim.frame): number | null {
+    const c = this.anim.curve(ck);
+    return c ? evaluatePoints(c.points, frame) : null;
+  }
+
+  /** Images (triées, sans doublon) où les propriétaires donnés ont au moins une clé. */
+  keyframeFrames(owners: Iterable<string>): number[] {
+    const set = new Set<number>();
+    for (const o of owners) for (const ck of this.anim.curveKeysOf(o)) for (const k of this.anim.curve(ck)?.keys ?? []) set.add(k.frame);
+    return [...set].sort((a, b) => a - b);
+  }
+
+  /** La propriété a-t-elle une valeur temporaire (modifiée sans auto-key depuis le dernier changement d'image) ? */
+  hasTempValue(owner: string, path: AnimPath): boolean {
+    const def = animProp(path);
+    return !!def && this.anim.hasTemp(owner, def.field);
+  }
+
+  // ------------------------------------------------------------------ animation : écriture
+
+  /**
+   * Pose une clé (ou met à jour la clé effective à cette image : même identifiant, poignées
+   * décalées avec la valeur). Les clés masquées à cette image (doublons concurrents) sont
+   * supprimées. Renvoie l'identifiant de la clé, ou null (courbe verrouillée, valeur invalide).
+   */
+  insertKeyframe(p: Pick<KeyframeData, 'owner' | 'path' | 'index' | 'frame' | 'value'> & Partial<Pick<KeyframeData, 'interp' | 'easing' | 'hlType' | 'hrType'>>): string | null {
+    const def = animProp(p.path);
+    if (!def || !Number.isFinite(p.frame) || !Number.isFinite(p.value) || p.index < 0 || p.index >= def.size) return null;
+    const ck = curveKey(p.owner, p.path, p.index);
+    if (this.anim.flagsOf(ck).lock) return null;
+    const c = this.anim.curve(ck);
+    const existing = c ? keyAtFrame(c.keys, p.frame) : null;
+    const now = Date.now();
+    return this.transact(() => {
+      if (c) for (const s of c.shadowed) if (Math.abs(s.frame - p.frame) < ANIM_FRAME_EPS) this.yAnimKeys.delete(s.id);
+      if (existing) {
+        const dv = p.value - existing.value;
+        const k: KeyframeData = {
+          ...existing,
+          value: p.value,
+          hl: [existing.hl[0], existing.hl[1] + dv],
+          hr: [existing.hr[0], existing.hr[1] + dv],
+          interp: p.interp ?? existing.interp,
+          easing: p.easing ?? existing.easing,
+          hlType: p.hlType ?? existing.hlType,
+          hrType: p.hrType ?? existing.hrType,
+          t: Math.max(now, (existing.t ?? 0) + 1),
+          by: this.animAuthor,
+        };
+        this.yAnimKeys.set(existing.id, cleanKey(k));
+        return existing.id;
+      }
+      const id = newId();
+      const k: KeyframeData = {
+        id,
+        owner: p.owner,
+        path: p.path,
+        index: p.index,
+        frame: p.frame,
+        value: p.value,
+        interp: p.interp ?? (def.kind === 'bool' ? 'CONSTANT' : 'BEZIER'),
+        easing: p.easing ?? 'AUTO',
+        hl: [p.frame - 1, p.value],
+        hr: [p.frame + 1, p.value],
+        hlType: p.hlType ?? 'AUTO_CLAMPED',
+        hrType: p.hrType ?? 'AUTO_CLAMPED',
+        t: now,
+        by: this.animAuthor,
+      };
+      this.yAnimKeys.set(id, cleanKey(k));
+      return id;
+    });
+  }
+
+  /**
+   * Pose des clés sur une propriété avec sa valeur ACTUELLE (affichée) : toutes les composantes,
+   * ou seulement `indices`. Renvoie les identifiants des clés écrites.
+   */
+  keyframeProperty(owner: string, path: AnimPath, opts: { frame?: number; indices?: number[] } = {}): string[] {
+    const def = animProp(path);
+    if (!def) return [];
+    const target = this.animTarget(def.owner, owner);
+    if (!target) return [];
+    const comps = readProp(def, target, this.renderAspect());
+    const frame = opts.frame ?? this.anim.frame;
+    const out: string[] = [];
+    this.transact(() => {
+      for (let i = 0; i < def.size; i++) {
+        if (opts.indices && !opts.indices.includes(i)) continue;
+        const id = this.insertKeyframe({ owner, path, index: i, frame, value: comps[i] });
+        if (id) out.push(id);
+      }
+    });
+    return out;
+  }
+
+  /** Modifie des clés (image, valeur, interpolation, poignées…). Propriétaire et chemin sont immuables. */
+  updateKeyframes(patches: (Partial<Omit<KeyframeData, 'owner' | 'path' | 'index'>> & { id: string })[]): void {
+    const now = Date.now();
+    this.transact(() => {
+      for (const p of patches) {
+        const cur = this.yAnimKeys.get(p.id);
+        if (!cur || typeof cur !== 'object') continue;
+        if (this.anim.flagsOf(curveKey(cur.owner, cur.path, cur.index)).lock) continue;
+        const next: KeyframeData = { ...cur, id: p.id, t: Math.max(now, (cur.t ?? 0) + 1), by: this.animAuthor };
+        for (const k of ['frame', 'value', 'interp', 'easing', 'hl', 'hr', 'hlType', 'hrType'] as const) {
+          if (p[k] !== undefined) (next as any)[k] = clone(p[k]);
+        }
+        if (!Number.isFinite(next.frame) || !Number.isFinite(next.value)) continue;
+        this.yAnimKeys.set(p.id, cleanKey(next));
+      }
+    });
+  }
+
+  /** Supprime des clés (celles des courbes verrouillées sont conservées). */
+  removeKeyframes(ids: Iterable<string>): void {
+    this.transact(() => {
+      for (const id of ids) {
+        const cur = this.yAnimKeys.get(id);
+        if (!cur) continue;
+        if (typeof cur === 'object' && this.anim.flagsOf(curveKey(cur.owner, cur.path, cur.index)).lock) continue;
+        this.yAnimKeys.delete(id);
+      }
+    });
+  }
+
+  /** Supprime les clés d'un propriétaire à une image (toutes ses propriétés, ou `paths`). Renvoie le nombre supprimé. */
+  removeKeyframesAt(owner: string, frame: number, paths?: AnimPath[]): number {
+    const ids: string[] = [];
+    for (const ck of this.anim.curveKeysOf(owner)) {
+      if (paths && !paths.includes(ck.split('|')[1] as AnimPath)) continue;
+      const c = this.anim.curve(ck);
+      if (!c) continue;
+      for (const k of [...c.keys, ...c.shadowed]) if (Math.abs(k.frame - frame) < ANIM_FRAME_EPS) ids.push(k.id);
+    }
+    const before = ids.filter((id) => this.yAnimKeys.has(id)).length;
+    this.removeKeyframes(ids);
+    return before - ids.filter((id) => this.yAnimKeys.has(id)).length;
+  }
+
+  /**
+   * Efface l'animation d'un propriétaire (toutes ses propriétés, ou `paths`). Comme dans Blender,
+   * la propriété garde la valeur qu'elle avait à l'image courante (écrite comme valeur de base).
+   */
+  clearAnimation(owner: string, paths?: AnimPath[]): void {
+    const kind = this.ownerKind(owner);
+    const target = kind ? this.animTarget(kind, owner) : null;
+    this.transact(() => {
+      for (const ck of this.anim.curveKeysOf(owner)) {
+        const path = ck.split('|')[1] as AnimPath;
+        if (paths && !paths.includes(path)) continue;
+        if (this.anim.flagsOf(ck).lock) continue;
+        const c = this.anim.curve(ck);
+        for (const k of [...(c?.keys ?? []), ...(c?.shadowed ?? [])]) this.yAnimKeys.delete(k.id);
+        if (this.yAnimCurves.has(ck)) this.yAnimCurves.delete(ck);
+        const def = animProp(path);
+        if (def && target && kind) this.writeBase(kind, owner, def.field, (target as unknown as Record<string, unknown>)[def.field]);
+      }
+    });
+  }
+
+  /** Verrou / muet / lissage d'une courbe (partagés). */
+  setAnimCurveFlags(ck: string, patch: Partial<AnimCurveFlags>): void {
+    const cur = { ...ANIM_CURVE_DEFAULTS, ...(this.yAnimCurves.get(ck) ?? {}) };
+    this.transact(() => this.yAnimCurves.set(ck, { ...cur, ...patch }));
+  }
+
+  // ------------------------------------------------------------------ animation : interne
+
+  private renderAspect(): number {
+    const x = this.yScene.get('r:resX');
+    const y = this.yScene.get('r:resY');
+    const w = typeof x === 'number' && x > 0 ? x : SCENE_DEFAULTS.render.resX;
+    const h = typeof y === 'number' && y > 0 ? y : SCENE_DEFAULTS.render.resY;
+    return w / h;
+  }
+
+  private animTarget(kind: AnimOwnerKind, id: string): AnimTarget | null {
+    switch (kind) {
+      case 'object':
+        return this.getObject(id);
+      case 'light':
+        return this.getLight(id);
+      case 'camera':
+        return this.getCamera(id);
+      default:
+        return this.getMaterial(id);
+    }
+  }
+
+  /** Écrit une valeur de base sans passer par l'interception d'animation. */
+  private writeBase(kind: AnimOwnerKind, id: string, field: string, value: unknown): void {
+    if (value === undefined) return;
+    const y = kind === 'object' ? this.yObjects.get(id) : this.yTables[kind === 'light' ? 'lights' : kind === 'camera' ? 'cameras' : 'materials'].get(id);
+    y?.set(field, clone(value));
+  }
+
+  /** Écriture locale d'une propriété animable : auto-key, ou valeur temporaire si elle est animée. */
+  private animIntercept(kind: AnimOwnerKind, owner: string, before: AnimTarget, patch: Record<string, any>): void {
+    const aspect = this.renderAspect();
+    for (const [field, value] of Object.entries(patch)) {
+      if (value === undefined) continue;
+      const def = animPropByField(kind, field);
+      if (!def) continue;
+      const animated = this.anim.animatedIndices(owner, def.path).length > 0;
+      let keyed = false;
+      if (this.autoKeyOn) {
+        const comps = fieldComponents(def, value, before, aspect);
+        for (let i = 0; i < def.size; i++) {
+          if (Number.isFinite(comps[i]) && this.insertKeyframe({ owner, path: def.path, index: i, frame: this.anim.frame, value: comps[i] })) keyed = true;
+        }
+      }
+      if (!keyed && animated) this.anim.setTemp(owner, field, clone(value));
+    }
+  }
+
+  private afterAnimChange(owners: Set<string>, local: boolean): void {
+    if (!owners.size) return;
+    for (const o of owners) this.anim.clearTemp(o);
+    this.emitAnimValues(owners, local, { force: owners });
+    this.emit('anim', { owners: [...owners], local });
+  }
+
+  /**
+   * Réévalue les propriétaires donnés à l'image courante et émet les événements de lecture
+   * (objects / data) pour ceux dont la valeur affichée a changé (ou listés dans `force`).
+   */
+  private emitAnimValues(owners: Set<string>, local: boolean, opts: { force?: Set<string>; notify?: boolean } = {}): void {
+    const objChanged: { id: string; keys: string[] }[] = [];
+    const tables: Record<'lights' | 'cameras' | 'materials', string[]> = { lights: [], cameras: [], materials: [] };
+    for (const o of owners) {
+      const fields = this.anim.evaluateOwner(o);
+      const forced = opts.force?.has(o) ?? false;
+      if (!fields.length && !forced) continue;
+      const kind = this.ownerKind(o);
+      if (!kind) continue;
+      if (kind === 'object') {
+        this.objectCache.delete(o);
+        const keys = forced ? animPropsOf('object').map((d) => d.field) : fields;
+        objChanged.push({ id: o, keys });
+      } else tables[kind === 'light' ? 'lights' : kind === 'camera' ? 'cameras' : 'materials'].push(o);
+    }
+    if (objChanged.length) this.emit('objects', { added: [], removed: [], changed: objChanged, local });
+    for (const table of ['lights', 'cameras', 'materials'] as const) {
+      if (tables[table].length) this.emit('data', { table, added: [], removed: [], changed: tables[table], local });
+    }
+    if (opts.notify && (objChanged.length || tables.lights.length || tables.cameras.length || tables.materials.length)) this.emit('change', { local: false, anim: true });
+  }
+
+  /** Supprime les clés et réglages de courbe d'un propriétaire (dans la transaction courante). */
+  private dropAnimOf(owner: string): void {
+    for (const ck of this.anim.curveKeysOf(owner)) {
+      const c = this.anim.curve(ck);
+      for (const k of [...(c?.keys ?? []), ...(c?.shadowed ?? [])]) this.yAnimKeys.delete(k.id);
+    }
+    this.yAnimCurves.forEach((_f, ck) => {
+      if (ck.startsWith(`${owner}|`)) this.yAnimCurves.delete(ck);
+    });
+  }
+
+  /** Copie l'animation (clés effectives) d'un propriétaire vers un autre (dans la transaction courante). */
+  private copyAnimTo(from: string, to: string): void {
+    const now = Date.now();
+    for (const ck of this.anim.curveKeysOf(from)) {
+      for (const k of this.anim.curve(ck)?.keys ?? []) {
+        const id = newId();
+        this.yAnimKeys.set(id, cleanKey({ ...k, id, owner: to, t: now, by: this.animAuthor }));
+      }
+      const f = this.yAnimCurves.get(ck);
+      if (f) this.yAnimCurves.set(ck.replace(`${from}|`, `${to}|`), { ...f });
+    }
+  }
+
   // ------------------------------------------------------------------ discussion
 
   getChat(): ChatMessage[] {
@@ -938,6 +1420,16 @@ export class SceneDoc {
     }
     return { objects: this.yObjects.size, verts, faces };
   }
+}
+
+/** Tables dont les entrées peuvent porter de l'animation. */
+const TABLE_ANIM_KIND: Partial<Record<DataTable, AnimOwnerKind>> = { lights: 'light', cameras: 'camera', materials: 'material' };
+
+/** Clé prête à stocker : JSON pur, sans champ indéfini. */
+function cleanKey(k: KeyframeData): KeyframeData {
+  const out: Record<string, unknown> = {};
+  for (const [f, v] of Object.entries(k)) if (v !== undefined) out[f] = Array.isArray(v) ? [Number(v[0]), Number(v[1])] : v;
+  return out as unknown as KeyframeData;
 }
 
 function defaultObjectName(type: ObjectData['type']): string {

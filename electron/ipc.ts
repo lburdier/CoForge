@@ -28,4 +28,10 @@ export const IPC = {
   updateCheck: 'coforge:update-check',
   /** renderer → main : fermer (avec la confirmation habituelle) puis installer la mise à jour téléchargée. */
   updateInstall: 'coforge:update-install',
+  /** main → renderer : un lien d'invitation coforge:// attend (sans charge utile). */
+  inviteLink: 'coforge:invite-link',
+  /** renderer → main : récupère (et retire) le lien d'invitation en attente, ou null. */
+  takeInviteLink: 'coforge:take-invite-link',
+  /** renderer → main : adresse IP publique (requête externe, sur demande de l'utilisateur). */
+  publicAddress: 'coforge:public-address',
 } as const;

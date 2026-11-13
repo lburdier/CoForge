@@ -40,6 +40,7 @@ import { runOp } from '../lib/ops';
 import { Checkbox, IconButton, Row, Select, type SelectOption } from '../widgets/basic';
 import { MenuBar, Popover, type MenuBarEntry } from '../widgets/Menu';
 import { NumberField } from '../widgets/NumberField';
+import { ViewportTypesButton } from '../outliner/FilterPopover';
 
 // ------------------------------------------------------------------ mode d'interaction
 
@@ -273,6 +274,7 @@ function ShadingButtons() {
         active={xray}
         onClick={() => runOp('view.toggle_xray', {}, () => store.setState({ xray: !store.getState().xray }))}
       />
+      <ViewportTypesButton />
       <OverlaysButton />
       <div className="cf-btn-group">
         {SHADING_MODES.map((m) => (

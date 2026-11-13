@@ -9,6 +9,8 @@ import {
   type MaterialData,
   type MeshData,
   type ModifierData,
+  type NodeData,
+  type NodeLink,
   type ModifierParamsMap,
   type ModifierType,
   type ObjectType,
@@ -19,6 +21,24 @@ import {
 import { newId } from '../../core/ids';
 import { decompose } from '../../core/doc/transforms';
 import { buildMeshData } from './convert';
+
+/**
+ * Matériau importé : champs simples, et éventuellement son arbre de nœuds de shader (identifiants
+ * Blender, voir src/core/nodes/shaderNodes.ts). Les champs simples restent le repli.
+ */
+export type ImportedMaterial = Omit<MaterialData, 'id'> & {
+  shaderTree?: { nodes: Record<string, NodeData>; links: NodeLink[] };
+};
+
+/** Fixe la couleur de base des Principled BSDF non branchés d'un arbre importé. */
+export function setTreeBaseColor(mat: ImportedMaterial, color: string): void {
+  if (!mat.shaderTree) return;
+  for (const n of Object.values(mat.shaderTree.nodes)) {
+    if (n.type !== 'ShaderNodeBsdfPrincipled') continue;
+    if (mat.shaderTree.links.some((l) => l.toNode === n.id && l.toSocket === 'Base Color')) continue;
+    n.inputs = { ...n.inputs, 'Base Color': color };
+  }
+}
 
 /**
  * Scène importée, dans un format neutre commun à tous les lecteurs (.blend, glTF, FBX, OBJ).
@@ -33,7 +53,7 @@ export interface ImportedScene {
   name?: string;
   objects: ImportedObject[];
   meshes: ImportedMesh[];
-  materials: Omit<MaterialData, 'id'>[];
+  materials: ImportedMaterial[];
   collections: ImportedCollection[];
   world?: Partial<WorldSettings>;
   render?: Partial<RenderSettings>;
@@ -235,7 +255,13 @@ export function applyImportedScene(doc: SceneDoc, scene: ImportedScene, options:
       if (i === null || i === undefined || i < 0 || i >= scene.materials.length) return null;
       let id = matIds[i];
       if (!id) {
-        id = doc.addMaterial(scene.materials[i]);
+        const { shaderTree, ...fields } = scene.materials[i];
+        if (shaderTree && Object.keys(shaderTree.nodes).length > 0) {
+          const tid = doc.addNodeTree({ kind: 'shader', name: fields.name, nodes: shaderTree.nodes, links: shaderTree.links });
+          id = doc.addMaterial({ ...fields, nodeTree: tid, useNodes: true });
+        } else {
+          id = doc.addMaterial(fields);
+        }
         matIds[i] = id;
         counts.materials++;
       }

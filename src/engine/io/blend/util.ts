@@ -20,6 +20,16 @@ export class Notes {
     return this.entries.has(key);
   }
 
+  /** Ajoute les remarques de `other` à celles-ci (comptes additionnés, noms fusionnés). */
+  absorb(other: Notes): void {
+    for (const [key, e] of other.entries) {
+      let mine = this.entries.get(key);
+      if (!mine) this.entries.set(key, (mine = { count: 0, names: [], text: e.text }));
+      mine.count += e.count;
+      for (const n of e.names) if (mine.names.length < 4 && !mine.names.includes(n)) mine.names.push(n);
+    }
+  }
+
   list(): string[] {
     const out: string[] = [];
     for (const e of this.entries.values()) {

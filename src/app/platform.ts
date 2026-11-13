@@ -9,15 +9,29 @@
 
 import type { BlendEvalRequest, BlendEvalResult } from '../engine/io/types';
 
+/**
+ * Accès à une session hébergée :
+ * - `invite` : uniquement par lien d'invitation (le serveur reçoit un mot de passe aléatoire que personne ne voit) ;
+ * - `password` : mot de passe choisi par l'hôte, ou lien d'invitation ;
+ * - `open` : toute personne qui connaît l'adresse peut entrer.
+ */
+export type HostAccess = 'invite' | 'password' | 'open';
+
 export interface HostOptions {
   port: number;
   password?: string;
+  /** Session servie : le serveur embarqué refuse toute autre room (code 4404). */
+  room?: string;
+  /** Défaut : `password` si un mot de passe est donné, sinon `open`. */
+  access?: HostAccess;
 }
 
 export interface HostInfo {
   port: number;
   /** URLs WebSocket joignables par les invités, la plus probable (LAN) d'abord. Ex. ['ws://192.168.1.20:4455']. */
   addresses: string[];
+  /** Accès `invite` : mot de passe aléatoire du serveur, réservé à la connexion de l'hôte (jamais affiché). */
+  secret?: string;
 }
 
 export interface OpenedFile {
@@ -111,6 +125,16 @@ export interface NativeBridge {
   installUpdate?(): void;
   /** Appelé à chaque changement d'état des mises à jour. */
   onUpdateStatus?(cb: (status: UpdateStatus) => void): void;
+  /**
+   * Lien d'invitation coforge:// reçu du système (lancement de l'application, ou clic sur un
+   * lien alors qu'elle est ouverte) et pas encore traité ; null s'il n'y en a pas. Le lien est
+   * remis une seule fois.
+   */
+  takeInviteLink?(): Promise<string | null>;
+  /** Prévient qu'un lien d'invitation attend (le récupérer avec `takeInviteLink`). */
+  onInviteLink?(cb: () => void): void;
+  /** Adresse IP publique de cette machine, demandée à un service externe (api.ipify.org). */
+  publicAddress?(): Promise<string>;
 }
 
 declare global {
@@ -214,6 +238,19 @@ export const platform = {
   },
   onUpdateStatus(cb: (status: UpdateStatus) => void): void {
     native()?.onUpdateStatus?.(cb);
+  },
+  /** Lien d'invitation en attente (une seule fois), ou null ; toujours null dans un navigateur. */
+  takeInviteLink(): Promise<string | null> {
+    return native()?.takeInviteLink?.() ?? Promise.resolve(null);
+  },
+  onInviteLink(cb: () => void): void {
+    native()?.onInviteLink?.(cb);
+  },
+  /** Adresse IP publique (requête vers api.ipify.org) : uniquement sur demande explicite de l'utilisateur. */
+  publicAddress(): Promise<string> {
+    const bridge = native();
+    if (!bridge?.publicAddress) return Promise.reject(new Error("Disponible uniquement dans l'application Windows."));
+    return bridge.publicAddress();
   },
 };
 

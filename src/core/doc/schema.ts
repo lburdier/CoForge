@@ -598,6 +598,8 @@ export interface MaterialData {
    * ci-dessus restent le repli (path tracing, export) quand l'arbre ne se réduit pas à des constantes.
    */
   nodeTree?: string | null;
+  /** false : l'arbre est conservé mais ignoré (bouton « Utiliser les nœuds » désactivé). */
+  useNodes?: boolean;
 }
 
 export const MATERIAL_DEFAULTS: Omit<MaterialData, 'id' | 'name'> = {
@@ -722,6 +724,41 @@ export interface RenderSettings {
   resPercent: number;
   format: 'png' | 'jpeg' | 'webp';
   quality: number;
+
+  // --- Path tracing (ajouts de la v0.4, tous facultatifs : lire avec repli, voir engine/render/settings.ts)
+  /**
+   * Débruiteur du viewport (actif si `denoise` est vrai) : 'fast' = bilatéral,
+   * 'hq' = à-trous guidé par l'albédo et les normales, 'none' = aucun.
+   */
+  viewportDenoiser?: 'none' | 'fast' | 'hq';
+  /** Débruiter le rendu final. */
+  denoiseFinal?: boolean;
+  /** Débruiteur du rendu final (actif si `denoiseFinal` est vrai). */
+  denoiser?: 'none' | 'fast' | 'hq';
+  /** Débruiteur haute qualité : itérations de l'à-trous (1 à 6) et poids des guides. */
+  denoiseIterations?: number;
+  denoiseStrength?: number;
+  denoiseNormalWeight?: number;
+  denoiseAlbedoWeight?: number;
+  /** Bloom du path tracing (sur l'image HDR linéaire, avant le tone mapping). */
+  ptBloom?: boolean;
+  ptBloomIntensity?: number;
+  /** Seuil de luminance linéaire au-delà duquel la lumière « bave ». */
+  ptBloomThreshold?: number;
+  /** Étalement du halo (0 à 1). */
+  ptBloomRadius?: number;
+  /** Rebonds supplémentaires réservés à la transmission (verre, liquides). */
+  transmissionBounces?: number;
+  /** Filtre glossy : adoucit les reflets après des rebonds diffus (moins de lucioles). */
+  filterGlossy?: number;
+  /** Viewport : échantillons à accumuler avant d'afficher l'image tracée. */
+  viewportMinSamples?: number;
+  /** Rendu final : limite de temps en secondes (0 = aucune). */
+  timeLimit?: number;
+  /** Graine du bruit d'échantillonnage. */
+  seed?: number;
+  /** Écrêtage des lucioles : valeur maximale d'un échantillon (0 = désactivé). */
+  sampleClamp?: number;
 }
 
 export interface SceneSettings {
@@ -753,6 +790,23 @@ export const SCENE_DEFAULTS: SceneSettings = {
     resPercent: 100,
     format: 'png',
     quality: 90,
+    viewportDenoiser: 'fast',
+    denoiseFinal: true,
+    denoiser: 'hq',
+    denoiseIterations: 4,
+    denoiseStrength: 1,
+    denoiseNormalWeight: 1,
+    denoiseAlbedoWeight: 1,
+    ptBloom: false,
+    ptBloomIntensity: 0.3,
+    ptBloomThreshold: 1,
+    ptBloomRadius: 0.5,
+    transmissionBounces: 8,
+    filterGlossy: 0.5,
+    viewportMinSamples: 1,
+    timeLimit: 0,
+    seed: 0,
+    sampleClamp: 0,
   },
 };
 
@@ -769,3 +823,125 @@ export interface ChatMessage {
 export const FILE_EXTENSION = 'coforge';
 /** Version du schéma, stockée dans le document. */
 export const SCHEMA_VERSION = 1;
+
+// ---------------------------------------------------------------- animation (images clés)
+
+/**
+ * Animation par images clés, PENSÉE POUR LE COLLABORATIF.
+ *
+ * Dans le Y.Doc :
+ *   animKeys    Y.Map<idClé, KeyframeData>    une entrée INDÉPENDANTE par image clé (table plate)
+ *   animCurves  Y.Map<cléCourbe, AnimCurveFlags>   réglages partagés d'une courbe (verrou, muet, lissage)
+ *   scene       clés 'a:frameStart', 'a:frameEnd', 'a:fps'
+ *
+ * Une « courbe » (F-Curve) n'est pas stockée en tant que telle : c'est l'ensemble des clés qui
+ * partagent (owner, path, index) ; sa clé est `curveKey(owner, path, index)`. La table est plate
+ * pour qu'aucun conteneur ne soit créé en concurrence (deux utilisateurs qui créent « la même »
+ * sous-table Yjs au même instant perdraient le contenu de l'un d'eux) : deux utilisateurs qui
+ * posent des clés sur la même courbe ajoutent simplement des entrées différentes.
+ *
+ * Règle de fusion (déterministe, identique chez tous) : si plusieurs clés d'une courbe tombent à
+ * la même image (écart < ANIM_FRAME_EPS), une seule est effective : celle dont `t` (horodatage
+ * de la dernière écriture) est le plus grand, puis, à égalité, celle dont l'identifiant est le
+ * plus grand (ordre lexicographique). Les autres sont « masquées » : ignorées par l'évaluation et
+ * l'affichage, et supprimées dès qu'un utilisateur réécrit une clé à cette image.
+ *
+ * Une clé est un objet JSON écrit d'un bloc (dernier écrivain gagne sur la clé entière) : image,
+ * valeur et poignées restent toujours cohérentes entre elles.
+ *
+ * L'image courante n'est PAS dans le document : chaque utilisateur a sa propre tête de lecture
+ * (store local), et la scène affichée = valeurs de base + courbes évaluées à cette image.
+ */
+
+/** Propriétés animables (chemins de données à la Blender). */
+export type AnimPath =
+  | 'location'
+  | 'rotation_euler'
+  | 'scale'
+  | 'visible'
+  | 'light.color'
+  | 'light.energy'
+  | 'camera.lens'
+  | 'material.base_color'
+  | 'material.metallic'
+  | 'material.roughness'
+  | 'material.alpha'
+  | 'material.emission_strength';
+
+export type Interpolation =
+  | 'CONSTANT'
+  | 'LINEAR'
+  | 'BEZIER'
+  | 'SINE'
+  | 'QUAD'
+  | 'CUBIC'
+  | 'QUART'
+  | 'QUINT'
+  | 'EXPO'
+  | 'CIRC'
+  | 'BACK'
+  | 'BOUNCE'
+  | 'ELASTIC';
+
+/** Atténuation des interpolations « dynamiques » (SINE…ELASTIC), ignorée pour CONSTANT/LINEAR/BEZIER. */
+export type Easing = 'AUTO' | 'EASE_IN' | 'EASE_OUT' | 'EASE_IN_OUT';
+
+/** Types de poignées de Blender (AUTO_CLAMPED = « Auto Clamped », défaut). */
+export type HandleType = 'FREE' | 'ALIGNED' | 'VECTOR' | 'AUTO' | 'AUTO_CLAMPED';
+
+/** Lissage des poignées automatiques d'une courbe (Blender : « Auto Handle Smoothing »). */
+export type CurveSmoothing = 'NONE' | 'CONT_ACCEL';
+
+export interface KeyframeData {
+  id: string;
+  /** Identifiant du propriétaire : objet, lumière, caméra ou matériau selon `path`. */
+  owner: string;
+  path: AnimPath;
+  /** Composante (0..2 pour les vecteurs et couleurs, 0 pour un scalaire). */
+  index: number;
+  frame: number;
+  value: number;
+  /** Interpolation du segment qui COMMENCE à cette clé. */
+  interp: Interpolation;
+  easing: Easing;
+  /** Poignées gauche et droite (image, valeur), absolues ; recalculées à l'évaluation sauf FREE / ALIGNED. */
+  hl: [number, number];
+  hr: [number, number];
+  hlType: HandleType;
+  hrType: HandleType;
+  /** Horodatage (ms) de la dernière écriture : sert à la règle de fusion. */
+  t: number;
+  /** Utilisateur qui a écrit la clé en dernier (identifiant local), pour l'affichage. */
+  by?: string;
+}
+
+export interface AnimCurveFlags {
+  /** Verrouillée : personne ne peut en modifier les clés. */
+  lock: boolean;
+  /** Muette : ignorée à l'évaluation. */
+  mute: boolean;
+  smoothing: CurveSmoothing;
+}
+
+export const ANIM_CURVE_DEFAULTS: AnimCurveFlags = { lock: false, mute: false, smoothing: 'CONT_ACCEL' };
+
+export interface AnimSettings {
+  frameStart: number;
+  frameEnd: number;
+  /** Images par seconde (préréglages 24, 25, 30, 60). */
+  fps: number;
+}
+
+export const ANIM_DEFAULTS: AnimSettings = { frameStart: 1, frameEnd: 250, fps: 24 };
+
+/** Écart sous lequel deux clés d'une courbe sont « à la même image » (BEZT_BINARYSEARCH_THRESH de Blender). */
+export const ANIM_FRAME_EPS = 0.01;
+
+/** Clé canonique d'une courbe. */
+export function curveKey(owner: string, path: AnimPath, index: number): string {
+  return `${owner}|${path}|${index}`;
+}
+export function parseCurveKey(key: string): { owner: string; path: AnimPath; index: number } {
+  const [owner, path, index] = key.split('|');
+  return { owner, path: path as AnimPath, index: Number(index) || 0 };
+}

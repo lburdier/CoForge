@@ -5,3 +5,4 @@ dist-server/
 release/
 rooms/
 *.log
+*.blend1

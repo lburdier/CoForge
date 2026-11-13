@@ -1,12 +1,13 @@
 import { Matrix4 } from 'three';
 import { MATERIAL_DEFAULTS, type MaterialData } from '../../../core/doc/schema';
-import type { ImportedObject, ImportedScene } from '../scene';
+import { setTreeBaseColor, type ImportedMaterial, type ImportedObject, type ImportedScene } from '../scene';
 import { readCamera } from './cameras';
 import { collectionObjects, instanceOffset, OB_RESTRICT_RENDER, OB_RESTRICT_VIEWPORT, sceneLayout, type SceneLayout } from './collections';
 import { decompressBlendAsync } from './decompress';
 import { BlendFile } from './file';
 import { readLight } from './lights';
 import { readMaterial } from './materials';
+import { convertMaterialTree } from './nodeTree';
 import { readMesh, type BlendMeshRead } from './mesh';
 import { readModifiers } from './modifiers';
 import { hasConstraints, objectKind, specialParent, WorldMatrices } from './objects';
@@ -147,9 +148,23 @@ export async function readBlendScene(data: ArrayBuffer): Promise<BlendScene> {
       notes.add('materiau-lie', (n, names) => `${n} matériau(x) lié(s) depuis une bibliothèque externe (${names}) : réglages par défaut.`, mat.idName);
     } else {
       try {
-        const r = readMaterial(ctx, mat);
+        // Les remarques de la lecture « simple » (nœuds réduits à des constantes, effets du Principled
+        // ignorés…) ne valent que si l'arbre complet n'a pas pu être repris.
+        const simpleNotes = new Notes();
+        const r = readMaterial({ ...ctx, notes: simpleNotes }, mat);
         m = { ...r.material, name: r.material.name || mat.idName || 'Matériau' };
         if (r.textured) out.texturedMaterials.push({ material: i, name: mat.idName });
+        // Arbre de nœuds complet (éditable dans l'éditeur de shaders) ; les champs simples restent le repli.
+        let tree: ReturnType<typeof convertMaterialTree> = null;
+        try {
+          tree = convertMaterialTree(ctx, mat);
+        } catch {
+          notes.add('noeuds-illisibles', (n, names) => `${n} arbre(s) de nœuds illisible(s) (${names}) : matériau importé en mode simple.`, mat.idName);
+        }
+        if (tree) {
+          (m as ImportedMaterial).shaderTree = tree;
+          if (r.textured) setTreeBaseColor(m as ImportedMaterial, m.baseColor);
+        } else notes.absorb(simpleNotes);
       } catch {
         m = { ...MATERIAL_DEFAULTS, name: mat.idName || 'Matériau' };
         notes.add('materiau-illisible', (n, names) => `${n} matériau(x) illisible(s) (${names}) : réglages par défaut.`, mat.idName);

@@ -1,0 +1,106 @@
+/* Sessions : invitation, lien reçu, état de connexion (barre du haut et barre d'état). */
+
+.cf-invite-link {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.cf-invite-link input {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-field-dark);
+  color: var(--text);
+  font: 11px Consolas, 'Cascadia Mono', monospace;
+}
+
+.cf-invite-meta {
+  margin: 2px 0 8px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.cf-invite-section {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.cf-invite-section h4 {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cf-invite-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 22px;
+}
+
+.cf-invite-row code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cf-invite-warn {
+  margin: 8px 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--select);
+  border-radius: var(--radius);
+  background: rgba(245, 166, 35, 0.1);
+  color: var(--text);
+}
+
+.cf-invite-ok {
+  margin: 6px 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: rgba(71, 114, 179, 0.15);
+}
+
+.cf-conn-popover {
+  min-width: 280px;
+  max-width: 360px;
+}
+
+.cf-conn-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+  margin: 4px 0 8px;
+  font-size: 11px;
+}
+
+.cf-conn-grid > span:nth-child(odd) {
+  color: var(--text-dim);
+}
+
+.cf-status.is-offline-pending .cf-status-dot,
+.cf-status.is-error .cf-status-dot {
+  background: var(--danger);
+}
+
+.cf-status.is-error {
+  color: #f08070;
+}
+
+.cf-status-session.is-error {
+  color: #f08070;
+}
+
+.cf-status-latency {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}

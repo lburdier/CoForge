@@ -1,4 +1,5 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, net, shell } from 'electron';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { listShareAddresses } from '../server/addresses';
@@ -6,6 +7,8 @@ import { CollabServer } from '../server/CollabServer';
 import type { BlenderEvalResult, BlenderInfo, FileFilter, HostInfo, HostOptions, OpenedFile } from '../src/app/platform';
 import type { BlendEvalRequest } from '../src/engine/io/types';
 import { convertBlendBytesToGLB, convertBlendToGLB, evaluateBlend, evaluateBlendBytes, findBlender, shutdownBlenderBridge } from './blenderBridge';
+import { INVITE_SCHEME, parseInviteLink } from '../src/net/invite';
+import { isValidRoomName } from '../src/net/protocol';
 import { IPC } from './ipc';
 import { checkForUpdates, currentUpdateStatus, initUpdater, installUpdateNow } from './updater';
 
@@ -20,6 +23,60 @@ const CLOSE_TIMEOUT_MS = 3000;
 
 let mainWindow: BrowserWindow | null = null;
 let server: CollabServer | null = null;
+
+// ------------------------------------------------------------------ liens d'invitation coforge://
+
+/** Lien d'invitation reçu du système et pas encore remis au renderer. */
+let pendingInviteLink: string | null = null;
+
+/** Premier argument qui est un lien d'invitation VALIDE (les autres sont ignorés). */
+function findInviteLink(argv: string[]): string | null {
+  for (const arg of argv.slice(1)) {
+    if (typeof arg !== 'string' || arg.length > 2048 || !arg.toLowerCase().startsWith(`${INVITE_SCHEME}:`)) continue;
+    if (parseInviteLink(arg).ok) return arg;
+    console.warn('Lien d’invitation invalide ignoré');
+  }
+  return null;
+}
+
+/** Garde le lien et prévient la fenêtre (qui viendra le chercher, même si elle n'est pas encore prête). */
+function receiveInviteLink(link: string): void {
+  pendingInviteLink = link;
+  const win = mainWindow;
+  if (!win || win.isDestroyed()) return;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+  if (!win.webContents.isLoading()) win.webContents.send(IPC.inviteLink);
+}
+
+/** Associe coforge:// à CoForge (l'installateur le fait aussi ; en développement, seulement sur demande). */
+function registerProtocol(): void {
+  try {
+    if (app.isPackaged) app.setAsDefaultProtocolClient(INVITE_SCHEME);
+    else if (process.env.COFORGE_REGISTER_PROTOCOL === '1' && process.argv[1]) app.setAsDefaultProtocolClient(INVITE_SCHEME, process.execPath, [path.resolve(process.argv[1])]);
+  } catch (err) {
+    console.error(`Enregistrement du protocole coforge:// impossible : ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/** Adresse IP publique, demandée à api.ipify.org (seulement quand l'utilisateur le demande). */
+async function fetchPublicAddress(): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  try {
+    const res = await net.fetch('https://api.ipify.org/?format=text', { signal: controller.signal, cache: 'no-store' });
+    if (!res.ok) fail(`Service d'adresse publique indisponible (HTTP ${res.status})`);
+    const text = (await res.text()).trim();
+    if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(text) && !/^[0-9a-f:]{2,45}$/i.test(text)) fail('Réponse inattendue du service d’adresse publique');
+    return text;
+  } catch (err) {
+    if ((err as Error)?.name === 'AbortError') fail('Le service d’adresse publique ne répond pas');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 // ------------------------------------------------------------------ fermeture concertée
 
@@ -165,6 +222,14 @@ function registerIpc(): void {
   ipcMain.handle(IPC.hostStart, async (_event, opts: HostOptions): Promise<HostInfo> => {
     const port = Number(opts?.port);
     if (!Number.isInteger(port) || port < 1 || port > 65535) fail('Numéro de port invalide (1 à 65535)');
+    const room = typeof opts?.room === 'string' ? opts.room.trim() : '';
+    if (room !== '' && !isValidRoomName(room)) fail('Nom de session invalide');
+    const given = typeof opts?.password === 'string' && opts.password !== '' ? opts.password.slice(0, 200) : undefined;
+    const access = opts?.access === 'invite' || opts?.access === 'password' || opts?.access === 'open' ? opts.access : given ? 'password' : 'open';
+    if (access === 'password' && !given) fail('Indiquez un mot de passe');
+    // Sur invitation : mot de passe aléatoire que seul l'hôte utilise ; les invités entrent par jeton.
+    const secret = access === 'invite' ? crypto.randomBytes(24).toString('base64url') : undefined;
+    const password = access === 'invite' ? secret : access === 'password' ? given : undefined;
     if (server) {
       await server.stop();
       server = null;
@@ -174,12 +239,13 @@ function registerIpc(): void {
     try {
       const started = await instance.start({
         port,
-        password: typeof opts.password === 'string' && opts.password !== '' ? opts.password : undefined,
+        password,
+        rooms: room ? [room] : undefined,
         host: '0.0.0.0',
         log: (message) => console.log(`[serveur] ${message}`),
       });
       server = instance;
-      return { port: started.port, addresses: listShareAddresses(started.port) };
+      return { port: started.port, addresses: listShareAddresses(started.port), secret };
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
       if (code === 'EADDRINUSE') fail(`Le port ${port} est déjà utilisé`);
@@ -277,6 +343,14 @@ function registerIpc(): void {
     if (allowed) forceClose();
     else installAfterClose = false;
   });
+
+  ipcMain.handle(IPC.takeInviteLink, (event): string | null => {
+    if (!mainWindow || event.sender !== mainWindow.webContents) return null;
+    const link = pendingInviteLink;
+    pendingInviteLink = null;
+    return link;
+  });
+  ipcMain.handle(IPC.publicAddress, () => fetchPublicAddress());
 
   ipcMain.handle(IPC.updateGetStatus, () => currentUpdateStatus());
   ipcMain.handle(IPC.updateCheck, () => checkForUpdates(true));
@@ -402,13 +476,31 @@ if (!app.requestSingleInstanceLock()) {
   app.commandLine.appendSwitch('ignore-gpu-blocklist');
   app.commandLine.appendSwitch('enable-gpu-rasterization');
 
-  app.on('second-instance', () => {
+  // Lien coforge:// passé au premier lancement.
+  pendingInviteLink = findInviteLink(process.argv);
+
+  // Une seconde instance (double-clic, lien d'invitation cliqué) : la fenêtre ouverte prend le relais.
+  app.on('second-instance', (_event, argv) => {
+    const link = findInviteLink(argv);
+    if (link) {
+      receiveInviteLink(link);
+      return;
+    }
     const win = mainWindow;
     if (!win || win.isDestroyed()) return;
     if (win.isMinimized()) win.restore();
     win.show();
     win.focus();
   });
+  // macOS : liens reçus par événement.
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    if (parseInviteLink(url).ok) receiveInviteLink(url);
+  });
+
+  // Une erreur imprévue (socket, serveur embarqué) est journalisée sans faire tomber la session.
+  process.on('uncaughtException', (err) => console.error(`Erreur non gérée : ${err.stack ?? err.message}`));
+  process.on('unhandledRejection', (reason) => console.error(`Promesse rejetée non gérée : ${String(reason)}`));
 
   app.on('window-all-closed', () => app.quit());
 
@@ -439,6 +531,7 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(() => {
     Menu.setApplicationMenu(null); // les menus sont dans l'interface web
     registerIpc();
+    registerProtocol();
     createWindow();
     initUpdater(() => mainWindow, IPC.updateStatus);
   });

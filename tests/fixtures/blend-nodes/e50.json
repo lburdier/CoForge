@@ -1,0 +1,604 @@
+{
+ "version": [
+  5,
+  0,
+  0
+ ],
+ "nodes": {
+  "ShaderNodeTexNoise|noise_type|MULTIFRACTAL": {
+   "idname": "ShaderNodeTexNoise",
+   "prop": "noise_type",
+   "value": "MULTIFRACTAL"
+  },
+  "ShaderNodeTexNoise|noise_type|RIDGED_MULTIFRACTAL": {
+   "idname": "ShaderNodeTexNoise",
+   "prop": "noise_type",
+   "value": "RIDGED_MULTIFRACTAL"
+  },
+  "ShaderNodeTexNoise|noise_type|HYBRID_MULTIFRACTAL": {
+   "idname": "ShaderNodeTexNoise",
+   "prop": "noise_type",
+   "value": "HYBRID_MULTIFRACTAL"
+  },
+  "ShaderNodeTexNoise|noise_type|FBM": {
+   "idname": "ShaderNodeTexNoise",
+   "prop": "noise_type",
+   "value": "FBM"
+  },
+  "ShaderNodeTexNoise|noise_type|HETERO_TERRAIN": {
+   "idname": "ShaderNodeTexNoise",
+   "prop": "noise_type",
+   "value": "HETERO_TERRAIN"
+  },
+  "ShaderNodeTexNoise|noise_dimensions|1D": {
+   "idname": "ShaderNodeTexNoise",
+   "prop": "noise_dimensions",
+   "value": "1D"
+  },
+  "ShaderNodeTexNoise|noise_dimensions|2D": {
+   "idname": "ShaderNodeTexNoise",
+   "prop": "noise_dimensions",
+   "value": "2D"
+  },
+  "ShaderNodeTexNoise|noise_dimensions|3D": {
+   "idname": "ShaderNodeTexNoise",
+   "prop": "noise_dimensions",
+   "value": "3D"
+  },
+  "ShaderNodeTexNoise|noise_dimensions|4D": {
+   "idname": "ShaderNodeTexNoise",
+   "prop": "noise_dimensions",
+   "value": "4D"
+  },
+  "ShaderNodeTexVoronoi|voronoi_dimensions|1D": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "voronoi_dimensions",
+   "value": "1D"
+  },
+  "ShaderNodeTexVoronoi|voronoi_dimensions|2D": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "voronoi_dimensions",
+   "value": "2D"
+  },
+  "ShaderNodeTexVoronoi|voronoi_dimensions|3D": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "voronoi_dimensions",
+   "value": "3D"
+  },
+  "ShaderNodeTexVoronoi|voronoi_dimensions|4D": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "voronoi_dimensions",
+   "value": "4D"
+  },
+  "ShaderNodeTexVoronoi|feature|F1": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "feature",
+   "value": "F1"
+  },
+  "ShaderNodeTexVoronoi|feature|F2": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "feature",
+   "value": "F2"
+  },
+  "ShaderNodeTexVoronoi|feature|SMOOTH_F1": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "feature",
+   "value": "SMOOTH_F1"
+  },
+  "ShaderNodeTexVoronoi|feature|DISTANCE_TO_EDGE": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "feature",
+   "value": "DISTANCE_TO_EDGE"
+  },
+  "ShaderNodeTexVoronoi|feature|N_SPHERE_RADIUS": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "feature",
+   "value": "N_SPHERE_RADIUS"
+  },
+  "ShaderNodeTexVoronoi|distance|EUCLIDEAN": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "distance",
+   "value": "EUCLIDEAN"
+  },
+  "ShaderNodeTexVoronoi|distance|MANHATTAN": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "distance",
+   "value": "MANHATTAN"
+  },
+  "ShaderNodeTexVoronoi|distance|CHEBYCHEV": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "distance",
+   "value": "CHEBYCHEV"
+  },
+  "ShaderNodeTexVoronoi|distance|MINKOWSKI": {
+   "idname": "ShaderNodeTexVoronoi",
+   "prop": "distance",
+   "value": "MINKOWSKI"
+  },
+  "ShaderNodeTexBrick||": {
+   "idname": "ShaderNodeTexBrick"
+  },
+  "ShaderNodeTexGabor|gabor_type|2D": {
+   "idname": "ShaderNodeTexGabor",
+   "prop": "gabor_type",
+   "value": "2D"
+  },
+  "ShaderNodeTexGabor|gabor_type|3D": {
+   "idname": "ShaderNodeTexGabor",
+   "prop": "gabor_type",
+   "value": "3D"
+  },
+  "ShaderNodeTexImage|projection|FLAT": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "projection",
+   "value": "FLAT"
+  },
+  "ShaderNodeTexImage|projection|BOX": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "projection",
+   "value": "BOX"
+  },
+  "ShaderNodeTexImage|projection|SPHERE": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "projection",
+   "value": "SPHERE"
+  },
+  "ShaderNodeTexImage|projection|TUBE": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "projection",
+   "value": "TUBE"
+  },
+  "ShaderNodeTexImage|extension|REPEAT": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "extension",
+   "value": "REPEAT"
+  },
+  "ShaderNodeTexImage|extension|EXTEND": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "extension",
+   "value": "EXTEND"
+  },
+  "ShaderNodeTexImage|extension|CLIP": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "extension",
+   "value": "CLIP"
+  },
+  "ShaderNodeTexImage|extension|MIRROR": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "extension",
+   "value": "MIRROR"
+  },
+  "ShaderNodeTexImage|interpolation|Linear": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "interpolation",
+   "value": "Linear"
+  },
+  "ShaderNodeTexImage|interpolation|Closest": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "interpolation",
+   "value": "Closest"
+  },
+  "ShaderNodeTexImage|interpolation|Cubic": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "interpolation",
+   "value": "Cubic"
+  },
+  "ShaderNodeTexImage|interpolation|Smart": {
+   "idname": "ShaderNodeTexImage",
+   "prop": "interpolation",
+   "value": "Smart"
+  },
+  "ShaderNodeTexEnvironment|projection|EQUIRECTANGULAR": {
+   "idname": "ShaderNodeTexEnvironment",
+   "prop": "projection",
+   "value": "EQUIRECTANGULAR"
+  },
+  "ShaderNodeTexEnvironment|projection|MIRROR_BALL": {
+   "idname": "ShaderNodeTexEnvironment",
+   "prop": "projection",
+   "value": "MIRROR_BALL"
+  },
+  "ShaderNodeTexSky|sky_type|SINGLE_SCATTERING": {
+   "idname": "ShaderNodeTexSky",
+   "prop": "sky_type",
+   "value": "SINGLE_SCATTERING"
+  },
+  "ShaderNodeTexSky|sky_type|MULTIPLE_SCATTERING": {
+   "idname": "ShaderNodeTexSky",
+   "prop": "sky_type",
+   "value": "MULTIPLE_SCATTERING"
+  },
+  "ShaderNodeTexSky|sky_type|PREETHAM": {
+   "idname": "ShaderNodeTexSky",
+   "prop": "sky_type",
+   "value": "PREETHAM"
+  },
+  "ShaderNodeTexSky|sky_type|HOSEK_WILKIE": {
+   "idname": "ShaderNodeTexSky",
+   "prop": "sky_type",
+   "value": "HOSEK_WILKIE"
+  },
+  "ShaderNodeTangent|direction_type|RADIAL": {
+   "idname": "ShaderNodeTangent",
+   "prop": "direction_type",
+   "value": "RADIAL"
+  },
+  "ShaderNodeTangent|direction_type|UV_MAP": {
+   "idname": "ShaderNodeTangent",
+   "prop": "direction_type",
+   "value": "UV_MAP"
+  },
+  "ShaderNodeTangent|axis|X": {
+   "idname": "ShaderNodeTangent",
+   "prop": "axis",
+   "value": "X"
+  },
+  "ShaderNodeTangent|axis|Y": {
+   "idname": "ShaderNodeTangent",
+   "prop": "axis",
+   "value": "Y"
+  },
+  "ShaderNodeTangent|axis|Z": {
+   "idname": "ShaderNodeTangent",
+   "prop": "axis",
+   "value": "Z"
+  },
+  "ShaderNodeAttribute|attribute_type|GEOMETRY": {
+   "idname": "ShaderNodeAttribute",
+   "prop": "attribute_type",
+   "value": "GEOMETRY"
+  },
+  "ShaderNodeAttribute|attribute_type|OBJECT": {
+   "idname": "ShaderNodeAttribute",
+   "prop": "attribute_type",
+   "value": "OBJECT"
+  },
+  "ShaderNodeAttribute|attribute_type|INSTANCER": {
+   "idname": "ShaderNodeAttribute",
+   "prop": "attribute_type",
+   "value": "INSTANCER"
+  },
+  "ShaderNodeAttribute|attribute_type|VIEW_LAYER": {
+   "idname": "ShaderNodeAttribute",
+   "prop": "attribute_type",
+   "value": "VIEW_LAYER"
+  },
+  "ShaderNodeNormalMap|space|TANGENT": {
+   "idname": "ShaderNodeNormalMap",
+   "prop": "space",
+   "value": "TANGENT"
+  },
+  "ShaderNodeNormalMap|space|OBJECT": {
+   "idname": "ShaderNodeNormalMap",
+   "prop": "space",
+   "value": "OBJECT"
+  },
+  "ShaderNodeNormalMap|space|WORLD": {
+   "idname": "ShaderNodeNormalMap",
+   "prop": "space",
+   "value": "WORLD"
+  },
+  "ShaderNodeNormalMap|space|BLENDER_OBJECT": {
+   "idname": "ShaderNodeNormalMap",
+   "prop": "space",
+   "value": "BLENDER_OBJECT"
+  },
+  "ShaderNodeNormalMap|space|BLENDER_WORLD": {
+   "idname": "ShaderNodeNormalMap",
+   "prop": "space",
+   "value": "BLENDER_WORLD"
+  },
+  "ShaderNodeDisplacement|space|OBJECT": {
+   "idname": "ShaderNodeDisplacement",
+   "prop": "space",
+   "value": "OBJECT"
+  },
+  "ShaderNodeDisplacement|space|WORLD": {
+   "idname": "ShaderNodeDisplacement",
+   "prop": "space",
+   "value": "WORLD"
+  },
+  "ShaderNodeVectorDisplacement|space|TANGENT": {
+   "idname": "ShaderNodeVectorDisplacement",
+   "prop": "space",
+   "value": "TANGENT"
+  },
+  "ShaderNodeVectorDisplacement|space|OBJECT": {
+   "idname": "ShaderNodeVectorDisplacement",
+   "prop": "space",
+   "value": "OBJECT"
+  },
+  "ShaderNodeVectorDisplacement|space|WORLD": {
+   "idname": "ShaderNodeVectorDisplacement",
+   "prop": "space",
+   "value": "WORLD"
+  },
+  "ShaderNodeVectorRotate|rotation_type|AXIS_ANGLE": {
+   "idname": "ShaderNodeVectorRotate",
+   "prop": "rotation_type",
+   "value": "AXIS_ANGLE"
+  },
+  "ShaderNodeVectorRotate|rotation_type|X_AXIS": {
+   "idname": "ShaderNodeVectorRotate",
+   "prop": "rotation_type",
+   "value": "X_AXIS"
+  },
+  "ShaderNodeVectorRotate|rotation_type|Y_AXIS": {
+   "idname": "ShaderNodeVectorRotate",
+   "prop": "rotation_type",
+   "value": "Y_AXIS"
+  },
+  "ShaderNodeVectorRotate|rotation_type|Z_AXIS": {
+   "idname": "ShaderNodeVectorRotate",
+   "prop": "rotation_type",
+   "value": "Z_AXIS"
+  },
+  "ShaderNodeVectorRotate|rotation_type|EULER_XYZ": {
+   "idname": "ShaderNodeVectorRotate",
+   "prop": "rotation_type",
+   "value": "EULER_XYZ"
+  },
+  "ShaderNodeVectorTransform|vector_type|POINT": {
+   "idname": "ShaderNodeVectorTransform",
+   "prop": "vector_type",
+   "value": "POINT"
+  },
+  "ShaderNodeVectorTransform|vector_type|VECTOR": {
+   "idname": "ShaderNodeVectorTransform",
+   "prop": "vector_type",
+   "value": "VECTOR"
+  },
+  "ShaderNodeVectorTransform|vector_type|NORMAL": {
+   "idname": "ShaderNodeVectorTransform",
+   "prop": "vector_type",
+   "value": "NORMAL"
+  },
+  "ShaderNodeVectorTransform|convert_from|WORLD": {
+   "idname": "ShaderNodeVectorTransform",
+   "prop": "convert_from",
+   "value": "WORLD"
+  },
+  "ShaderNodeVectorTransform|convert_from|OBJECT": {
+   "idname": "ShaderNodeVectorTransform",
+   "prop": "convert_from",
+   "value": "OBJECT"
+  },
+  "ShaderNodeVectorTransform|convert_from|CAMERA": {
+   "idname": "ShaderNodeVectorTransform",
+   "prop": "convert_from",
+   "value": "CAMERA"
+  },
+  "ShaderNodeVectorTransform|convert_to|WORLD": {
+   "idname": "ShaderNodeVectorTransform",
+   "prop": "convert_to",
+   "value": "WORLD"
+  },
+  "ShaderNodeVectorTransform|convert_to|OBJECT": {
+   "idname": "ShaderNodeVectorTransform",
+   "prop": "convert_to",
+   "value": "OBJECT"
+  },
+  "ShaderNodeVectorTransform|convert_to|CAMERA": {
+   "idname": "ShaderNodeVectorTransform",
+   "prop": "convert_to",
+   "value": "CAMERA"
+  },
+  "ShaderNodeMapRange|data_type|FLOAT": {
+   "idname": "ShaderNodeMapRange",
+   "prop": "data_type",
+   "value": "FLOAT"
+  },
+  "ShaderNodeMapRange|data_type|FLOAT_VECTOR": {
+   "idname": "ShaderNodeMapRange",
+   "prop": "data_type",
+   "value": "FLOAT_VECTOR"
+  },
+  "ShaderNodeMix|factor_mode|UNIFORM": {
+   "idname": "ShaderNodeMix",
+   "prop": "factor_mode",
+   "value": "UNIFORM"
+  },
+  "ShaderNodeMix|factor_mode|NON_UNIFORM": {
+   "idname": "ShaderNodeMix",
+   "prop": "factor_mode",
+   "value": "NON_UNIFORM"
+  },
+  "ShaderNodeBsdfToon|component|DIFFUSE": {
+   "idname": "ShaderNodeBsdfToon",
+   "prop": "component",
+   "value": "DIFFUSE"
+  },
+  "ShaderNodeBsdfToon|component|GLOSSY": {
+   "idname": "ShaderNodeBsdfToon",
+   "prop": "component",
+   "value": "GLOSSY"
+  },
+  "ShaderNodeBsdfHair|component|Reflection": {
+   "idname": "ShaderNodeBsdfHair",
+   "prop": "component",
+   "value": "Reflection"
+  },
+  "ShaderNodeBsdfHair|component|Transmission": {
+   "idname": "ShaderNodeBsdfHair",
+   "prop": "component",
+   "value": "Transmission"
+  },
+  "ShaderNodeBsdfHairPrincipled|model|CHIANG": {
+   "idname": "ShaderNodeBsdfHairPrincipled",
+   "prop": "model",
+   "value": "CHIANG"
+  },
+  "ShaderNodeBsdfHairPrincipled|model|HUANG": {
+   "idname": "ShaderNodeBsdfHairPrincipled",
+   "prop": "model",
+   "value": "HUANG"
+  },
+  "ShaderNodeBsdfHairPrincipled|parametrization|ABSORPTION": {
+   "idname": "ShaderNodeBsdfHairPrincipled",
+   "prop": "parametrization",
+   "value": "ABSORPTION"
+  },
+  "ShaderNodeBsdfHairPrincipled|parametrization|MELANIN": {
+   "idname": "ShaderNodeBsdfHairPrincipled",
+   "prop": "parametrization",
+   "value": "MELANIN"
+  },
+  "ShaderNodeBsdfHairPrincipled|parametrization|COLOR": {
+   "idname": "ShaderNodeBsdfHairPrincipled",
+   "prop": "parametrization",
+   "value": "COLOR"
+  },
+  "ShaderNodeBsdfMetallic|fresnel_type|PHYSICAL_CONDUCTOR": {
+   "idname": "ShaderNodeBsdfMetallic",
+   "prop": "fresnel_type",
+   "value": "PHYSICAL_CONDUCTOR"
+  },
+  "ShaderNodeBsdfMetallic|fresnel_type|F82": {
+   "idname": "ShaderNodeBsdfMetallic",
+   "prop": "fresnel_type",
+   "value": "F82"
+  },
+  "ShaderNodeSubsurfaceScattering|falloff|BURLEY": {
+   "idname": "ShaderNodeSubsurfaceScattering",
+   "prop": "falloff",
+   "value": "BURLEY"
+  },
+  "ShaderNodeSubsurfaceScattering|falloff|RANDOM_WALK": {
+   "idname": "ShaderNodeSubsurfaceScattering",
+   "prop": "falloff",
+   "value": "RANDOM_WALK"
+  },
+  "ShaderNodeSubsurfaceScattering|falloff|RANDOM_WALK_SKIN": {
+   "idname": "ShaderNodeSubsurfaceScattering",
+   "prop": "falloff",
+   "value": "RANDOM_WALK_SKIN"
+  },
+  "ShaderNodeBsdfSheen|distribution|ASHIKHMIN": {
+   "idname": "ShaderNodeBsdfSheen",
+   "prop": "distribution",
+   "value": "ASHIKHMIN"
+  },
+  "ShaderNodeBsdfSheen|distribution|MICROFIBER": {
+   "idname": "ShaderNodeBsdfSheen",
+   "prop": "distribution",
+   "value": "MICROFIBER"
+  },
+  "ShaderNodeVolumeScatter|phase|HENYEY_GREENSTEIN": {
+   "idname": "ShaderNodeVolumeScatter",
+   "prop": "phase",
+   "value": "HENYEY_GREENSTEIN"
+  },
+  "ShaderNodeVolumeScatter|phase|FOURNIER_FORAND": {
+   "idname": "ShaderNodeVolumeScatter",
+   "prop": "phase",
+   "value": "FOURNIER_FORAND"
+  },
+  "ShaderNodeVolumeScatter|phase|DRAINE": {
+   "idname": "ShaderNodeVolumeScatter",
+   "prop": "phase",
+   "value": "DRAINE"
+  },
+  "ShaderNodeVolumeScatter|phase|RAYLEIGH": {
+   "idname": "ShaderNodeVolumeScatter",
+   "prop": "phase",
+   "value": "RAYLEIGH"
+  },
+  "ShaderNodeVolumeScatter|phase|MIE": {
+   "idname": "ShaderNodeVolumeScatter",
+   "prop": "phase",
+   "value": "MIE"
+  },
+  "ShaderNodeTexIES|mode|INTERNAL": {
+   "idname": "ShaderNodeTexIES",
+   "prop": "mode",
+   "value": "INTERNAL"
+  },
+  "ShaderNodeTexIES|mode|EXTERNAL": {
+   "idname": "ShaderNodeTexIES",
+   "prop": "mode",
+   "value": "EXTERNAL"
+  },
+  "brick_props": {
+   "idname": "ShaderNodeTexBrick",
+   "offset": 0.3,
+   "offset_frequency": 3,
+   "squash": 1.7,
+   "squash_frequency": 4
+  },
+  "sky_props": {
+   "idname": "ShaderNodeTexSky",
+   "sun_elevation": 0.5,
+   "sun_rotation": 1.0,
+   "sun_intensity": 2.0,
+   "sun_disc": false
+  },
+  "vor_norm": {
+   "idname": "ShaderNodeTexVoronoi",
+   "normalize": true
+  },
+  "curves": {
+   "idname": "ShaderNodeRGBCurve",
+   "curves": [
+    [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      1.0,
+      1.0
+     ]
+    ],
+    [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      1.0,
+      1.0
+     ]
+    ],
+    [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      1.0,
+      1.0
+     ]
+    ],
+    [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      0.5,
+      0.800000011920929
+     ],
+     [
+      1.0,
+      1.0
+     ]
+    ]
+   ]
+  },
+  "fcurve": {
+   "idname": "ShaderNodeFloatCurve",
+   "curves": [
+    [
+     [
+      0.0,
+      0.25
+     ],
+     [
+      1.0,
+      1.0
+     ]
+    ]
+   ]
+  }
+ }
+}

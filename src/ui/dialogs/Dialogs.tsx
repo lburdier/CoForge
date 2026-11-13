@@ -3,10 +3,21 @@ import { ErrorBoundary } from '../widgets/basic';
 import { ChatPanel } from './ChatPanel';
 import { ImportReportDialog } from './ImportDialogs';
 import { AboutDialog, PreferencesDialog, RenameDialog, ShortcutsDialog } from './MiscDialogs';
-import { HostDialog, JoinDialog } from './SessionDialogs';
+import { HostDialog, JoinDialog, SessionOverlays } from './SessionDialogs';
 
-/** Affiche la boîte de dialogue désignée par `store.dialog`. */
+/** Affiche la boîte de dialogue désignée par `store.dialog`, plus celles des sessions (invitation, lien reçu). */
 export function Dialogs() {
+  return (
+    <>
+      <StoreDialog />
+      <ErrorBoundary name="Session">
+        <SessionOverlays />
+      </ErrorBoundary>
+    </>
+  );
+}
+
+function StoreDialog() {
   const dialog = useApp((s) => s.dialog);
   const epoch = useApp((s) => s.docEpoch);
   if (!dialog) return null;
