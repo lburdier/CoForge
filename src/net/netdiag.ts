@@ -10,6 +10,8 @@
 
 /** Portée d'une adresse, du point de vue d'un invité. */
 export type AddressKind =
+  /** Tunnel chiffré (*.trycloudflare.com) : joignable de partout en wss://, IP de l'hôte masquée. */
+  | 'tunnel'
   /** 127.x, ::1, localhost : cette machine seulement. */
   | 'loopback'
   /** 10/8, 172.16/12, 192.168/16, fc00::/7 : réseau local privé (même box, même Wi-Fi). */
@@ -124,6 +126,7 @@ function vpnName(iface: string | undefined, host: string): string {
 }
 
 const REACH: Record<AddressKind, string> = {
+  tunnel: 'Joignable de partout, chiffré (TLS) ; votre adresse IP n’apparaît ni dans le lien ni chez les invités',
   loopback: 'Cette machine uniquement (test local)',
   lan: 'Fonctionne seulement sur le même réseau local (même box, même Wi-Fi)',
   vpn: 'Fonctionne à distance via VPN : l’invité doit être connecté au même VPN',
@@ -134,6 +137,7 @@ const REACH: Record<AddressKind, string> = {
 };
 
 const LABEL: Record<AddressKind, string> = {
+  tunnel: 'Tunnel chiffré',
   loopback: 'Cette machine',
   lan: 'Réseau local',
   vpn: 'VPN',
@@ -142,6 +146,12 @@ const LABEL: Record<AddressKind, string> = {
   public: 'Internet',
   name: 'Nom d’hôte',
 };
+
+/** Adresse publique d'un tunnel CoForge (Cloudflare Quick Tunnel). */
+export function isTunnelHost(host: string): boolean {
+  const h = host.trim().toLowerCase();
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)*\.trycloudflare\.com$/.test(h) && h !== 'api.trycloudflare.com';
+}
 
 /** Hôte sans crochets IPv6 ni casse. */
 function bareHost(host: string): string {
@@ -177,13 +187,14 @@ export function classifyAddress(host: string, iface?: string): AddressClass {
     else kind = 'public';
   } else if (h.includes(':')) kind = vpnIface ? 'vpn' : classifyIPv6(h);
   else if (h.endsWith('.ts.net')) kind = 'vpn';
+  else if (isTunnelHost(h)) kind = 'tunnel';
   else kind = 'name';
   const vpn = kind === 'vpn' ? vpnName(iface, h) || (ip !== null && inRange(ip, '100.64.0.0', 10) ? 'Tailscale ?' : '') : '';
   return { kind, label: vpn ? `${LABEL.vpn} (${vpn})` : LABEL[kind], reach: REACH[kind] };
 }
 
 /** Ordre de présentation aux invités : VPN d'abord (joignable à distance), puis réseau local… `localhost` en dernier. */
-const RANK: Record<AddressKind, number> = { vpn: 0, lan: 1, public: 2, name: 3, cgnat: 4, 'link-local': 5, loopback: 6 };
+const RANK: Record<AddressKind, number> = { tunnel: -1, vpn: 0, lan: 1, public: 2, name: 3, cgnat: 4, 'link-local': 5, loopback: 6 };
 
 export function addressRank(kind: AddressKind): number {
   return RANK[kind];

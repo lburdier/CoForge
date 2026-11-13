@@ -10,6 +10,7 @@ import { Avatar, IconButton, TextField } from '../widgets/basic';
 import { MenuBar, Popover } from '../widgets/Menu';
 import { WorkspaceTabs } from './WorkspaceTabs';
 import { connectionText, pendingText, retryNow, transferPercent, useConnection, useNow } from '../dialogs/connection';
+import { maskIps } from '../lib/privacy';
 import '../dialogs/session.css';
 
 // ------------------------------------------------------------------ nom de scène
@@ -61,7 +62,7 @@ function ConnectionPopover({ anchorEl, onClose }: { anchorEl: Element | null; on
         <span>Session</span>
         <span>{session.room ?? '-'}</span>
         <span>Serveur</span>
-        <span>{session.url ?? '-'}</span>
+        <span data-tip="Adresse IP masquée (partage d’écran)">{session.url ? maskIps(session.url) : '-'}</span>
         {info.latencyMs !== null && (
           <>
             <span>Latence</span>

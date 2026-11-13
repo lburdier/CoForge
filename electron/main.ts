@@ -4,12 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describeShareAddresses, listInterfaces, probeTcp } from '../server/addresses';
 import { CollabServer } from '../server/CollabServer';
-import type { BlenderEvalResult, BlenderInfo, FileFilter, HostDiagnostics, HostInfo, HostOptions, OpenedFile } from '../src/app/platform';
+import type { BlenderEvalResult, BlenderInfo, FileFilter, HostDiagnostics, HostInfo, HostOptions, OpenedFile, TunnelToolInfo } from '../src/app/platform';
 import type { BlendEvalRequest } from '../src/engine/io/types';
 import { convertBlendBytesToGLB, convertBlendToGLB, evaluateBlend, evaluateBlendBytes, findBlender, shutdownBlenderBridge } from './blenderBridge';
 import { INVITE_SCHEME, isValidHost, parseInviteLink } from '../src/net/invite';
 import { isValidRoomName } from '../src/net/protocol';
 import { allowInFirewall, checkFirewall } from './firewall';
+import { findCloudflared, installCloudflared, startTunnel, type RunningTunnel } from './tunnel';
+import { describeShareUrls, splitWsUrl } from '../src/net/netdiag';
 import { IPC } from './ipc';
 import { checkForUpdates, currentUpdateStatus, initUpdater, installUpdateNow } from './updater';
 
@@ -26,6 +28,19 @@ let mainWindow: BrowserWindow | null = null;
 let server: CollabServer | null = null;
 /** Adresses proposées par le serveur embarqué en cours. */
 let hostedUrls: string[] = [];
+/** Tunnel chiffré de la session hébergée (mode « IP masquée »). */
+let tunnel: RunningTunnel | null = null;
+
+function stopTunnel(): void {
+  const t = tunnel;
+  tunnel = null;
+  t?.stop();
+}
+
+/** Dossier de cloudflared téléchargé par CoForge (profil de l'utilisateur, pas le dossier d'installation). */
+function tunnelBinDir(): string {
+  return path.join(app.getPath('userData'), 'bin');
+}
 
 // ------------------------------------------------------------------ liens d'invitation coforge://
 
@@ -228,11 +243,20 @@ function registerIpc(): void {
     const room = typeof opts?.room === 'string' ? opts.room.trim() : '';
     if (room !== '' && !isValidRoomName(room)) fail('Nom de session invalide');
     const given = typeof opts?.password === 'string' && opts.password !== '' ? opts.password.slice(0, 200) : undefined;
-    const access = opts?.access === 'invite' || opts?.access === 'password' || opts?.access === 'open' ? opts.access : given ? 'password' : 'open';
+    const exposure = opts?.exposure === 'tunnel' ? 'tunnel' : 'direct';
+    let access = opts?.access === 'invite' || opts?.access === 'password' || opts?.access === 'open' ? opts.access : given ? 'password' : 'open';
+    // Publiée sur Internet : jamais sans contrôle d'accès.
+    if (exposure === 'tunnel' && access === 'open') access = 'invite';
     if (access === 'password' && !given) fail('Indiquez un mot de passe');
+    let cloudflared: string | null = null;
+    if (exposure === 'tunnel') {
+      cloudflared = (await findCloudflared(tunnelBinDir())).path;
+      if (!cloudflared) fail('Module de tunnel absent : installez-le depuis le dialogue « Héberger » (cloudflared, Cloudflare)');
+    }
     // Sur invitation : mot de passe aléatoire que seul l'hôte utilise ; les invités entrent par jeton.
     const secret = access === 'invite' ? crypto.randomBytes(24).toString('base64url') : undefined;
     const password = access === 'invite' ? secret : access === 'password' ? given : undefined;
+    stopTunnel();
     if (server) {
       await server.stop();
       server = null;
@@ -244,14 +268,36 @@ function registerIpc(): void {
         port,
         password,
         rooms: room ? [room] : undefined,
-        host: '0.0.0.0',
+        // Tunnel : injoignable depuis le réseau, seul cloudflared (sur cette machine) s'y connecte.
+        host: exposure === 'tunnel' ? '127.0.0.1' : '0.0.0.0',
         log: (message) => console.log(`[serveur] ${message}`),
       });
+      if (cloudflared) {
+        let running: RunningTunnel;
+        try {
+          running = await startTunnel(cloudflared, started.port);
+        } catch (err) {
+          await instance.stop().catch(() => {});
+          throw err;
+        }
+        tunnel = running;
+        instance.setPublicOrigin({ host: running.host, port: 443, tls: true });
+        running.onExit((reason) => {
+          if (tunnel !== running) return;
+          tunnel = null;
+          mainWindow?.webContents.send(IPC.tunnelLost, `Tunnel chiffré coupé : ${reason}`);
+        });
+        server = instance;
+        const url = `wss://${running.host}`;
+        hostedUrls = [url];
+        return { port: started.port, addresses: [url], addressInfo: describeShareUrls([url]), secret, exposure };
+      }
       server = instance;
       const addressInfo = describeShareAddresses(started.port);
       hostedUrls = addressInfo.map((a) => a.url);
-      return { port: started.port, addresses: hostedUrls, addressInfo, secret };
+      return { port: started.port, addresses: hostedUrls, addressInfo, secret, exposure };
     } catch (err) {
+      if (err instanceof Error && /tunnel|cloudflared/i.test(err.message)) fail(err.message);
       const code = (err as NodeJS.ErrnoException).code;
       if (code === 'EADDRINUSE') fail(`Le port ${port} est déjà utilisé`);
       if (code === 'EACCES') fail(`Accès refusé au port ${port}`);
@@ -260,6 +306,7 @@ function registerIpc(): void {
   });
 
   ipcMain.handle(IPC.hostStop, async (): Promise<void> => {
+    stopTunnel();
     const instance = server;
     server = null;
     if (instance) await instance.stop();
@@ -366,19 +413,41 @@ function registerIpc(): void {
   });
   ipcMain.handle(IPC.hostDiagnose, async (): Promise<HostDiagnostics> => {
     const urls = server ? hostedUrls.filter((u) => !/\/\/(localhost|127\.)/.test(u)) : [];
+    const viaTunnel = !!server && !!tunnel;
     const [firewall, selfReach] = await Promise.all([
-      checkFirewall(process.execPath),
+      // Tunnel : connexion sortante uniquement, le pare-feu entrant ne joue aucun rôle.
+      viaTunnel ? Promise.resolve(null) : checkFirewall(process.execPath),
       Promise.all(
         urls.map(async (url) => {
-          const m = /^wss?:\/\/(\[[^\]]+\]|[^:/]+):(\d+)/.exec(url);
-          const r = m ? await probeTcp(m[1], Number(m[2]), 3000) : { outcome: 'error' as const };
+          const t = splitWsUrl(url);
+          const r = t ? await probeTcp(t.host, t.port, viaTunnel ? 8000 : 3000, t.tls) : { outcome: 'error' as const };
           return { url, outcome: r.outcome };
         }),
       ),
     ]);
-    return { firewall, selfReach };
+    return { firewall, selfReach, tunnel: viaTunnel };
   });
   ipcMain.handle(IPC.firewallAllow, () => allowInFirewall(process.execPath));
+
+  // ---- tunnel chiffré (IP de l'hôte masquée)
+  ipcMain.handle(IPC.tunnelInfo, async (): Promise<TunnelToolInfo> => ({ installed: (await findCloudflared(tunnelBinDir())).installed }));
+  ipcMain.handle(IPC.tunnelInstall, async (): Promise<TunnelToolInfo> => {
+    const info = await installCloudflared(tunnelBinDir(), async (url) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 180_000);
+      try {
+        const res = await net.fetch(url, { signal: controller.signal, cache: 'no-store' });
+        if (!res.ok) fail(`Téléchargement de cloudflared impossible (HTTP ${res.status})`);
+        return new Uint8Array(await res.arrayBuffer());
+      } catch (err) {
+        if ((err as Error)?.name === 'AbortError') fail('Téléchargement de cloudflared trop long : réessayez');
+        throw err;
+      } finally {
+        clearTimeout(timer);
+      }
+    });
+    return { installed: info.installed };
+  });
 
   ipcMain.handle(IPC.updateGetStatus, () => currentUpdateStatus());
   ipcMain.handle(IPC.updateCheck, () => checkForUpdates(true));
@@ -534,6 +603,8 @@ if (!app.requestSingleInstanceLock()) {
 
   // Un Blender encore au travail (import en cours) ne survit pas à l'application.
   app.on('will-quit', () => shutdownBlenderBridge());
+  // Le tunnel ne survit pas à l'application.
+  app.on('will-quit', () => stopTunnel());
 
   // Arrêt du serveur embarqué avant de quitter.
   let serverStopped = false;

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Copy, Globe, History, LogIn, LogOut, RefreshCw, Server, Trash2, UserPlus, X } from 'lucide-react';
+import { Copy, Download, Eye, EyeOff, Globe, History, LogIn, LogOut, RefreshCw, Server, ShieldCheck, Trash2, UserPlus, X } from 'lucide-react';
 import { getApp } from '../../app/context';
-import { DEFAULT_PORT, platform, type HostAccess } from '../../app/platform';
+import { DEFAULT_PORT, platform, type HostAccess, type HostExposure } from '../../app/platform';
 import {
   addPublicAlternative,
   bindInviteLinks,
@@ -18,6 +18,7 @@ import {
 import { setUser, store, toast, useApp } from '../../app/store';
 import { looksLikeInviteLink, parseInviteLink, type InviteLink } from '../../net/invite';
 import { isValidRoomName } from '../../net/protocol';
+import { containsIp, maskIps } from '../lib/privacy';
 import { copyText, isHexColor, loadStored, normalizeText, saveStored } from '../lib/util';
 import { ColorField, Hint, IconButton, Select } from '../widgets/basic';
 import { useConnection } from './connection';
@@ -77,12 +78,18 @@ interface HostPrefs {
   port: number;
   room: string;
   access?: HostAccess;
+  exposure?: HostExposure;
 }
 
 const ACCESS_OPTIONS: { value: HostAccess; label: string }[] = [
   { value: 'invite', label: 'Sur invitation (lien)' },
   { value: 'password', label: 'Mot de passe ou invitation' },
   { value: 'open', label: 'Ouvert à tout le réseau' },
+];
+
+const EXPOSURE_OPTIONS: { value: HostExposure; label: string }[] = [
+  { value: 'tunnel', label: 'Sécurisée : tunnel chiffré, IP masquée' },
+  { value: 'direct', label: 'Directe : réseau local ou VPN (IP visible)' },
 ];
 
 function HostForm() {
@@ -93,10 +100,37 @@ function HostForm() {
   const [port, setPort] = useState(String(Number.isInteger(prefs.port) ? prefs.port : DEFAULT_PORT));
   const [room, setRoom] = useState(typeof prefs.room === 'string' && isValidRoomName(prefs.room) ? prefs.room : defaultRoom());
   const [access, setAccess] = useState<HostAccess>(prefs.access === 'password' || prefs.access === 'open' ? prefs.access : 'invite');
+  const [exposure, setExposure] = useState<HostExposure>(prefs.exposure === 'direct' ? 'direct' : 'tunnel');
+  const [tunnelReady, setTunnelReady] = useState<boolean | null>(null);
+  const [installing, setInstalling] = useState(false);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const native = platform.isElectron;
+  const tunnel = exposure === 'tunnel';
+  // Publiée sur Internet : l'accès ouvert n'est pas proposé.
+  const effectiveAccess: HostAccess = tunnel && access === 'open' ? 'invite' : access;
+
+  useEffect(() => {
+    let alive = true;
+    void platform.tunnelInfo().then((i) => alive && setTunnelReady(i.installed));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const install = () => {
+    setInstalling(true);
+    setError(null);
+    platform
+      .tunnelInstall()
+      .then((i) => {
+        setTunnelReady(i.installed);
+        toast('Module de tunnel installé (signature Cloudflare vérifiée)');
+      })
+      .catch((err) => setError(errorText(err)))
+      .finally(() => setInstalling(false));
+  };
 
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
@@ -107,12 +141,13 @@ function HostForm() {
     if (!Number.isInteger(p) || p < 1024 || p > 65535) return setError('Le port doit être un entier entre 1024 et 65535.');
     const r = room.trim();
     if (!isValidRoomName(r)) return setError(ROOM_RULE);
-    if (access === 'password' && !password.trim()) return setError('Indiquez un mot de passe, ou choisissez l’accès sur invitation.');
+    if (effectiveAccess === 'password' && !password.trim()) return setError('Indiquez un mot de passe, ou choisissez l’accès sur invitation.');
+    if (tunnel && !tunnelReady) return setError('Installez d’abord le module de tunnel, ou choisissez la connexion directe.');
     setError(null);
     setBusy(true);
     try {
-      await hostSession({ port: p, room: r, password: access === 'password' ? password : undefined, access });
-      saveStored('session.host', { port: p, room: r, access });
+      await hostSession({ port: p, room: r, password: effectiveAccess === 'password' ? password : undefined, access: effectiveAccess, exposure });
+      saveStored('session.host', { port: p, room: r, access: effectiveAccess, exposure });
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -124,16 +159,16 @@ function HostForm() {
     <Dialog
       title="Héberger une session"
       icon={Server}
-      width={440}
-      busy={busy}
+      width={460}
+      busy={busy || installing}
       footer={
         <>
           <div className="cf-spacer" />
           <button type="button" className="cf-btn" disabled={busy} onClick={closeDialog}>
             Annuler
           </button>
-          <button type="button" className="cf-btn is-accent" disabled={busy || !native} onClick={() => void submit()}>
-            {busy ? 'Démarrage…' : 'Héberger'}
+          <button type="button" className="cf-btn is-accent" disabled={busy || installing || !native || (tunnel && !tunnelReady)} onClick={() => void submit()}>
+            {busy ? (tunnel ? 'Ouverture du tunnel…' : 'Démarrage…') : 'Héberger'}
           </button>
         </>
       }
@@ -143,15 +178,53 @@ function HostForm() {
         <IdentityFields name={name} color={color} onName={setName} onColor={setColor} disabled={busy} />
         <div className="cf-form-sep" />
         <Field label="Nom de la salle" value={room} onChange={setRoom} maxLength={64} disabled={busy} autoFocus />
-        <Field label="Port" type="number" value={port} onChange={setPort} min={1024} max={65535} disabled={busy} />
-        <FormRow label="Accès">
-          <Select<HostAccess> value={access} options={ACCESS_OPTIONS} onChange={(v) => setAccess(v)} disabled={busy} />
+        <FormRow label="Connexion">
+          <Select<HostExposure> value={exposure} options={EXPOSURE_OPTIONS} onChange={(v) => setExposure(v)} disabled={busy} />
         </FormRow>
-        {access === 'password' && <Field label="Mot de passe" type="password" value={password} onChange={setPassword} disabled={busy} />}
+        {tunnel ? (
+          <div className={`cf-diag ${tunnelReady === false ? 'is-warn' : 'is-ok'}`}>
+            <div className="cf-diag-title">
+              <ShieldCheck size={14} />
+              <span>Votre adresse IP n’apparaît ni dans le lien ni chez les invités.</span>
+            </div>
+            <p className="cf-diag-detail">
+              Le serveur n’écoute que sur cette machine ; un tunnel chiffré (cloudflared, de Cloudflare) le publie à une adresse temporaire
+              https://….trycloudflare.com. Les invités s’y connectent en TLS depuis n’importe quel réseau, sans pare-feu ni box à régler. Le trafic transite
+              par Cloudflare.
+            </p>
+            {tunnelReady === false && (
+              <>
+                <p className="cf-diag-detail">
+                  Module de tunnel absent. Il sera téléchargé depuis la page officielle de Cloudflare (github.com/cloudflare/cloudflared, environ 60 Mo) et
+                  conservé seulement si sa signature numérique est bien celle de Cloudflare.
+                </p>
+                <div className="cf-invite-row">
+                  <button type="button" className="cf-btn is-accent" disabled={installing || !native} onClick={install}>
+                    <Download size={12} /> {installing ? 'Téléchargement et vérification…' : 'Installer le module de tunnel'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <>
+            <Field label="Port" type="number" value={port} onChange={setPort} min={1024} max={65535} disabled={busy} />
+            <div className="cf-invite-warn">Connexion directe : le lien contient l’adresse IP de cette machine et le trafic n’est pas chiffré.</div>
+          </>
+        )}
+        <FormRow label="Accès">
+          <Select<HostAccess>
+            value={effectiveAccess}
+            options={tunnel ? ACCESS_OPTIONS.filter((o) => o.value !== 'open') : ACCESS_OPTIONS}
+            onChange={(v) => setAccess(v)}
+            disabled={busy}
+          />
+        </FormRow>
+        {effectiveAccess === 'password' && <Field label="Mot de passe" type="password" value={password} onChange={setPassword} disabled={busy} />}
         <Hint>
-          {access === 'invite'
+          {effectiveAccess === 'invite'
             ? 'Seules les personnes à qui vous envoyez un lien d’invitation peuvent entrer (aucun mot de passe à communiquer).'
-            : access === 'password'
+            : effectiveAccess === 'password'
               ? 'Entrée avec le mot de passe, ou par lien d’invitation (l’invité ne voit jamais le mot de passe).'
               : 'Toute personne qui connaît l’adresse de cette machine peut entrer, sans contrôle.'}
         </Hint>
@@ -195,9 +268,16 @@ export function InviteDialog({ onClose = closeInviteDialog }: { onClose?(): void
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [publicIp, setPublicIp] = useState<string | null>(null);
+  const [publicAlt, setPublicAlt] = useState<ReturnType<typeof addPublicAlternative>>(null);
   const [ipBusy, setIpBusy] = useState(false);
   const [stopping, setStopping] = useState(false);
+  // Adresses IP masquées à l'écran par défaut (partage d'écran, stream) ; les copies restent exactes.
+  const [reveal, setReveal] = useState(false);
+  const exposure = useSessionUi((s) => s.exposure);
   const inSession = session.status !== 'offline';
+  const viaTunnel = session.hosting && exposure === 'tunnel';
+  const shown = (text: string) => (reveal ? text : maskIps(text));
+  const hasIp = !!invite && (containsIp(invite.link) || invite.alternatives.some((a) => containsIp(a.address)));
   const canCreate = conn.role === 'admin' && conn.secured === true;
 
   const create = async (copy: boolean) => {
@@ -262,11 +342,29 @@ export function InviteDialog({ onClose = closeInviteDialog }: { onClose?(): void
           <p className="cf-dialog-text">
             Envoyez ce lien à vos invités : un clic ouvre CoForge et propose de rejoindre la session <b>{session.room}</b>.
           </p>
+          {viaTunnel && (
+            <div className="cf-invite-ok">
+              <ShieldCheck size={12} /> Tunnel chiffré : votre adresse IP n’apparaît pas dans le lien et les invités ne la voient pas.
+            </div>
+          )}
+          {session.hosting && !viaTunnel && (
+            <div className="cf-invite-warn">
+              Connexion directe : ces liens contiennent l’adresse IP de cette machine (masquée à l’écran) et le trafic n’est pas chiffré. Pour la cacher aussi aux
+              invités, arrêtez la session et hébergez-la en « Sécurisée : tunnel chiffré ».
+            </div>
+          )}
           {invite ? (
             <>
               <div className="cf-invite-link">
-                <input readOnly value={invite.link} onFocus={(e) => e.currentTarget.select()} aria-label="Lien d’invitation" />
+                <input readOnly value={shown(invite.link)} onFocus={(e) => reveal && e.currentTarget.select()} aria-label="Lien d’invitation" />
                 <IconButton icon={Copy} tip="Copier le lien" onClick={() => void copyLink(invite.link)} />
+                {hasIp && (
+                  <IconButton
+                    icon={reveal ? EyeOff : Eye}
+                    tip={reveal ? 'Masquer les adresses IP' : 'Afficher les adresses IP (attention au partage d’écran)'}
+                    onClick={() => setReveal((v) => !v)}
+                  />
+                )}
               </div>
               <div className="cf-invite-meta">
                 {invite.open
@@ -276,7 +374,7 @@ export function InviteDialog({ onClose = closeInviteDialog }: { onClose?(): void
                     : 'Le lien par lequel vous êtes entré (l’hôte peut le révoquer).'}
               </div>
               <div className="cf-invite-link">
-                <input readOnly value={invite.webLink} onFocus={(e) => e.currentTarget.select()} aria-label="Lien web" />
+                <input readOnly value={shown(invite.webLink)} onFocus={(e) => reveal && e.currentTarget.select()} aria-label="Lien web" />
                 <IconButton icon={Globe} tip="Copier la variante web (cliquable dans les messageries)" onClick={() => void copyLink(invite.webLink, 'Lien web copié dans le presse-papiers')} />
               </div>
               <div className="cf-invite-meta">
@@ -317,9 +415,9 @@ export function InviteDialog({ onClose = closeInviteDialog }: { onClose?(): void
 
           {invite && invite.alternatives.length > 0 && (
             <div className="cf-invite-section">
-              <h4>{session.hosting ? 'Adresses de cette machine' : 'Adresse du serveur'}</h4>
-              <AddressList alternatives={invite.alternatives} onCopy={(l) => void copyLink(l)} />
-              {session.hosting && (
+              <h4>{viaTunnel ? 'Adresse publique (tunnel)' : session.hosting ? 'Adresses de cette machine' : 'Adresse du serveur'}</h4>
+              <AddressList alternatives={invite.alternatives} onCopy={(l) => void copyLink(l)} masked={!reveal} />
+              {session.hosting && !viaTunnel && (
                 <Hint>
                   Le lien principal utilise la première adresse. Une adresse de réseau local (10.x, 172.16-31.x, 192.168.x) ne fonctionne que pour les
                   invités branchés sur le même réseau ; depuis un autre réseau, utilisez un VPN maillé (adresse 100.x).
@@ -330,11 +428,11 @@ export function InviteDialog({ onClose = closeInviteDialog }: { onClose?(): void
 
           {session.hosting && <HostNetworkCheck />}
 
-          {session.hosting && (
+          {session.hosting && !viaTunnel && (
             <div className="cf-invite-section">
               <h4>Invités sur un autre réseau</h4>
               {publicIp ? (
-                <PublicAddressRow alt={invite ? addPublicAlternative(publicIp) : null} ip={publicIp} />
+                <PublicAddressRow alt={publicAlt} ip={publicIp} masked={!reveal} />
               ) : (
                 <button
                   type="button"
@@ -345,7 +443,10 @@ export function InviteDialog({ onClose = closeInviteDialog }: { onClose?(): void
                     setIpBusy(true);
                     platform
                       .publicAddress()
-                      .then(setPublicIp)
+                      .then((ip) => {
+                        setPublicIp(ip);
+                        setPublicAlt(addPublicAlternative(ip));
+                      })
                       .catch((err) => setError(errorText(err)))
                       .finally(() => setIpBusy(false));
                   }}

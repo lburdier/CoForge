@@ -202,6 +202,25 @@ export class CollabServer {
   private heartbeatMs = 5000;
   private invites = new InviteRegistry();
   private authFailures = new Map<string, { count: number; since: number }>();
+  /**
+   * Adresse publique quand le serveur est publié par un tunnel (cloudflared) : sert aux liens de la
+   * page /join, et signale que les connexions locales viennent du tunnel (adresse réelle de l'invité
+   * dans l'en-tête CF-Connecting-IP).
+   */
+  private publicOrigin: { host: string; port: number; tls: boolean } | null = null;
+
+  setPublicOrigin(origin: { host: string; port: number; tls: boolean } | null): void {
+    this.publicOrigin = origin && isValidHost(origin.host) ? { ...origin } : null;
+  }
+
+  /** Clé de limitation des échecs d'authentification : derrière le tunnel, toutes les connexions arrivent de 127.0.0.1. */
+  private clientKey(req: http.IncomingMessage): string {
+    const ip = req.socket.remoteAddress ?? '?';
+    if (!this.publicOrigin || !/^(::ffff:)?127\.|^::1$/.test(ip)) return ip;
+    const forwarded = req.headers['cf-connecting-ip'];
+    const value = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.trim() ?? '';
+    return /^[0-9a-f:.]{2,45}$/i.test(value) ? `tunnel:${value}` : ip;
+  }
   private chunkIds = 0;
 
   /** Démarre l'écoute. Rejette (erreur Node, ex. code `EADDRINUSE`) si le port est indisponible. */
@@ -358,7 +377,8 @@ export class CollabServer {
       res.end(
         req.method === 'HEAD'
           ? undefined
-          : JSON.stringify({ name: 'coforge-server', version: SERVER_VERSION, protocol: PROTOCOL_VERSION, secured: this.secured, rooms: this.getRooms() }),
+          : // Serveur protégé : la liste des salles (noms, participants) n'est pas publique.
+            JSON.stringify({ name: 'coforge-server', version: SERVER_VERSION, protocol: PROTOCOL_VERSION, secured: this.secured, ...(this.secured ? {} : { rooms: this.getRooms() }) }),
       );
       return;
     }
@@ -377,10 +397,11 @@ export class CollabServer {
   private serveJoinPage(req: http.IncomingMessage, res: http.ServerResponse, url: URL): void {
     const room = url.searchParams.get('room') ?? '';
     const token = url.searchParams.get('token');
-    const hostHeader = (req.headers.host ?? '').toLowerCase();
+    const pub = this.publicOrigin;
+    const hostHeader = pub ? pub.host : (req.headers.host ?? '').toLowerCase();
     const hp = /^(\[[^\]]+\]|[^:]+)(?::(\d{1,5}))?$/.exec(hostHeader);
-    const tls = (req.headers['x-forwarded-proto'] ?? '') === 'https';
-    const port = hp?.[2] ? Number(hp[2]) : tls ? 443 : 80;
+    const tls = pub ? pub.tls : (req.headers['x-forwarded-proto'] ?? '') === 'https';
+    const port = pub ? pub.port : hp?.[2] ? Number(hp[2]) : tls ? 443 : 80;
     let link: string | null = null;
     if (hp && isValidHost(hp[1]) && isValidRoomName(room) && (token === null || isValidToken(token))) {
       try {
@@ -439,7 +460,7 @@ pre{background:#303030;padding:10px;border-radius:4px;white-space:pre-wrap;word-
       this.log(`Erreur de socket : ${errorText(err)}`);
       ws.terminate();
     });
-    const ip = req.socket.remoteAddress ?? '?';
+    const ip = this.clientKey(req);
 
     let roomName = '';
     let params = new URLSearchParams();

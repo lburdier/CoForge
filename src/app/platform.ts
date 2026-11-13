@@ -18,6 +18,19 @@ import { guessOutcome, type LocalNet, type ProbeResult, type ShareAddress } from
  */
 export type HostAccess = 'invite' | 'password' | 'open';
 
+/**
+ * Publication d'une session hébergée :
+ * - `tunnel` : tunnel chiffré (cloudflared) ; le serveur n'écoute que sur 127.0.0.1, les invités
+ *   passent par une adresse https://….trycloudflare.com en wss:// : l'IP de l'hôte n'apparaît nulle part ;
+ * - `direct` : le serveur écoute sur toutes les interfaces, les liens contiennent l'IP de la machine.
+ */
+export type HostExposure = 'tunnel' | 'direct';
+
+/** Module de tunnel (cloudflared) sur cette machine. */
+export interface TunnelToolInfo {
+  installed: boolean;
+}
+
 export interface HostOptions {
   port: number;
   password?: string;
@@ -25,6 +38,8 @@ export interface HostOptions {
   room?: string;
   /** Défaut : `password` si un mot de passe est donné, sinon `open`. */
   access?: HostAccess;
+  /** Défaut : `direct`. */
+  exposure?: HostExposure;
 }
 
 export interface HostInfo {
@@ -35,6 +50,8 @@ export interface HostInfo {
   secret?: string;
   /** Les mêmes adresses classées (VPN, réseau local…) avec leur portée et leur interface (versions ≥ 0.5.1). */
   addressInfo?: ShareAddress[];
+  /** Publication réellement utilisée (`tunnel` : adresses = l'adresse publique du tunnel seulement). */
+  exposure?: HostExposure;
 }
 
 /** Pare-feu Windows vis-à-vis du serveur hébergé (voir electron/firewall.ts). */
@@ -50,6 +67,8 @@ export interface HostDiagnostics {
   firewall: FirewallInfo | null;
   /** Le serveur répond-il sur chacune des adresses proposées, depuis cette machine ? */
   selfReach: { url: string; outcome: ProbeResult['outcome'] }[];
+  /** Session publiée par le tunnel chiffré : aucune connexion entrante, le pare-feu n'intervient pas. */
+  tunnel?: boolean;
 }
 
 export interface OpenedFile {
@@ -161,6 +180,12 @@ export interface NativeBridge {
   hostDiagnose?(): Promise<HostDiagnostics>;
   /** Hôte : crée la règle de pare-feu entrante pour les profils Privé et Public (demande d'élévation UAC). */
   firewallAllow?(): Promise<FirewallInfo | null>;
+  /** Le module de tunnel (cloudflared) est-il présent ? */
+  tunnelInfo?(): Promise<TunnelToolInfo>;
+  /** Télécharge cloudflared depuis Cloudflare (GitHub) et vérifie sa signature (demande explicite). */
+  tunnelInstall?(): Promise<TunnelToolInfo>;
+  /** Le tunnel de la session hébergée s'est coupé (raison en français). */
+  onTunnelLost?(cb: (reason: string) => void): void;
 }
 
 declare global {
@@ -310,6 +335,17 @@ export const platform = {
     const bridge = native();
     if (!bridge?.firewallAllow) return Promise.reject(new Error('Mettez CoForge à jour pour régler le pare-feu depuis l’application.'));
     return bridge.firewallAllow();
+  },
+  tunnelInfo(): Promise<TunnelToolInfo> {
+    return native()?.tunnelInfo?.() ?? Promise.resolve({ installed: false });
+  },
+  tunnelInstall(): Promise<TunnelToolInfo> {
+    const bridge = native();
+    if (!bridge?.tunnelInstall) return Promise.reject(new Error('Le tunnel chiffré n’est disponible que dans l’application Windows.'));
+    return bridge.tunnelInstall();
+  },
+  onTunnelLost(cb: (reason: string) => void): void {
+    native()?.onTunnelLost?.(cb);
   },
 };
 

@@ -6,7 +6,7 @@ import { buildInviteLink, buildWebInviteLink, inviteServerUrl, parseInviteLink, 
 import type { InviteOptions } from '../net/api';
 import { classifyAddress, describeShareUrls, diagnose, splitWsUrl, type AddressKind, type Diagnosis, type ProbeResult, type ShareAddress } from '../net/netdiag';
 import { getApp } from './context';
-import { platform, type HostAccess, type HostDiagnostics } from './platform';
+import { platform, type HostAccess, type HostDiagnostics, type HostExposure } from './platform';
 import { patchSession, store, toast } from './store';
 
 /**
@@ -72,9 +72,11 @@ export interface SessionUiState {
   shareInfo: ShareAddress[];
   /** Hôte : pare-feu et joignabilité du serveur (null tant que non vérifié). */
   hostDiag: HostDiagnostics | null;
+  /** Hôte : publication de la session (tunnel chiffré, IP masquée ; ou directe), null hors hébergement. */
+  exposure: HostExposure | null;
 }
 
-export const sessionUi = createStore<SessionUiState>(() => ({ inviteOpen: false, pendingLink: null, lastInvite: null, shareInfo: [], hostDiag: null }));
+export const sessionUi = createStore<SessionUiState>(() => ({ inviteOpen: false, pendingLink: null, lastInvite: null, shareInfo: [], hostDiag: null, exposure: null }));
 
 export function useSessionUi<T>(selector: (s: SessionUiState) => T): T {
   return useStore(sessionUi, selector);
@@ -90,13 +92,15 @@ export function closeInviteDialog(): void {
 
 // ------------------------------------------------------------------ héberger, rejoindre, quitter
 
-export async function hostSession(opts: { port: number; room: string; password?: string; access?: HostAccess }): Promise<void> {
+export async function hostSession(opts: { port: number; room: string; password?: string; access?: HostAccess; exposure?: HostExposure }): Promise<void> {
   const app = getApp();
   if (store.getState().session.status !== 'offline') await leaveSession();
   const room = opts.room.trim();
   const password = opts.password?.trim() || undefined;
-  const access: HostAccess = opts.access ?? (password ? 'password' : 'open');
-  const info = await platform.hostStart({ port: opts.port, password, room, access });
+  const exposure: HostExposure = opts.exposure ?? 'direct';
+  // Publiée sur Internet par le tunnel : jamais sans contrôle d'accès (le processus principal l'impose aussi).
+  const access: HostAccess = exposure === 'tunnel' && opts.access === 'open' ? 'invite' : (opts.access ?? (password ? 'password' : 'open'));
+  const info = await platform.hostStart({ port: opts.port, password, room, access, exposure });
   try {
     // 127.0.0.1 plutôt que « localhost » : sous Windows, localhost peut d'abord résoudre en ::1 (IPv6).
     await app.collab.connect(app.doc, { url: `ws://127.0.0.1:${info.port}`, room, password: access === 'invite' ? info.secret : password });
@@ -105,9 +109,14 @@ export async function hostSession(opts: { port: number; room: string; password?:
     throw err;
   }
   patchSession({ hosting: true, shareAddresses: info.addresses });
-  sessionUi.setState({ lastInvite: null, shareInfo: info.addressInfo?.length ? info.addressInfo : describeShareUrls(info.addresses), hostDiag: null });
+  sessionUi.setState({
+    lastInvite: null,
+    shareInfo: info.addressInfo?.length ? info.addressInfo : describeShareUrls(info.addresses),
+    hostDiag: null,
+    exposure: info.exposure ?? 'direct',
+  });
   void refreshHostDiagnostics();
-  toast(`Session « ${room} » hébergée sur le port ${info.port}`);
+  toast(info.exposure === 'tunnel' ? `Session « ${room} » hébergée par tunnel chiffré : votre adresse IP est masquée` : `Session « ${room} » hébergée sur le port ${info.port}`);
 }
 
 export async function joinSession(opts: { url: string; room: string; password?: string; token?: string }): Promise<void> {
@@ -150,7 +159,7 @@ export async function leaveSession(): Promise<void> {
   if (hosting) await platform.hostStop().catch(() => {});
   patchSession({ status: 'offline', hosting: false, shareAddresses: [], url: null, room: null, peers: [], error: null });
   store.setState({ followClientId: null, followPlaybackClientId: null });
-  sessionUi.setState({ inviteOpen: false, lastInvite: null, shareInfo: [], hostDiag: null });
+  sessionUi.setState({ inviteOpen: false, lastInvite: null, shareInfo: [], hostDiag: null, exposure: null });
 }
 
 // ------------------------------------------------------------------ invitations
@@ -174,7 +183,7 @@ function inviteTargets(): InviteTarget[] {
     if (t && !out.some((o) => o.host === t.host && o.port === t.port)) out.push({ ...t, cls: classifyAddress(t.host, iface), iface });
   };
   const info = sessionUi.getState().shareInfo;
-  if (s.hosting && info.length) for (const a of info) add({ host: a.host, port: a.port, tls: false }, a.iface);
+  if (s.hosting && info.length) for (const a of info) add({ host: a.host, port: a.port, tls: /^wss:/i.test(a.url) }, a.iface);
   else for (const a of s.hosting && s.shareAddresses.length ? describeShareUrls(s.shareAddresses).map((x) => x.url) : s.url ? [s.url] : []) add(splitWsUrl(a));
   // Un hôte qui s'est connecté par 127.0.0.1 : cette adresse n'a pas de sens pour un invité, sauf en dernier recours.
   out.sort((a, b) => Number(a.cls.kind === 'loopback') - Number(b.cls.kind === 'loopback'));
@@ -310,4 +319,9 @@ export function bindInviteLinks(): void {
   };
   platform.onInviteLink(take);
   take();
+  // Tunnel chiffré coupé (réseau perdu, cloudflared arrêté) : les invités ne peuvent plus entrer.
+  platform.onTunnelLost((reason) => {
+    if (!store.getState().session.hosting) return;
+    toast(`${reason}. Les invités ne peuvent plus rejoindre : relancez l’hébergement.`, 'error');
+  });
 }

@@ -4,6 +4,7 @@ import { allowHostInFirewall, refreshHostDiagnostics, testConnection, useSession
 import { toast } from '../../app/store';
 import type { InviteLink } from '../../net/invite';
 import { selfReachWarning, type AddressKind } from '../../net/netdiag';
+import { maskIps } from '../lib/privacy';
 import { Hint, IconButton } from '../widgets/basic';
 
 /**
@@ -130,6 +131,7 @@ export function RemoteHelp({ open }: { open?: boolean }) {
 // ------------------------------------------------------------------ hôte : adresses et pare-feu
 
 const KIND_CLASS: Record<AddressKind, string> = {
+  tunnel: 'is-vpn',
   vpn: 'is-vpn',
   lan: 'is-lan',
   public: 'is-public',
@@ -140,13 +142,13 @@ const KIND_CLASS: Record<AddressKind, string> = {
 };
 
 /** Liste des liens par adresse, chacun avec sa portée (« fonctionne seulement sur le même réseau local »…). */
-export function AddressList({ alternatives, onCopy }: { alternatives: InviteAlternative[]; onCopy(link: string): void }) {
+export function AddressList({ alternatives, onCopy, masked = false }: { alternatives: InviteAlternative[]; onCopy(link: string): void; masked?: boolean }) {
   return (
     <div className="cf-addr-list">
       {alternatives.map((a, i) => (
         <div key={a.address} className={`cf-addr ${KIND_CLASS[a.kind]}${i === 0 ? ' is-primary' : ''}`}>
           <span className="cf-addr-badge">{a.label}</span>
-          <code data-tip={a.iface ? `Interface « ${a.iface} »` : undefined}>{a.address}</code>
+          <code data-tip={a.iface ? `Interface « ${a.iface} »` : undefined}>{masked ? maskIps(a.address) : a.address}</code>
           <IconButton icon={Link2} tip="Copier le lien pour cette adresse" onClick={() => onCopy(a.link)} />
           <div className="cf-addr-reach">{a.reach}</div>
         </div>
@@ -169,6 +171,52 @@ export function HostNetworkCheck() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Tunnel tout neuf : son nom met quelques secondes à être publié par Cloudflare ; on revérifie seul.
+  const tunnelRetries = useRef(0);
+  const tunnelUnreached = !!diag?.tunnel && selfReachWarning(diag.selfReach) !== null;
+  useEffect(() => {
+    if (!tunnelUnreached || tunnelRetries.current >= 6) return;
+    tunnelRetries.current++;
+    const timer = setTimeout(() => {
+      setChecking(true);
+      void refreshHostDiagnostics().finally(() => setChecking(false));
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [tunnelUnreached, diag]);
+
+  if (diag?.tunnel) {
+    const reach = selfReachWarning(diag.selfReach);
+    return (
+      <div className="cf-invite-section">
+        <h4>Sécurité de la connexion</h4>
+        <div className={`cf-diag ${reach ? 'is-warn' : 'is-ok'}`}>
+          <div className="cf-diag-title">
+            {reach ? <AlertTriangle size={14} /> : <ShieldCheck size={14} />}
+            <span>{reach ? 'Le tunnel ne répond pas encore depuis Internet : patientez quelques secondes puis revérifiez.' : 'Tunnel chiffré actif et joignable depuis Internet.'}</span>
+          </div>
+          <p className="cf-diag-detail">
+            Le serveur n’écoute que sur cette machine (aucune connexion entrante, rien à ouvrir dans le pare-feu ni sur la box). Les invités passent par Cloudflare en
+            wss:// (TLS) : votre adresse IP ne figure pas dans le lien et ils ne la voient pas. L’adresse du tunnel change à chaque session et disparaît à l’arrêt ; seuls
+            les liens d’invitation (jetons révocables) donnent accès à la salle.
+          </p>
+        </div>
+        <div className="cf-invite-row">
+          <button
+            type="button"
+            className="cf-btn"
+            disabled={checking}
+            onClick={() => {
+              setChecking(true);
+              void refreshHostDiagnostics().finally(() => setChecking(false));
+            }}
+          >
+            {checking ? 'Vérification…' : 'Revérifier'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const fw = diag?.firewall ?? null;
   const reach = diag ? selfReachWarning(diag.selfReach) : null;
@@ -236,13 +284,13 @@ export function HostNetworkCheck() {
 }
 
 /** Ligne « adresse Internet » (obtenue sur clic explicite) avec son lien et sa condition. */
-export function PublicAddressRow({ alt, ip }: { alt: InviteAlternative | null; ip: string }) {
+export function PublicAddressRow({ alt, ip, masked = false }: { alt: InviteAlternative | null; ip: string; masked?: boolean }) {
   return (
     <div className="cf-addr is-public">
       <span className="cf-addr-badge">
         <Globe size={10} /> Internet
       </span>
-      <code>{alt ? alt.address : ip}</code>
+      <code>{masked ? maskIps(alt ? alt.address : ip) : alt ? alt.address : ip}</code>
       <IconButton
         icon={alt ? Link2 : Copy}
         tip={alt ? 'Copier le lien avec l’adresse Internet' : 'Copier'}

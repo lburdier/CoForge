@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import pkg from '../package.json';
-import type { BlendSource, BlenderEvalResult, BlenderInfo, FileFilter, FirewallInfo, HostDiagnostics, HostInfo, HostOptions, NativeBridge, OpenedFile, UpdateStatus } from '../src/app/platform';
+import type { BlendSource, BlenderEvalResult, BlenderInfo, FileFilter, FirewallInfo, HostDiagnostics, HostInfo, HostOptions, NativeBridge, OpenedFile, TunnelToolInfo, UpdateStatus } from '../src/app/platform';
 import type { LocalNet, ProbeResult } from '../src/net/netdiag';
 import type { BlendEvalRequest } from '../src/engine/io/types';
 import { IPC } from './ipc';
@@ -54,7 +54,7 @@ function blendSource(source: BlendSource): BlendSource {
 
 const bridge: NativeBridge = {
   version: pkg.version,
-  hostStart: (opts: HostOptions): Promise<HostInfo> => invoke(IPC.hostStart, { port: opts.port, password: opts.password, room: opts.room, access: opts.access }),
+  hostStart: (opts: HostOptions): Promise<HostInfo> => invoke(IPC.hostStart, { port: opts.port, password: opts.password, room: opts.room, access: opts.access, exposure: opts.exposure }),
   hostStop: (): Promise<void> => invoke(IPC.hostStop),
   openFile: async (filters: FileFilter[], title?: string): Promise<OpenedFile | null> => {
     const file = await invoke<OpenedFile | null>(IPC.openFile, filters, title);
@@ -105,6 +105,12 @@ const bridge: NativeBridge = {
   netProbe: (host: string, port: number, tls?: boolean): Promise<ProbeResult> => invoke(IPC.netProbe, String(host), Number(port), tls === true),
   hostDiagnose: (): Promise<HostDiagnostics> => invoke(IPC.hostDiagnose),
   firewallAllow: (): Promise<FirewallInfo | null> => invoke(IPC.firewallAllow),
+  tunnelInfo: (): Promise<TunnelToolInfo> => invoke(IPC.tunnelInfo),
+  tunnelInstall: (): Promise<TunnelToolInfo> => invoke(IPC.tunnelInstall),
+  onTunnelLost: (cb: (reason: string) => void): void => {
+    ipcRenderer.removeAllListeners(IPC.tunnelLost);
+    ipcRenderer.on(IPC.tunnelLost, (_event, reason: unknown) => cb(typeof reason === 'string' ? reason : 'Tunnel coupé'));
+  },
 };
 
 contextBridge.exposeInMainWorld('coforge', bridge);

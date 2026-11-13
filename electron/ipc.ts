@@ -42,4 +42,10 @@ export const IPC = {
   hostDiagnose: 'coforge:host-diagnose',
   /** renderer → main : crée la règle de pare-feu entrante (Privé + Public), avec élévation UAC. */
   firewallAllow: 'coforge:firewall-allow',
+  /** renderer → main : le module de tunnel (cloudflared) est-il présent ? */
+  tunnelInfo: 'coforge:tunnel-info',
+  /** renderer → main : télécharge et vérifie cloudflared (demande explicite de l'utilisateur). */
+  tunnelInstall: 'coforge:tunnel-install',
+  /** main → renderer : le tunnel de la session hébergée s'est coupé (raison). */
+  tunnelLost: 'coforge:tunnel-lost',
 } as const;
